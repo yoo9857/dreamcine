@@ -25,7 +25,15 @@ configure_deploy_user() {
     useradd --create-home --shell /bin/bash "${DEPLOY_USER}"
   fi
   usermod --append --groups docker "${DEPLOY_USER}"
+  case "${DEPLOY_ROOT}" in
+    /opt/*) ;;
+    *)
+      printf 'ERROR: DEPLOY_ROOT must be a child of /opt: %s\n' "${DEPLOY_ROOT}" >&2
+      exit 1
+      ;;
+  esac
   install -d -m 0750 -o "${DEPLOY_USER}" -g "${DEPLOY_USER}" "${DEPLOY_ROOT}"
+  chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${DEPLOY_ROOT}"
 
   if [[ -n "${DEPLOY_PUBLIC_KEY:-}" ]]; then
     install -d -m 0700 -o "${DEPLOY_USER}" -g "${DEPLOY_USER}" "${DEPLOY_HOME}/.ssh"
