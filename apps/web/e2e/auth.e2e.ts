@@ -178,6 +178,80 @@ test('미인증 사용자는 스튜디오에서 로그인으로 리다이렉트�
   await expect(page).toHaveURL(/\/login\?next=%2Fstudio/u)
 })
 
+test('테마 토글이 서버 렌더에 반영된다 (깜빡임 없음)', async ({ page }) => {
+  await page.goto('/login')
+  const html = page.locator('html')
+
+  // 쿠키가 없으면 시스템 설정을 따른다 — data-theme 을 붙이지 않는다.
+  await expect(html).not.toHaveAttribute('data-theme', /.+/u)
+
+  await page.getByRole('button', { name: /바꾸기$/u }).click()
+  await expect(html).toHaveAttribute('data-theme', 'light')
+
+  // 새로고침해도 유지된다 (쿠키에 남는다).
+  await page.reload()
+  await expect(html).toHaveAttribute('data-theme', 'light')
+
+  // 핵심: 테마가 **서버가 보낸 HTML** 에 이미 들어있다. 하이드레이션 뒤에
+  // 클래스를 붙이는 방식이면 첫 페인트에 깜빡임이 생긴다. (OBS-005)
+  const response = await page.request.get('/login')
+  expect(await response.text()).toContain('data-theme="light"')
+})
+
+test('키보드만으로 로그인을 완주한다', async ({ page }) => {
+  const user = account()
+
+  await page.goto('/signup')
+  await fillSignup(page, user)
+  await page.click('button[type="submit"]')
+  await expect(page.getByTestId('signup-sent')).toBeVisible()
+
+  const tokens = await findVerificationTokensFor(
+    `${VERIFY_TOKEN_PREFIX}${user.email}`,
+  )
+  await page.goto(`/verify?token=${encodeURIComponent(tokens[0]?.token ?? '')}`)
+  await expect(page.getByTestId('verify-success')).toBeVisible()
+
+  // 10_NFR §10 — 모든 기능을 키보드만으로 조작할 수 있어야 한다.
+  await page.goto('/login')
+  const emailField = page.locator('input[name="email"]')
+  for (let step = 0; step < 10; step += 1) {
+    if (await emailField.evaluate((node) => node === document.activeElement)) {
+      break
+    }
+    await page.keyboard.press('Tab')
+  }
+  await expect(emailField).toBeFocused()
+
+  await page.keyboard.type(user.email)
+  await page.keyboard.press('Tab')
+  await expect(page.locator('input[name="password"]')).toBeFocused()
+  await page.keyboard.type(user.password)
+  await page.keyboard.press('Enter')
+
+  await expect
+    .poll(async () => (await page.request.get('/api/me')).status(), {
+      timeout: 15_000,
+    })
+    .toBe(200)
+})
+
+test('입력 오류가 해당 입력에 연결되어 읽힌다', async ({ page }) => {
+  await page.goto('/signup')
+  await page.fill('input[name="email"]', 'not-an-email')
+  await page.fill('input[name="handle"]', 'ab')
+  await page.fill('input[name="displayName"]', '이름')
+  await page.fill('input[name="password"]', 'short')
+  await page.click('button[type="submit"]')
+
+  // 08_UIUX §10 — 어디를 고쳐야 하는지 알 수 있어야 한다.
+  const email = page.locator('input[name="email"]')
+  await expect(email).toHaveAttribute('aria-invalid', 'true')
+  const describedBy = await email.getAttribute('aria-describedby')
+  expect(describedBy).toBeTruthy()
+  await expect(page.locator(`#${describedBy ?? ''}`)).toBeVisible()
+})
+
 test('API 응답에 X-Request-Id 가 있고 no-store 다', async ({ request }) => {
   const response = await request.get('/api/health')
 

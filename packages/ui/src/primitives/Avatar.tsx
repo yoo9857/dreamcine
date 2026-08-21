@@ -56,8 +56,10 @@ export function Avatar({
       )}
       <RadixAvatar.Fallback
         // 이미지가 없을 때만 보인다. 이름을 읽어주므로 aria-hidden 하지 않는다.
+        //
+        // `delayMs` 를 주면 Radix 가 타이머로 렌더를 미룬다. 값이 0 이어도
+        // 한 틱 늦어져 첫 페인트에 빈 원이 보인다. 생략이 곧 즉시 렌더다.
         className="font-semibold text-fg-secondary"
-        delayMs={0}
       >
         {initial(name)}
       </RadixAvatar.Fallback>

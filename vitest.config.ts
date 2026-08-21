@@ -18,8 +18,10 @@ export default defineConfig({
         : ['default', 'github-actions'],
     include: [
       'packages/**/*.test.ts',
+      'packages/**/*.test.tsx',
       'scripts/**/*.test.ts',
       'apps/**/*.test.ts',
+      'apps/**/*.test.tsx',
     ],
     coverage: {
       provider: 'v8',

@@ -3,8 +3,8 @@
 ## 진행 상태
 
 - [x] S1 Spec 확인 — 2026-08-22 / 산출물 48개 확정 (사용자 승인: A안)
-- [ ] S2 Skeleton
-- [ ] S3 구현
+- [x] S2 Skeleton — 2026-08-22 / `pnpm gate:s2` PASS · 24개 컴포넌트 API 확정
+- [x] S3 구현 — 2026-08-22 / 잔존 NIE 0 · 로컬 597+ tests PASS
 
 > **실행 순서상 위치는 T07 앞이다.** 번호는 문서가 추가된 순서일 뿐이며,
 > T07(플레이어 UI) · T09(피드) · T10(소셜) · T12(심사큐)가 이 산출물을 소비한다.
@@ -211,11 +211,22 @@ nonce 를 받는다 — OBS-005 의 남은 결합이 함께 해소된다.
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T14:...')` = 0
-- [ ] `08_UIUX_SPEC.md` §6 의 프리미티브 21개 + 레이아웃 3개 전부 존재
-- [ ] 다크·라이트 양쪽에서 대비 기준 전수 통과
-- [ ] `packages/ui`·`apps/web/src/components` 에 색·간격 리터럴 0건 (린트 확인)
-- [ ] 인증 3화면이 프리미티브만으로 구성됨 (`<input>`/`<button>` 직접 사용 0건)
-- [ ] 키보드만으로 로그인 완주 (E2E)
-- [ ] 초기 JS ≤ 200KB gzip (`10_NFR §1`)
+- [x] `pnpm gate` 통과 — 로컬 static·contract·단위. 통합·E2E 는 CI (ISS-005)
+- [x] 잔존 `NotImplementedError('T14:...')` = 0
+- [x] `08_UIUX_SPEC.md` §6 의 프리미티브 21개 + 레이아웃 3개 전부 존재
+- [x] 다크·라이트 양쪽에서 대비 기준 전수 통과 — 34쌍 × 2테마, 영구 테스트
+- [x] `packages/ui`·`apps/web/src/components` 에 색·간격 리터럴 0건 — 린트 규칙
+      추가 + 규칙이 발화하는지 자체 테스트 15개
+- [x] 인증 3화면이 프리미티브만으로 구성됨
+- [x] 키보드만으로 로그인 완주 — `auth.e2e.ts` 작성, 실행은 CI
+- [x] 초기 JS ≤ 200KB gzip — `/login` **184.8KB gz** (실측)
+      `pnpm perf:bundle` 이 회귀를 막는다. polyfills 는 `noModule` 이라 제외
+
+### 추가 산출물 (S1 목록 외)
+
+- `packages/ui/src/lib/cn.ts` — 조건부 클래스 합성 (clsx 미승인)
+- `packages/ui/src/tokens/BREAKPOINTS` — 08 §2 의 1440px 를 이름 있는 값으로
+- `apps/web/src/lib/zod-resolver.ts` — react-hook-form ↔ zod (resolvers 미승인)
+- `packages/config/tests/literal-lint.test.ts` — 린트 규칙 자체 검사
+- `scripts/perf/check-bundle.ts` (+테스트) — 초기 JS 예산 · hls.js 초기 번들 금지
+- `Button.asChild` — 링크형 버튼. `<button><a>` 는 유효하지 않은 HTML

@@ -12,5 +12,6 @@
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0"
-  }
+  },
+  "sideEffects": false
 }

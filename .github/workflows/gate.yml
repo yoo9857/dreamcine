@@ -102,8 +102,20 @@ jobs:
         run: |
           set -o pipefail
           if ! pnpm --filter @aidream/web build 2>&1 | tee build.log; then
-            MSG=$(tail -c 1200 build.log | tr '\n\r' "  ")
+            MSG=$(tail -c 1200 build.log | tr -s '[:space:]' ' ')
             echo "::error title=Build web app::${MSG}"
+            exit 1
+          fi
+
+      # 10_NFR §1 초기 JS 예산 · 08_UIUX §8 hls.js 초기 번들 금지.
+      # 빌드 산출물이 있어야 재므로 빌드 직후에 둔다.
+      - name: Bundle budget
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! pnpm perf:bundle 2>&1 | tee bundle.log; then
+            MSG=$(tail -c 1200 bundle.log | tr -s '[:space:]' ' ')
+            echo "::error title=Bundle budget::${MSG}"
             exit 1
           fi
 
@@ -114,7 +126,7 @@ jobs:
         run: |
           set -o pipefail
           if ! pnpm gate:static 2>&1 | tee gate-l1.log; then
-            MSG=$(tail -c 1200 gate-l1.log | tr '\n\r' "  ")
+            MSG=$(tail -c 1200 gate-l1.log | tr -s '[:space:]' ' ')
             echo "::error title=Gate L1 static::${MSG}"
             exit 1
           fi
@@ -124,7 +136,7 @@ jobs:
         run: |
           set -o pipefail
           if ! pnpm gate:contract 2>&1 | tee gate-l2.log; then
-            MSG=$(tail -c 1200 gate-l2.log | tr '\n\r' "  ")
+            MSG=$(tail -c 1200 gate-l2.log | tr -s '[:space:]' ' ')
             echo "::error title=Gate L2 contract::${MSG}"
             exit 1
           fi
@@ -134,7 +146,7 @@ jobs:
         run: |
           set -o pipefail
           if ! pnpm gate:test 2>&1 | tee gate-l3.log; then
-            MSG=$(tail -c 1200 gate-l3.log | tr '\n\r' "  ")
+            MSG=$(tail -c 1200 gate-l3.log | tr -s '[:space:]' ' ')
             echo "::error title=Gate L3 behaviour::${MSG}"
             exit 1
           fi
@@ -171,6 +183,7 @@ jobs:
           name: gate-logs
           path: |
             build.log
+            bundle.log
             gate-l1.log
             gate-l2.log
             gate-l3.log

@@ -37,6 +37,7 @@
     "contract:tokens": "tsx scripts/contract/check-tokens.ts",
     "tokens:write": "tsx scripts/contract/check-tokens.ts --write",
     "db:seed": "prisma db seed --schema prisma/schema.prisma",
+    "perf:bundle": "tsx scripts/perf/check-bundle.ts",
     "sss:remaining": "tsx scripts/sss/count-remaining.ts",
     "sss:status": "tsx scripts/sss/status.ts",
     "prepare": "husky"

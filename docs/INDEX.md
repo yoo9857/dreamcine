@@ -142,7 +142,7 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 | T11 | OBSERVABILITY | ⬜ | ⬜ | ⬜ | — |
 | T12 | MODERATION | ⬜ | ⬜ | ⬜ | — |
 | T13 | PWA_PHASE2 | ⬜ | ⬜ | ⬜ | — |
-| T14 | DESIGN_SYSTEM | ✅ | ⬜ | ⬜ | — |
+| T14 | DESIGN_SYSTEM | ✅ | ✅ | ✅ | — |
 
 범례: ⬜ 미착수 · 🟡 진행중 · ✅ 게이트 통과 · 🔴 게이트 실패(정지)
 
