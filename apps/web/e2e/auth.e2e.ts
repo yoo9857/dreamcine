@@ -79,7 +79,7 @@ test('US-01 가입한 사용자가 이메일을 인증하고 로그인한다', a
   expect(me.emailVerified).not.toBeNull()
 })
 
-test('인증되지 않은 토큰으로는 로그인할 수 없다', async ({ page }) => {
+test('비밀번호가 틀리면 같은 문구로 거부한다', async ({ page }) => {
   const user = account()
 
   await page.goto('/signup')

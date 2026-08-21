@@ -17,16 +17,20 @@ const originalRedisUrl = process.env.REDIS_URL
 let checkRateLimit: typeof import('./rate-limit').checkRateLimit
 let rateLimitKey: typeof import('./rate-limit').rateLimitKey
 let getRedis: typeof import('../lib/redis').getRedis
+let closeRedis: typeof import('../lib/redis').closeRedis
 
 beforeAll(async () => {
   process.env.REDIS_URL ??= 'redis://127.0.0.1:6379'
   const module = await import('./rate-limit')
   checkRateLimit = module.checkRateLimit
   rateLimitKey = module.rateLimitKey
-  getRedis = (await import('../lib/redis')).getRedis
+  const redisModule = await import('../lib/redis')
+  getRedis = redisModule.getRedis
+  closeRedis = redisModule.closeRedis
 })
 
 afterAll(() => {
+  closeRedis()
   if (originalRedisUrl === undefined) {
     delete process.env.REDIS_URL
   } else {

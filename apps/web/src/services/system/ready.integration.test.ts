@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 /**
  * DB · Redis · Object Storage 실물을 요구한다. CI 는 dev compose 스택으로
@@ -14,12 +14,20 @@ const originalRedisUrl = process.env.REDIS_URL
 const originalBucket = process.env.S3_BUCKET_ORIGINALS
 
 let checkReadiness: typeof import('./ready').checkReadiness
+let closeRedis: typeof import('@/src/lib/redis').closeRedis
 
 beforeAll(async () => {
   checkReadiness = (await import('./ready')).checkReadiness
+  closeRedis = (await import('@/src/lib/redis')).closeRedis
+})
+
+afterAll(() => {
+  closeRedis()
 })
 
 afterEach(() => {
+  // URL 을 바꾸면 새 클라이언트가 생기므로 이전 소켓을 반드시 닫는다.
+  closeRedis()
   if (originalRedisUrl !== undefined) {
     process.env.REDIS_URL = originalRedisUrl
   }

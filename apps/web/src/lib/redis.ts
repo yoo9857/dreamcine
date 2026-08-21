@@ -226,6 +226,13 @@ class RedisConnection {
     }
   }
 
+  /** 호출자가 커넥션을 정리한다. 테스트·워커 종료 경로에서만 쓴다. */
+  close(): void {
+    this.#fail(
+      new AppError('E_QUEUE_UNAVAILABLE', { reason: 'closed-by-caller' }),
+    )
+  }
+
   /** 소켓 단위 실패. 대기 중인 모든 명령을 같은 이유로 거절한다. */
   #fail(error: AppError): void {
     const socket = this.#socket
@@ -276,9 +283,13 @@ class RedisClient implements RedisGateway {
       throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-pong' })
     }
   }
+
+  close(): void {
+    this.#connection.close()
+  }
 }
 
-let cached: { url: string; client: RedisGateway } | undefined
+let cached: { url: string; client: RedisClient } | undefined
 
 export function getRedis(): RedisGateway {
   const url = process.env.REDIS_URL
@@ -289,4 +300,14 @@ export function getRedis(): RedisGateway {
     cached = { url, client: new RedisClient(parseRedisUrl(url)) }
   }
   return cached.client
+}
+
+/**
+ * 열린 커넥션을 닫는다. 살아있는 소켓은 이벤트 루프를 붙잡으므로 테스트
+ * 프로세스가 끝나지 않을 수 있다. 서버는 리스닝 소켓이 루프를 유지하므로
+ * 이 함수를 부르지 않는다.
+ */
+export function closeRedis(): void {
+  cached?.client.close()
+  cached = undefined
 }
