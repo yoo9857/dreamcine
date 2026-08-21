@@ -1,33 +1,40 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { LoginSchema, type LoginInput } from '@aidream/core'
+import { Button, Input, Stack } from '@aidream/ui'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { useState, type ReactNode } from 'react'
+import { useForm } from 'react-hook-form'
 
 import { staticMessageFor } from '@/src/lib/error-messages'
-
-type FormState = 'idle' | 'submitting' | 'error'
+import { messages } from '@/src/lib/messages'
+import { zodResolver } from '@/src/lib/zod-resolver'
 
 export function LoginForm(): ReactNode {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [state, setState] = useState<FormState>('idle')
-  const [message, setMessage] = useState<string | null>(null)
+  const text = messages()
+  const [failure, setFailure] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: { email: '', password: '' },
+  })
 
-  async function submit(): Promise<void> {
-    setState('submitting')
-    setMessage(null)
+  async function submit(values: LoginInput): Promise<void> {
+    setFailure(null)
 
     // 실패 사유를 구분하지 않는다. 서버도 동일 메시지를 쓴다. (07 §11)
     const result = await signIn('credentials', {
-      email,
-      password,
+      email: values.email,
+      password: values.password,
       redirect: false,
     })
 
     if (!result.ok || result.error !== undefined) {
-      setState('error')
-      setMessage(staticMessageFor('E_AUTH_INVALID_CREDENTIALS'))
+      setFailure(staticMessageFor('E_AUTH_INVALID_CREDENTIALS'))
       return
     }
 
@@ -36,52 +43,59 @@ export function LoginForm(): ReactNode {
   }
 
   return (
-    <div className="auth-card">
-      <h1>로그인</h1>
-      {message === null ? null : (
-        <p className="error" role="alert" data-testid="login-error">
-          {message}
-        </p>
-      )}
-      <form
-        onSubmit={(event) => {
-          event.preventDefault()
-          void submit()
-        }}
-      >
-        <label className="field">
-          <span>이메일</span>
-          <input
-            name="email"
+    <form
+      onSubmit={(event) => {
+        void handleSubmit(submit)(event)
+      }}
+      className="w-full max-w-md rounded-lg border border-border-subtle bg-bg-elevated p-8"
+    >
+      <Stack gap={6}>
+        <h1 className="text-xl font-semibold text-fg">
+          {text.auth.loginTitle}
+        </h1>
+
+        {failure === null ? null : (
+          <p
+            role="alert"
+            data-testid="login-error"
+            className="rounded-md border border-danger bg-danger-subtle px-3 py-2 text-sm text-fg"
+          >
+            {failure}
+          </p>
+        )}
+
+        <Stack gap={4}>
+          <Input
+            label={text.auth.email}
             type="email"
             autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value)
-            }}
+            {...(errors.email?.message === undefined
+              ? {}
+              : { error: errors.email.message })}
+            {...register('email')}
           />
-        </label>
-        <label className="field">
-          <span>비밀번호</span>
-          <input
-            name="password"
+          <Input
+            label={text.auth.password}
             type="password"
             autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => {
-              setPassword(event.target.value)
-            }}
+            {...(errors.password?.message === undefined
+              ? {}
+              : { error: errors.password.message })}
+            {...register('password')}
           />
-        </label>
-        <button type="submit" disabled={state === 'submitting'}>
-          {state === 'submitting' ? '로그인 중…' : '로그인'}
-        </button>
-      </form>
-      <p className="hint">
-        계정이 없으신가요? <Link href="/signup">회원가입</Link>
-      </p>
-    </div>
+        </Stack>
+
+        <Button type="submit" loading={isSubmitting} fullWidth>
+          {isSubmitting ? text.auth.loginSubmitting : text.auth.loginSubmit}
+        </Button>
+
+        <p className="text-center text-sm text-fg-secondary">
+          {text.auth.noAccount}{' '}
+          <Link href="/signup" className="font-medium text-accent">
+            {text.auth.toSignup}
+          </Link>
+        </p>
+      </Stack>
+    </form>
   )
 }

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
+import { ThemeToggle } from '@/src/components/ThemeToggle'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 
 import './globals.css'
@@ -18,6 +19,10 @@ export const metadata: Metadata = {
  * 부수효과가 하나 있다 — `cookies()` 를 읽으면 이 레이아웃 아래 모든 페이지가
  * 동적 렌더가 된다. 그래서 모든 페이지가 CSP nonce 를 받는다. 정적 프리렌더된
  * 페이지는 nonce 를 못 받아 인라인 스크립트가 차단된다. (OBS-005)
+ *
+ * 쿠키가 없으면 기본값(다크)을 토글에 넘긴다. 시스템이 라이트인 사용자는
+ * 첫 클릭이 한 번 헛돌 수 있지만, 그 클릭이 명시적 선택을 남기므로 이후로는
+ * 항상 일치한다. 인라인 스크립트 없이 시스템 설정을 서버가 알 방법은 없다.
  */
 export default async function RootLayout({
   children,
@@ -30,7 +35,17 @@ export default async function RootLayout({
   return (
     <html lang="ko" {...(theme === null ? {} : { 'data-theme': theme })}>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {/*
+            08_UIUX_SPEC.md §7 은 시스템 설정 외에 수동 토글도 요구한다.
+            상단바(T09)가 생기면 그쪽으로 옮긴다. 그때까지 화면 어디서든
+            닿을 수 있게 고정해 둔다.
+          */}
+          <div className="fixed right-4 top-4 z-10">
+            <ThemeToggle current={theme ?? 'dark'} />
+          </div>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   )

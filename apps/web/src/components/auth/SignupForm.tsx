@@ -1,132 +1,153 @@
 'use client'
 
-import { SignupSchema } from '@aidream/core'
-import { useState, type ReactNode } from 'react'
+import { SignupSchema, type SignupInput } from '@aidream/core'
+import { Button, EmptyState, Input, Stack } from '@aidream/ui'
+import { MailCheck } from 'lucide-react'
 import Link from 'next/link'
+import { useState, type ReactNode } from 'react'
+import { useForm } from 'react-hook-form'
 
 import { readApiError, staticMessageFor } from '@/src/lib/error-messages'
+import { messages } from '@/src/lib/messages'
+import { zodResolver } from '@/src/lib/zod-resolver'
 
-type FormState = 'idle' | 'submitting' | 'error' | 'sent'
-
-const FIELD_LABELS: Record<string, string> = {
-  email: '이메일',
-  password: '비밀번호',
-  handle: '아이디',
-  displayName: '표시 이름',
+interface SentState {
+  email: string
 }
 
 export function SignupForm(): ReactNode {
-  const [values, setValues] = useState({
-    email: '',
-    password: '',
-    handle: '',
-    displayName: '',
+  const text = messages()
+  const [sent, setSent] = useState<SentState | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupInput>({
+    resolver: zodResolver(SignupSchema),
+    defaultValues: { email: '', password: '', handle: '', displayName: '' },
   })
-  const [state, setState] = useState<FormState>('idle')
-  const [message, setMessage] = useState<string | null>(null)
-  const [fields, setFields] = useState<Record<string, string>>({})
 
-  function update(name: keyof typeof values, value: string): void {
-    setValues((previous) => ({ ...previous, [name]: value }))
-  }
-
-  async function submit(): Promise<void> {
-    setState('submitting')
-    setMessage(null)
-    setFields({})
-
-    // 서버와 같은 스키마로 먼저 걸러 왕복을 줄인다. (07_AUTH_SECURITY.md §5)
-    const parsed = SignupSchema.safeParse(values)
-    if (!parsed.success) {
-      const found: Record<string, string> = {}
-      for (const issue of parsed.error.issues) {
-        const key = issue.path.join('.')
-        found[key] ??= issue.message
-      }
-      setState('error')
-      setFields(found)
-      setMessage(staticMessageFor('E_VALIDATION'))
-      return
-    }
+  async function submit(values: SignupInput): Promise<void> {
+    setFailure(null)
 
     const response = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(parsed.data),
+      body: JSON.stringify(values),
     })
 
     if (response.ok) {
-      setState('sent')
+      setSent({ email: values.email })
       return
     }
 
-    const failure = readApiError(await response.json().catch(() => null))
-    setState('error')
-    setFields(failure?.fields ?? {})
-    setMessage(failure?.message ?? staticMessageFor('E_INTERNAL'))
+    const problem = readApiError(await response.json().catch(() => null))
+    // 서버가 필드를 지목하면 그 입력 아래에 붙인다. 그래야 어디를 고칠지 안다.
+    for (const [field, message] of Object.entries(problem?.fields ?? {})) {
+      if (
+        field === 'email' ||
+        field === 'password' ||
+        field === 'handle' ||
+        field === 'displayName'
+      ) {
+        setError(field, { type: 'server', message })
+      }
+    }
+    setFailure(problem?.message ?? staticMessageFor('E_INTERNAL'))
   }
 
-  if (state === 'sent') {
+  if (sent !== null) {
     return (
-      <div className="auth-card">
-        <h1>인증 메일을 보냈습니다</h1>
-        <p className="hint" data-testid="signup-sent">
-          {values.email} 으로 인증 메일을 보냈습니다. 메일의 링크를 열면 가입이
-          완료됩니다.
-        </p>
-        <p className="hint">
-          <Link href="/login">로그인으로 이동</Link>
-        </p>
+      <div className="w-full max-w-md">
+        <EmptyState
+          icon={<MailCheck aria-hidden="true" className="size-8" />}
+          title={text.auth.signupSentTitle}
+          description={text.auth.signupSentBody(sent.email)}
+          action={
+            <Button variant="secondary" asChild>
+              <Link href="/login" data-testid="signup-sent">
+                {text.auth.toLogin}
+              </Link>
+            </Button>
+          }
+        />
       </div>
     )
   }
 
   return (
-    <div className="auth-card">
-      <h1>회원가입</h1>
-      {message === null ? null : (
-        <p className="error" role="alert" data-testid="signup-error">
-          {message}
+    <form
+      onSubmit={(event) => {
+        void handleSubmit(submit)(event)
+      }}
+      className="w-full max-w-md rounded-lg border border-border-subtle bg-bg-elevated p-8"
+    >
+      <Stack gap={6}>
+        <h1 className="text-xl font-semibold text-fg">
+          {text.auth.signupTitle}
+        </h1>
+
+        {failure === null ? null : (
+          <p
+            role="alert"
+            data-testid="signup-error"
+            className="rounded-md border border-danger bg-danger-subtle px-3 py-2 text-sm text-fg"
+          >
+            {failure}
+          </p>
+        )}
+
+        <Stack gap={4}>
+          <Input
+            label={text.auth.email}
+            type="email"
+            autoComplete="email"
+            {...(errors.email?.message === undefined
+              ? {}
+              : { error: errors.email.message })}
+            {...register('email')}
+          />
+          <Input
+            label={text.auth.handle}
+            hint={text.auth.handleHint}
+            autoComplete="username"
+            {...(errors.handle?.message === undefined
+              ? {}
+              : { error: errors.handle.message })}
+            {...register('handle')}
+          />
+          <Input
+            label={text.auth.displayName}
+            autoComplete="nickname"
+            {...(errors.displayName?.message === undefined
+              ? {}
+              : { error: errors.displayName.message })}
+            {...register('displayName')}
+          />
+          <Input
+            label={text.auth.password}
+            type="password"
+            autoComplete="new-password"
+            {...(errors.password?.message === undefined
+              ? {}
+              : { error: errors.password.message })}
+            {...register('password')}
+          />
+        </Stack>
+
+        <Button type="submit" loading={isSubmitting} fullWidth>
+          {isSubmitting ? text.auth.signupSubmitting : text.auth.signupSubmit}
+        </Button>
+
+        <p className="text-center text-sm text-fg-secondary">
+          {text.auth.hasAccount}{' '}
+          <Link href="/login" className="font-medium text-accent">
+            {text.auth.loginTitle}
+          </Link>
         </p>
-      )}
-      <form
-        onSubmit={(event) => {
-          event.preventDefault()
-          void submit()
-        }}
-      >
-        {(
-          [
-            ['email', 'email', 'email'],
-            ['handle', 'text', 'username'],
-            ['displayName', 'text', 'nickname'],
-            ['password', 'password', 'new-password'],
-          ] as const
-        ).map(([name, type, autoComplete]) => (
-          <label className="field" key={name}>
-            <span>
-              {FIELD_LABELS[name] ?? name}
-              {fields[name] === undefined ? '' : ` — ${fields[name]}`}
-            </span>
-            <input
-              name={name}
-              type={type}
-              autoComplete={autoComplete}
-              required
-              value={values[name]}
-              onChange={(event) => {
-                update(name, event.target.value)
-              }}
-            />
-          </label>
-        ))}
-        <button type="submit" disabled={state === 'submitting'}>
-          {state === 'submitting' ? '가입 중…' : '가입하기'}
-        </button>
-      </form>
-      <p className="hint">
-        이미 계정이 있으신가요? <Link href="/login">로그인</Link>
-      </p>
-    </div>
+      </Stack>
+    </form>
   )
 }

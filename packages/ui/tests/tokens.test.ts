@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { contrastRatio } from '../src/tokens/contrast.js'
 import {
+  BREAKPOINTS,
   COLOR_VARIABLE_NAMES,
   THEMES,
   VAR_PREFIX,
@@ -215,11 +216,25 @@ describe('renderThemeCss', () => {
       expect(css).toContain('--font-sans: var(--aidream-font-sans);')
     })
 
-    it('브리지는 런타임 변수를 참조만 한다 (값을 복사하지 않는다)', () => {
+    it('테마에 따라 바뀌는 값은 참조만 한다 (복사하지 않는다)', () => {
       const bridge = css.slice(css.indexOf('@theme inline {'))
       // 색 리터럴이 브리지에 들어가면 테마 전환이 죽는다.
       expect(bridge).not.toMatch(/#[0-9a-f]{3,6}/iu)
-      expect(bridge).not.toMatch(/\d+px/u)
+
+      // 색·간격·반경·폰트는 전부 런타임 변수 참조여야 한다.
+      const copied = bridge
+        .split(/\r?\n/u)
+        .filter((line) => /^\s*--(color|spacing|radius|font)-/u.test(line))
+        .filter((line) => !line.includes(`var(${VAR_PREFIX}`))
+      expect(copied).toEqual([])
+    })
+
+    it('브레이크포인트는 값을 그대로 싣는다', () => {
+      // 브레이크포인트는 테마에 따라 바뀌지 않는다. 런타임 변수로 우회하면
+      // 미디어 쿼리에서 쓸 수 없다 — CSS 변수는 @media 조건에 못 들어간다.
+      for (const [name, value] of Object.entries(BREAKPOINTS)) {
+        expect(css).toContain(`--breakpoint-${name}: ${value};`)
+      }
     })
 
     it('브리지가 런타임 변수보다 뒤에 온다', () => {
