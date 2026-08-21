@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인   — 2026-08-21 / 산출물 경로 및 책임 승인
 - [x] S2 Skeleton    — 2026-08-21 / gate:s2 PASS
-- [ ] S3 구현
+- [x] S3 구현        — 2026-08-21 / gate:s3 PASS · TOTAL=0 · CI 32454394087 PASS
 
 ---
 
@@ -158,15 +158,15 @@ export async function checkErrorCatalog(): Promise<{ ok: boolean; problems: stri
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm install` 이 경고 없이 완료
-- [ ] `pnpm gate` **전체 통과** (빈 프로젝트 상태에서)
-- [ ] `pnpm gate:static` 이 실제로 위반을 잡는지 **역검증**:
+- [x] `pnpm install` 이 경고 없이 완료 — CI Node 22 frozen-lockfile, 경고 0
+- [x] `pnpm gate` **전체 통과** (빈 프로젝트 상태에서)
+- [x] `pnpm gate:static` 이 실제로 위반을 잡는지 **역검증**:
       일부러 `any` 를 넣어 lint 실패 확인 → 되돌림
       일부러 `packages/core` 에서 React import → depcruise 실패 확인 → 되돌림
-- [ ] `pnpm sss:remaining` 이 `TOTAL=0` 출력
-- [ ] 커밋 메시지 규격 위반 시 husky 가 실제로 거부하는지 확인
-- [ ] CI 에서 `pnpm gate` 초록
-- [ ] `.env.example` 에 `03_TECH_STACK.md` §6 의 모든 키가 존재
+- [x] `pnpm sss:remaining` 이 `TOTAL=0` 출력
+- [x] 커밋 메시지 규격 위반 시 husky 가 실제로 거부하는지 확인
+- [x] CI 에서 `pnpm gate` 초록 — run `32454394087`, 경고 0
+- [x] `.env.example` 에 `03_TECH_STACK.md` §6 의 모든 키가 존재
 
 **역검증이 DoD 에 있는 이유**: 하네스가 "존재"하는 것과 "작동"하는 것은 다르다.
 설정 오류로 아무것도 검사하지 않는 하네스는 없는 것보다 나쁘다 (거짓 안심).
