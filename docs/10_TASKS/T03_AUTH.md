@@ -1,9 +1,96 @@
 # T03 — 인증 · 권한 · 라우트 하네스
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인 — 2026-08-21 / 인증·라우트·웹 부트스트랩·DB/CI 연동 산출물 67개 확정
 - [ ] S2 Skeleton
 - [ ] S3 구현
+
+### S1 확정 산출물
+
+#### 웹 패키지·게이트 연결
+
+- `apps/web/package.json` — Next/Auth/argon2/pino/nodemailer/AWS SDK 및 workspace 의존성·명령 고정.
+- `apps/web/tsconfig.json` — Next strict 타입체크와 경로 별칭 설정.
+- `apps/web/next-env.d.ts` — Next 타입 선언 진입점.
+- `apps/web/next.config.mjs` — standalone 출력과 보안 빌드 설정.
+- `apps/web/app/layout.tsx` — 실행 가능한 루트 HTML 레이아웃.
+- `apps/web/app/globals.css` — 인증 화면 기본 전역 스타일.
+- `apps/web/app/error.tsx` — 전역 오류 상태와 재시도 UI.
+- `apps/web/app/not-found.tsx` — 전역 404 UI.
+- `tsconfig.json` — `apps/web` project reference 연결.
+- `vitest.config.ts` — web 서비스·HTTP 계층 커버리지 포함.
+- `playwright.config.ts` — 인증 E2E용 Next webServer와 실행 환경 연결.
+- `.github/workflows/gate.yml` — Playwright용 PostgreSQL/Redis/MinIO 서비스와 환경 연결.
+- `openapi.json` — T03 인증·내 프로필·시스템 라우트 계약 문서.
+
+#### core 계약
+
+- `packages/core/src/rules/permission.ts` — 역할·상태·소유관계의 유일한 `can()` 판정.
+- `packages/core/src/schemas/auth.schema.ts` — 가입·로그인·인증·재설정·프로필 zod 스키마.
+- `packages/core/src/index.ts` — 권한 타입과 인증 스키마 공개 배럴.
+- `packages/core/tests/permission.test.ts` — 역할×동작×소유관계 전조합 검사.
+- `packages/core/tests/auth-schema.test.ts` — 인증 입력 정상·실패·정규화 검사.
+
+#### DB 인증 관문
+
+- `packages/db/src/repositories/auth.repo.ts` — User/Account/Session/VerificationToken 인증 전용 쿼리.
+- `packages/db/src/health.ts` — 외부에 PrismaClient를 노출하지 않는 DB readiness probe.
+- `packages/db/src/index.ts` — 인증 저장소와 DB probe만 공개.
+- `packages/db/tests/auth-repo.integration.test.ts` — 세션·계정·일회용 토큰·비밀번호 갱신 통합 검사.
+
+#### 인증·HTTP 기반
+
+- `apps/web/src/auth/types.ts` — 라우트가 공유하는 세션 사용자 계약.
+- `apps/web/src/auth/adapter.ts` — DB 저장소 위에 Auth.js Adapter 계약 조립.
+- `apps/web/src/auth/config.ts` — DB 세션, Credentials, Google, rolling 30일 설정.
+- `apps/web/src/auth/session.ts` — Cookie 세션 해석 단일 지점과 Bearer 확장 경계.
+- `apps/web/src/auth/password.ts` — argon2id 해시·검증·더미 해시 타이밍 방어.
+- `apps/web/src/http/handler.ts` — 인증·CSRF·레이트리밋·파싱·직렬화·오류·로그를 묶는 `withRoute()`.
+- `apps/web/src/http/parse.ts` — JSON body와 query zod 파싱.
+- `apps/web/src/http/response.ts` — `ok`/`created`/`noContent`/`paginated` 결과 생성.
+- `apps/web/src/http/status-map.ts` — 모든 ErrorCode의 HTTP 상태 완전 매핑.
+- `apps/web/src/http/rate-limit.ts` — Redis 고정 윈도우와 장애 fail-open.
+- `apps/web/src/http/request-id.ts` — 외부 패키지 없이 ULID request ID 생성.
+- `apps/web/src/lib/request-context.ts` — AsyncLocalStorage 로그 상관관계 컨텍스트.
+- `apps/web/src/lib/error-messages.ts` — 모든 ErrorCode의 한국어 사용자 문구 완전 매핑.
+- `apps/web/src/lib/logger.ts` — pino JSON 로그와 필수 redact 정책.
+- `apps/web/src/lib/redis.ts` — REDIS_URL 기반 최소 명령 관문(INCR/EXPIRE/PING).
+- `apps/web/src/lib/mail.ts` — SMTP 인증·재설정 메일 발송과 테스트 전송 경계.
+
+#### 유스케이스·라우트
+
+- `apps/web/src/services/auth/signup.ts` — 예약어·중복·해시·인증메일 가입 유스케이스.
+- `apps/web/src/services/auth/verify-email.ts` — 일회용 인증 토큰 소비와 emailVerified 갱신.
+- `apps/web/src/services/auth/request-password-reset.ts` — 계정 존재를 숨기는 재설정 요청.
+- `apps/web/src/services/auth/reset-password.ts` — 1시간 일회용 토큰과 비밀번호 변경.
+- `apps/web/src/services/auth/get-me.ts` — 현재 사용자 프로필 조회.
+- `apps/web/src/services/auth/update-me.ts` — 표시이름·소개·아바타 갱신.
+- `apps/web/src/services/system/ready.ts` — DB/Redis/S3 2초 병렬 readiness 검사.
+- `apps/web/middleware.ts` — 인증 경로 리다이렉트, CSP nonce, 이중 보안 헤더.
+- `apps/web/app/api/auth/[...nextauth]/route.ts` — Auth.js GET/POST 위임.
+- `apps/web/app/api/auth/signup/route.ts` — 가입 API.
+- `apps/web/app/api/auth/verify/route.ts` — 이메일 인증 API.
+- `apps/web/app/api/auth/password/forgot/route.ts` — 재설정 요청 API.
+- `apps/web/app/api/auth/password/reset/route.ts` — 재설정 실행 API.
+- `apps/web/app/api/me/route.ts` — 내 프로필 GET/PATCH API.
+- `apps/web/app/api/health/route.ts` — 무의존 라이브니스 API.
+- `apps/web/app/api/ready/route.ts` — 의존 서비스 레디니스 API.
+
+#### 인증 UI·행위 하네스
+
+- `apps/web/app/(auth)/login/page.tsx` — 로그인 화면 진입점.
+- `apps/web/app/(auth)/signup/page.tsx` — 가입 화면 진입점.
+- `apps/web/app/(auth)/verify/page.tsx` — 인증 결과 화면 진입점.
+- `apps/web/src/components/auth/LoginForm.tsx` — 로그인 로딩·오류·정상 상태 UI.
+- `apps/web/src/components/auth/SignupForm.tsx` — 가입 로딩·오류·정상 상태 UI.
+- `apps/web/src/components/auth/VerifyStatus.tsx` — 인증 로딩·성공·만료·오류 상태 UI.
+- `apps/web/src/auth/password.test.ts` — argon2 정상·실패·손상 해시 검사.
+- `apps/web/src/http/handler.test.ts` — withRoute 인증·CSRF·오류·BigInt·requestId 검사.
+- `apps/web/src/http/rate-limit.integration.test.ts` — Redis 초과·TTL·fail-open 통합 검사.
+- `apps/web/src/lib/logger.test.ts` — 비밀번호·토큰·쿠키 redact 실검증.
+- `apps/web/src/services/auth/auth.integration.test.ts` — 가입·인증·로그인·재설정 통합 검사.
+- `apps/web/src/services/system/ready.integration.test.ts` — DB/Redis/S3 실패별 503 검사.
+- `apps/web/e2e/auth.e2e.ts` — US-01 가입→메일 토큰→인증→로그인 E2E와 CSP 검사.
 
 ---
 
