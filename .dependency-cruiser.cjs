@@ -30,7 +30,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: ['(^|/)(dist|coverage|node_modules)/'],
+    // 빌드 산출물은 의존 방향 검사 대상이 아니다. `.next` 가 있으면
+    // 훑는 모듈 수가 두 배로 늘고 거짓 위반이 나올 수 있다.
+    exclude: ['(^|/)(dist|coverage|node_modules|[.]next|[.]turbo)/'],
     tsPreCompilationDeps: true,
     tsConfig: { fileName: 'tsconfig.json' },
   },
