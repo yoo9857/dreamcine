@@ -107,7 +107,7 @@ T06 transcode   : 7/7  남음
 
     "gate:static":   "pnpm lint && pnpm typecheck && pnpm depcruise && pnpm format:check",
     "gate:contract": "pnpm contract:openapi && pnpm contract:prisma && pnpm contract:errors && pnpm contract:limits && pnpm contract:deps && pnpm contract:capacity",
-    "gate:test":     "vitest run --coverage && playwright test",
+    "gate:test":     "vitest run --coverage && playwright test --pass-with-no-tests",
 
     "lint":          "eslint . --max-warnings 0",
     "typecheck":     "tsc -b",
@@ -115,7 +115,7 @@ T06 transcode   : 7/7  남음
     "format:check":  "prettier --check .",
 
     "contract:openapi": "tsx scripts/contract/check-openapi.ts",
-    "contract:prisma":  "prisma validate && prisma migrate diff --exit-code --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma",
+    "contract:prisma":  "tsx scripts/contract/check-prisma.ts",
     "contract:errors":  "tsx scripts/contract/check-error-catalog.ts",
     "contract:limits":  "tsx scripts/contract/check-limits.ts",
     "contract:deps":    "tsx scripts/contract/check-deps.ts",

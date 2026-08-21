@@ -1,0 +1,4 @@
+corepack pnpm lint &&
+  corepack pnpm typecheck &&
+  corepack pnpm depcruise &&
+  corepack pnpm format:check

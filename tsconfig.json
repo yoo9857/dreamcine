@@ -6,7 +6,12 @@
     "incremental": false,
     "noEmit": true
   },
-  "include": ["vitest.config.ts"],
+  "include": [
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "packages/**/*.test.ts",
+    "scripts/**/*.ts"
+  ],
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/db" },

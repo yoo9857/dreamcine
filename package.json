@@ -6,6 +6,13 @@
     "node": ">=22 <23"
   },
   "packageManager": "pnpm@9.15.9",
+  "pnpm": {
+    "allowedDeprecatedVersions": {
+      "eslint": "9.32.0",
+      "git-raw-commits": "4.0.0",
+      "glob": "10.5.0"
+    }
+  },
   "scripts": {
     "build": "turbo run build",
     "lint": "eslint . --max-warnings 0",
@@ -19,9 +26,9 @@
     "gate:s3": "pnpm gate",
     "gate:static": "pnpm lint && pnpm typecheck && pnpm depcruise && pnpm format:check",
     "gate:contract": "pnpm contract:openapi && pnpm contract:prisma && pnpm contract:errors && pnpm contract:limits && pnpm contract:deps && pnpm contract:capacity",
-    "gate:test": "vitest run --coverage && playwright test",
+    "gate:test": "vitest run --coverage && playwright test --pass-with-no-tests",
     "contract:openapi": "tsx scripts/contract/check-openapi.ts",
-    "contract:prisma": "prisma validate && prisma migrate diff --exit-code --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma",
+    "contract:prisma": "tsx scripts/contract/check-prisma.ts",
     "contract:errors": "tsx scripts/contract/check-error-catalog.ts",
     "contract:limits": "tsx scripts/contract/check-limits.ts",
     "contract:deps": "tsx scripts/contract/check-deps.ts",

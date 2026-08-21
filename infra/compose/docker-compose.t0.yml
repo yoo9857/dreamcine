@@ -1,0 +1,40 @@
+services:
+  worker:
+    cpus: 0.7
+    mem_limit: 700m
+    environment:
+      WORKER_CONCURRENCY: 1
+      CAPACITY_TIER: T0
+    entrypoint: ['nice', '-n', '10', 'node', 'dist/index.js']
+    logging:
+      options:
+        max-size: 20m
+        max-file: '3'
+
+  postgres:
+    command: >-
+      postgres -c shared_buffers=128MB -c max_connections=20
+      -c effective_cache_size=512MB -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+    logging:
+      options:
+        max-size: 20m
+        max-file: '3'
+
+  redis:
+    command: >-
+      redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save ""
+    logging:
+      options:
+        max-size: 20m
+        max-file: '3'
+
+  web:
+    mem_limit: 700m
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
+      CAPACITY_TIER: T0
+    logging:
+      options:
+        max-size: 20m
+        max-file: '3'
