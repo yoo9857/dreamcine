@@ -368,12 +368,10 @@ describe('db health probe', () => {
     expect(health.latencyMs).toBeGreaterThanOrEqual(0)
   })
 
-  it('타임아웃을 넘기면 E_DB_UNAVAILABLE', async () => {
-    try {
-      await repo.checkDbHealth(0)
-      throw new Error('expected timeout')
-    } catch (error: unknown) {
-      expectCode(error, 'E_DB_UNAVAILABLE')
-    }
+  // 타임아웃 분기는 `withDeadline` 단위 테스트가 결정적으로 검증한다.
+  // 실제 질의와 타이머를 경합시키면 어느 쪽이 이길지 환경에 따라 달라진다.
+  it('지연 시간을 함께 보고한다', async () => {
+    const health = await repo.checkDbHealth(5000)
+    expect(health.latencyMs).toBeLessThan(5000)
   })
 })
