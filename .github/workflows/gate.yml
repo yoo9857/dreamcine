@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      - name: Configure Git defaults
+        run: git config --global init.defaultBranch main
+
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
@@ -24,6 +27,7 @@ jobs:
         uses: pnpm/action-setup@v6.0.10
         with:
           version: 9.15.9
+          standalone: true
           run_install: false
 
       - name: Set up Node.js

@@ -1,3 +1,3 @@
-const baseConfig = require('./packages/config/eslint/base.cjs')
+import baseConfig from './packages/config/eslint/base.cjs'
 
-module.exports = baseConfig
+export default baseConfig
