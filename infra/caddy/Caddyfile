@@ -46,10 +46,24 @@ www.{$DOMAIN} {
 		max_size 2MB
 	}
 
-	reverse_proxy web:3000 {
-		header_up X-Real-IP {remote_host}
-		health_uri /api/health
-		health_interval 10s
+	@bootstrap {
+		expression {$BOOTSTRAP_MODE:false} == true
+		not path /api/*
+	}
+	handle @bootstrap {
+		root * /srv/bootstrap
+		try_files {path} /index.html
+		header Cache-Control "no-store"
+		header X-AIDream-Mode "bootstrap"
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {remote_host}
+			health_uri /api/health
+			health_interval 10s
+		}
 	}
 
 	handle_errors {
