@@ -121,6 +121,43 @@ test('CSP 의 script-src 에 unsafe-inline / unsafe-eval 이 없다', async ({
   expect(directives).toContain("form-action 'self'")
 })
 
+test('인라인 스크립트에 CSP nonce 가 실려 하이드레이션이 살아있다', async ({
+  request,
+}) => {
+  // 정적 프리렌더된 페이지의 인라인 스크립트에는 nonce 가 붙지 않는다.
+  // 그러면 우리 CSP 가 그것을 차단해 폼이 죽는다. 실제로 한 번 겪은 사고이므로
+  // 헤더와 본문을 같은 응답에서 비교해 회귀를 막는다.
+  const response = await request.get('/login')
+  const csp = response.headers()['content-security-policy'] ?? ''
+  const nonce = /'nonce-([A-Za-z0-9+/=]+)'/u.exec(csp)?.[1]
+  expect(nonce).toBeDefined()
+
+  const html = await response.text()
+  const tagged = html.split(`nonce="${nonce ?? ''}"`).length - 1
+  expect(tagged).toBeGreaterThan(0)
+  // RSC 페이로드에도 실려야 클라이언트 컴포넌트가 붙는다.
+  expect(html).not.toContain('nonce\\":\\"$undefined')
+})
+
+test('로그인 화면에서 CSP 위반이 발생하지 않는다', async ({ page }) => {
+  const violations: string[] = []
+  page.on('console', (message) => {
+    const text = message.text()
+    if (text.includes('Content Security Policy')) {
+      violations.push(text)
+    }
+  })
+
+  await page.goto('/login')
+  // 하이드레이션이 끝나면 입력이 실제로 반응한다.
+  await page.fill('input[name="email"]', 'hydration@example.com')
+  await expect(page.locator('input[name="email"]')).toHaveValue(
+    'hydration@example.com',
+  )
+
+  expect(violations).toEqual([])
+})
+
 test('보안 헤더가 모두 붙는다', async ({ page }) => {
   const response = await page.goto('/login')
   const headers = response?.headers() ?? {}

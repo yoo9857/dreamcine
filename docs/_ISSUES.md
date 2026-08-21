@@ -62,6 +62,15 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [OBS-005] nonce 기반 CSP 와 정적 프리렌더는 함께 쓸 수 없다
+- 발견 단계: T03/S3
+- 관측값: 프로덕션 빌드에서 `/login` 의 인라인 스크립트 6개에 nonce 가 없었고, RSC 페이로드에 `nonce":"$undefined` 가 박혀 있었다. 우리 CSP 는 `script-src 'self' 'nonce-…'` 로 `unsafe-inline` 을 허용하지 않으므로 브라우저가 그 스크립트를 전부 차단한다. 결과적으로 하이드레이션이 일어나지 않아 **로그인·가입 폼이 실제 브라우저에서 동작하지 않는다.**
+- 측정 방법: `next start` 로 띄운 뒤 같은 응답의 헤더와 본문을 비교. 수정 후 스크립트 14개가 응답 헤더와 같은 nonce 를 갖고, RSC 페이로드에도 실린다.
+- 원인: nonce 는 요청마다 달라지므로 빌드 시점에 HTML 에 넣을 수 없다. Next 는 정적 프리렌더된 페이지에 nonce 를 주지 않는다.
+- 조치: `(auth)` 3개 화면에 `export const dynamic = 'force-dynamic'`. 정적 페이지 수가 13 → 10 으로 줄었다. E2E 에 회귀 가드 2개 추가(같은 응답에서 nonce 대조 + 브라우저 CSP 위반 0건).
+- 남은 결합 (후속 태스크가 알아야 함): **클라이언트 상호작용이 필요한 화면은 정적 프리렌더될 수 없다.** 현재 `app/not-found.tsx` 는 정적이라 인라인 스크립트가 차단되지만 링크만 있어 무해하다. `08_UIUX_SPEC.md §1` 의 "`/series/[seriesId]` SSR (60초 캐시)" 는 요청별 nonce 와 양립하지 않으므로 T08 에서 (a) HTML 캐시를 포기하거나 (b) 그 화면만 해시 기반 CSP 로 가는 선택이 필요하다.
+- 상태: RESOLVED (T03 범위), 후속 결정은 T08
+
 ## [OBS-004] DB 연결 실패가 500 E_INTERNAL 로 나감 (재시도 가능 여부가 감춰짐)
 - 발견 단계: T03/S3
 - 관측값: 실제 프로덕션 서버에 DB 없이 `POST /api/auth/signup` 을 보내면 `500 E_INTERNAL` 이 나왔다. 09_ERROR_CATALOG.md 기준으로는 `503 E_DB_UNAVAILABLE`(재시도 ○)이어야 한다.
