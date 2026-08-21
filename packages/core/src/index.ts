@@ -5,10 +5,27 @@ export {
   AgeRating,
   AssetStatus,
   EpisodeStatus,
+  NotifType,
+  ReportReason,
   ReportStatus,
+  ReportTarget,
   UploadStatus,
   UserRole,
+  UserStatus,
 } from './enums.js'
+export type {
+  Comment,
+  Episode,
+  Notification,
+  Page,
+  Rendition,
+  Report,
+  Season,
+  Series,
+  UploadSession,
+  User,
+  VideoAsset,
+} from './entities.js'
 export { LIMITS } from './limits.js'
 export {
   CAPACITY_TIERS,
