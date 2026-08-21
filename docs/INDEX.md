@@ -60,7 +60,8 @@ docs/
 │  ├─ T10_SOCIAL_GRAPH.md       팔로우 · 좋아요 · 댓글 · 알림 · 카운터 정합성
 │  ├─ T11_OBSERVABILITY.md      구조적 로깅 · 메트릭 · 트레이싱 · 알럿 · 헬스체크
 │  ├─ T12_MODERATION.md         신고 · 심사큐 · 차단 · 저작권 · 연령등급
-│  └─ T13_PWA_PHASE2.md         PWA 마감 + Expo 앱 전환 대비 (API 안정화 계약)
+│  ├─ T13_PWA_PHASE2.md         PWA 마감 + Expo 앱 전환 대비 (API 안정화 계약)
+│  └─ T14_DESIGN_SYSTEM.md      디자인 토큰 · 프리미티브 21개 · 테마 (T07 앞)
 │
 └─ 20_OPS/                      ← 운영 · 예외 · 유지보수
    ├─ O01_DEPLOY.md             Akamai VPS 배포 · 무중단 전환 · 롤백
@@ -76,6 +77,9 @@ docs/
 
 ## 2. 실행 순서와 의존 관계
 
+> **T14 (디자인 시스템)** 는 문서가 나중에 추가되었을 뿐 실행 위치는 **T07 앞**이다.
+> T07·T09·T10·T12 의 화면이 그 산출물을 소비한다.
+
 ```
 T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작 못 함)
    │
@@ -87,6 +91,8 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
                                     │
                                     ▼
                                  T05 UPLOAD ──▶ T06 TRANSCODE ──▶ T07 PLAYER
+                                                                     ▲
+                                                     T14 DESIGN_SYSTEM┘
                                                      │
                                                      ▼
                                               T08 SERIES/EPISODE
@@ -136,6 +142,7 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 | T11 | OBSERVABILITY | ⬜ | ⬜ | ⬜ | — |
 | T12 | MODERATION | ⬜ | ⬜ | ⬜ | — |
 | T13 | PWA_PHASE2 | ⬜ | ⬜ | ⬜ | — |
+| T14 | DESIGN_SYSTEM | ✅ | ⬜ | ⬜ | — |
 
 범례: ⬜ 미착수 · 🟡 진행중 · ✅ 게이트 통과 · 🔴 게이트 실패(정지)
 

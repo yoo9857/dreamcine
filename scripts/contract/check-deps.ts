@@ -44,6 +44,9 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
   '@testcontainers/postgresql': /@testcontainers\/postgresql/u,
   '@playwright/test': /Playwright/u,
   '@testing-library/react': /@testing-library\/react/u,
+  // 컴포넌트 테스트의 DOM 환경. @testing-library/react 는 DOM 없이 동작하지
+  // 않으므로 승인된 선택의 필수 동반물이다. (DEP-003)
+  jsdom: /@testing-library\/react/u,
   msw: /\bmsw\b/u,
   eslint: /ESLint 9/u,
   '@eslint/js': /ESLint 9/u,
@@ -65,16 +68,40 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
 const TYPES_PREFIX = '@types/'
 
 /**
- * 타입 전용 동반 패키지(`@types/{X}`)는 런타임 패키지 `{X}` 가 허용 목록에
- * 있을 때만 통과한다. `@types/node` 처럼 자체 등재된 항목은 그 근거를 우선한다.
- * 승인되지 않은 런타임 패키지의 `@types` 는 여전히 거부된다. (DEP-001)
+ * 계열로 승인된 스코프. `03_TECH_STACK.md` 가 개별 패키지가 아니라 **계열**을
+ * 지목하는 경우가 있다 — "컴포넌트 프리미티브: Radix UI" 는 `react-dialog`,
+ * `react-tabs` 처럼 수십 개 패키지로 쪼개져 배포된다. 계열을 표현하지 못하면
+ * 승인된 스택인데도 거부된다. (DEP-002)
+ *
+ * 계열은 스코프 접두로만 인정한다. 임의 스코프를 열어주지 않는다.
+ */
+const DEPENDENCY_FAMILY_EVIDENCE: Readonly<Record<string, RegExp>> = {
+  '@radix-ui/': /Radix UI/u,
+  '@tailwindcss/': /Tailwind CSS/u,
+}
+
+/**
+ * 허용 근거를 찾는 순서:
+ * 1. 패키지명 자체가 등재되어 있으면 그 근거를 쓴다 (`@types/node` 등)
+ * 2. `@types/{X}` 는 런타임 패키지 `{X}` 의 근거를 따른다 (DEP-001)
+ * 3. 계열 접두가 등재되어 있으면 그 근거를 따른다 (DEP-002)
+ *
+ * 어디에도 걸리지 않으면 거부된다. 승인되지 않은 패키지는 여전히 막힌다.
  */
 function allowedEvidence(dependency: string): RegExp | undefined {
   const own = DEPENDENCY_EVIDENCE[dependency]
-  if (own !== undefined || !dependency.startsWith(TYPES_PREFIX)) {
+  if (own !== undefined) {
     return own
   }
-  return DEPENDENCY_EVIDENCE[dependency.slice(TYPES_PREFIX.length)]
+  if (dependency.startsWith(TYPES_PREFIX)) {
+    return DEPENDENCY_EVIDENCE[dependency.slice(TYPES_PREFIX.length)]
+  }
+  for (const [prefix, evidence] of Object.entries(DEPENDENCY_FAMILY_EVIDENCE)) {
+    if (dependency.startsWith(prefix)) {
+      return evidence
+    }
+  }
+  return undefined
 }
 
 async function readRequired(path: string): Promise<string> {

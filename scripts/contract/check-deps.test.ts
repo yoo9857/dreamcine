@@ -36,7 +36,10 @@ async function createFixture(
       join(root, 'packages', 'core', 'package.json'),
       JSON.stringify({ name: '@aidream/core', private: true }),
     ),
-    writeFile(join(root, 'docs', '00_SPEC', '03_TECH_STACK.md'), 'zod 3'),
+    writeFile(
+      join(root, 'docs', '00_SPEC', '03_TECH_STACK.md'),
+      'zod 3 · Radix UI · Tailwind CSS 4',
+    ),
     writeFile(join(root, 'docs', '10_TASKS', 'T00_BOOTSTRAP.md'), 'turbo.json'),
     writeFile(join(root, 'docs', 'HARNESS.md'), 'tsx'),
   ])
@@ -70,6 +73,24 @@ describe('checkDeps', () => {
     const result = await checkDeps(root)
     expect(result.ok).toBe(false)
     expect(result.problems[0]).toContain('@types/lodash')
+  })
+
+  it('계열로 승인된 스코프의 패키지를 승인한다', async () => {
+    const root = await createFixture({
+      '@radix-ui/react-tabs': '1.0.0',
+      '@radix-ui/react-tooltip': '1.0.0',
+      '@tailwindcss/postcss': '4.0.0',
+    })
+
+    await expect(checkDeps(root)).resolves.toEqual({ ok: true, problems: [] })
+  })
+
+  it('승인되지 않은 스코프는 거부한다', async () => {
+    const root = await createFixture({ '@mui/material': '5.0.0' })
+
+    const result = await checkDeps(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems[0]).toContain('@mui/material')
   })
 
   it('존재하지 않는 내부 패키지를 거부한다', async () => {

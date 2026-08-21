@@ -62,6 +62,24 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [DEP-003] jsdom
+- 요청 단계: T14/S1
+- 용도: `packages/ui` 프리미티브 21개의 컴포넌트 테스트 실행 환경.
+- 대안 검토: `03_TECH_STACK.md` §4 는 컴포넌트 테스트 도구로 `@testing-library/react` 를 승인했다. 그 라이브러리는 DOM 없이는 동작하지 않으며 Vitest 의 DOM 환경은 `jsdom` 이다. 즉 승인된 선택의 필수 동반물이다.
+- 위험: 낮음. devDependency, 테스트 전용, 런타임 번들 미포함.
+- 제안: `check-deps.ts` 의 `DEPENDENCY_EVIDENCE` 에 `jsdom` 을 `@testing-library/react` 근거로 등재한다.
+- 결정: 승인 — 등재 완료 (2026-08-22, 사용자 승인)
+- 상태: APPROVED
+
+## [DEP-002] Radix UI · Tailwind 계열 패키지
+- 요청 단계: T14/S1
+- 용도: `08_UIUX_SPEC.md` §6 이 계약으로 고정한 프리미티브 21개 중 11개가 Radix 기반이다(`Select` `Checkbox` `Switch` `Dialog` `Sheet` `DropdownMenu` `Tabs` `Tooltip` `Toast` `Avatar` `Progress`). Tailwind 4 는 `@tailwindcss/postcss` 를 통해 Next 에 붙는다.
+- 대안 검토: `03_TECH_STACK.md` §2 는 "컴포넌트 프리미티브: **Radix UI**", "스타일: **Tailwind CSS 4**" 로 **계열**을 승인했다. 그러나 `check-deps.ts` 의 허용 목록은 패키지명 단위여서 `@radix-ui/react-dialog` 하나만 등재되어 있었고, 나머지 Radix 패키지는 승인된 스택인데도 거부됐다.
+- 위험: 낮음. 계열 인정은 **스코프 접두**로만 하며 `@radix-ui/`·`@tailwindcss/` 두 개로 한정한다. `@mui/material` 처럼 미승인 스코프는 그대로 거부된다(테스트로 고정).
+- 제안: DEP-001 과 같은 성격의 수정이다 — 스펙이 승인한 대상을 검사기가 표현하지 못하는 문제. `DEPENDENCY_FAMILY_EVIDENCE` 를 추가한다.
+- 결정: 승인 — 계열은 `@radix-ui/`·`@tailwindcss/` 두 개로 한정, 미승인 스코프 거부는 테스트로 고정 (2026-08-22, 사용자 승인)
+- 상태: APPROVED
+
 ## [OBS-005] nonce 기반 CSP 와 정적 프리렌더는 함께 쓸 수 없다
 - 발견 단계: T03/S3
 - 관측값: 프로덕션 빌드에서 `/login` 의 인라인 스크립트 6개에 nonce 가 없었고, RSC 페이로드에 `nonce":"$undefined` 가 박혀 있었다. 우리 CSP 는 `script-src 'self' 'nonce-…'` 로 `unsafe-inline` 을 허용하지 않으므로 브라우저가 그 스크립트를 전부 차단한다. 결과적으로 하이드레이션이 일어나지 않아 **로그인·가입 폼이 실제 브라우저에서 동작하지 않는다.**
