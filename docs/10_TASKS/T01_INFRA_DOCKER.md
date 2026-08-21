@@ -1,8 +1,8 @@
 # T01 — 로컬/운영 인프라: Docker Compose · Caddy
 
 ## 진행 상태
-- [ ] S1 Spec 확인
-- [ ] S2 Skeleton
+- [x] S1 Spec 확인 — 2026-08-21 / 산출물 목록 자기검증 완료
+- [x] S2 Skeleton — 2026-08-21 / `pnpm gate:s2` PASS
 - [ ] S3 구현
 
 ---

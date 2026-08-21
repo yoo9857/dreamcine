@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "aidream-cache-rules",
+  "originRegion": "jp-osa",
+  "rules": [
+    {
+      "name": "api-no-store",
+      "path": "/api/**",
+      "cacheControl": "no-store"
+    },
+    {
+      "name": "hls-immutable",
+      "path": "/hls/**",
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "thumbs-immutable",
+      "path": "/thumbs/**",
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "next-static-immutable",
+      "path": "/_next/static/**",
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "ssr-private",
+      "path": "/**",
+      "cacheControl": "private, no-cache"
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+name: aidream
+
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN is required}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+      ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+      CDN_BASE_URL: ${CDN_BASE_URL:?CDN_BASE_URL is required}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - caddy-logs:/var/log/caddy
+    restart: unless-stopped
+    logging: &production-logging
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
+
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE with an immutable tag is required}
+    env_file:
+      - ../../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - '3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    logging: *production-logging
+
+  worker:
+    image: ${WORKER_IMAGE:?WORKER_IMAGE with an immutable tag is required}
+    env_file:
+      - ../../.env
+    environment:
+      PROCESS_ROLE: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+    logging: *production-logging
+
+  scheduler:
+    image: ${WORKER_IMAGE:?WORKER_IMAGE with an immutable tag is required}
+    env_file:
+      - ../../.env
+    environment:
+      PROCESS_ROLE: scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+    logging: *production-logging
+
+  postgres:
+    image: postgres:16.10-alpine3.22
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aidream}
+      POSTGRES_USER: ${POSTGRES_USER:-aidream}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    logging: *production-logging
+
+  redis:
+    image: redis:7.4.5-alpine3.21
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    logging: *production-logging
+
+volumes:
+  caddy-data:
+  caddy-config:
+  caddy-logs:
+  postgres-data:
+  redis-data:

@@ -1,0 +1,28 @@
+name: aidream-worker
+
+services:
+  worker:
+    image: ${WORKER_IMAGE:?WORKER_IMAGE with an immutable tag is required}
+    env_file:
+      - ../../.env
+    environment:
+      PROCESS_ROLE: worker
+      CAPACITY_TIER: T2
+      WORKER_CONCURRENCY: 2
+    mem_limit: 6g
+    volumes:
+      - worker-tmp:/tmp/aidream
+    healthcheck:
+      test: ['CMD', 'node', '-e', 'process.kill(1,0)']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
+
+volumes:
+  worker-tmp:

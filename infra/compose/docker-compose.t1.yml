@@ -1,0 +1,27 @@
+services:
+  web:
+    environment:
+      NODE_OPTIONS: --max-old-space-size=2048
+      CAPACITY_TIER: T1
+
+  worker:
+    cpus: 3
+    mem_limit: 4g
+    environment:
+      WORKER_CONCURRENCY: 2
+      CAPACITY_TIER: T1
+    entrypoint: ['nice', '-n', '10', 'node', 'dist/index.js']
+
+  scheduler:
+    environment:
+      CAPACITY_TIER: T1
+
+  postgres:
+    command: >-
+      postgres -c shared_buffers=2GB -c max_connections=100
+      -c effective_cache_size=6GB -c work_mem=16MB
+      -c maintenance_work_mem=512MB
+
+  redis:
+    command: >-
+      redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save ""
