@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { contrastRatio } from '../src/tokens/contrast.js'
 import {
+  COLOR_VARIABLE_NAMES,
   THEMES,
+  VAR_PREFIX,
   darkTokens,
   lightTokens,
   renderThemeCss,
@@ -164,13 +166,13 @@ describe('renderThemeCss', () => {
 
   it('다크를 기본으로 :root 에 싣는다', () => {
     expect(css).toContain(':root {')
-    expect(css).toContain(`--color-bg: ${darkTokens.color.bg.base};`)
+    expect(css).toContain(`--aidream-bg: ${darkTokens.color.bg.base};`)
     expect(css).toContain('color-scheme: dark;')
   })
 
   it('시스템이 라이트면 라이트로 바꾼다', () => {
     expect(css).toContain('@media (prefers-color-scheme: light)')
-    expect(css).toContain(`--color-bg: ${lightTokens.color.bg.base};`)
+    expect(css).toContain(`--aidream-bg: ${lightTokens.color.bg.base};`)
   })
 
   it('명시적 선택이 시스템 설정을 이긴다', () => {
@@ -181,37 +183,50 @@ describe('renderThemeCss', () => {
     expect(css).toContain("[data-theme='dark']")
   })
 
-  it('모든 색 토큰이 변수로 나온다', () => {
-    const names = [
-      '--color-bg',
-      '--color-bg-elevated',
-      '--color-bg-overlay',
-      '--color-fg',
-      '--color-fg-secondary',
-      '--color-fg-muted',
-      '--color-accent',
-      '--color-accent-hover',
-      '--color-accent-subtle',
-      '--color-danger',
-      '--color-danger-subtle',
-      '--color-warning',
-      '--color-warning-subtle',
-      '--color-success',
-      '--color-success-subtle',
-      '--color-border',
-      '--color-border-subtle',
-    ]
-    for (const name of names) {
-      expect(css).toContain(`${name}:`)
+  it('모든 색 토큰이 런타임 변수로 나온다', () => {
+    for (const name of COLOR_VARIABLE_NAMES) {
+      expect(css).toContain(`${VAR_PREFIX}-${name}:`)
     }
+    expect(COLOR_VARIABLE_NAMES).toHaveLength(17)
   })
 
   it('간격 · 반경 · 폰트 · z 변수를 싣는다', () => {
-    expect(css).toContain('--space-1: 4px;')
-    expect(css).toContain('--space-12: 48px;')
-    expect(css).toContain('--radius-full: 9999px;')
-    expect(css).toContain('--font-sans: system-ui')
-    expect(css).toContain('--z-toast: 2000;')
+    expect(css).toContain('--aidream-space-1: 4px;')
+    expect(css).toContain('--aidream-space-12: 48px;')
+    expect(css).toContain('--aidream-radius-full: 9999px;')
+    expect(css).toContain('--aidream-font-sans: system-ui')
+    expect(css).toContain('--aidream-z-toast: 2000;')
+  })
+
+  describe('Tailwind 브리지', () => {
+    it('@theme inline 블록을 만든다', () => {
+      expect(css).toContain('@theme inline {')
+    })
+
+    it('모든 색 토큰을 Tailwind 네임스페이스로 잇는다', () => {
+      for (const name of COLOR_VARIABLE_NAMES) {
+        expect(css).toContain(`--color-${name}: var(${VAR_PREFIX}-${name});`)
+      }
+    })
+
+    it('간격 · 반경 · 폰트도 잇는다', () => {
+      expect(css).toContain('--spacing-4: var(--aidream-space-4);')
+      expect(css).toContain('--radius-md: var(--aidream-radius-md);')
+      expect(css).toContain('--font-sans: var(--aidream-font-sans);')
+    })
+
+    it('브리지는 런타임 변수를 참조만 한다 (값을 복사하지 않는다)', () => {
+      const bridge = css.slice(css.indexOf('@theme inline {'))
+      // 색 리터럴이 브리지에 들어가면 테마 전환이 죽는다.
+      expect(bridge).not.toMatch(/#[0-9a-f]{3,6}/iu)
+      expect(bridge).not.toMatch(/\d+px/u)
+    })
+
+    it('브리지가 런타임 변수보다 뒤에 온다', () => {
+      expect(css.indexOf('@theme inline {')).toBeGreaterThan(
+        css.indexOf("[data-theme='dark']"),
+      )
+    })
   })
 
   it('두 번 호출해도 같은 문자열이다', () => {

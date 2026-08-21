@@ -1,0 +1,8 @@
+/* 토큰 런타임 변수 + Tailwind 브리지. 값의 원천은 packages/ui/src/tokens 다. */
+@import '@aidream/ui/theme.css';
+
+/* Tailwind 가 클래스를 찾을 범위. 프리미티브는 packages/ui 에 있으므로
+   앱 디렉터리만 훑으면 유틸리티가 누락된다. */
+@source '../../app';
+@source '../';
+@source '../../../../packages/ui/src';

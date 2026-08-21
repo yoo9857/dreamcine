@@ -111,44 +111,103 @@ export function themeTokens(theme: Theme): Tokens {
 
 const SPACE_KEYS: readonly SpaceKey[] = [1, 2, 3, 4, 6, 8, 12]
 
-/** 토큰 이름을 그대로 CSS 변수 이름으로 쓴다. 옮겨 적는 사전을 만들지 않는다. */
-function colorVariables(tokens: Tokens): string[] {
+/**
+ * 런타임 색 변수 이름. Tailwind 의 `--color-*` 네임스페이스와 겹치지 않게
+ * 접두를 붙인다. 브리지가 `@theme inline` 으로 둘을 잇는다.
+ */
+export const COLOR_VARIABLE_NAMES = [
+  'bg',
+  'bg-elevated',
+  'bg-overlay',
+  'fg',
+  'fg-secondary',
+  'fg-muted',
+  'accent',
+  'accent-hover',
+  'accent-subtle',
+  'danger',
+  'danger-subtle',
+  'warning',
+  'warning-subtle',
+  'success',
+  'success-subtle',
+  'border',
+  'border-subtle',
+] as const
+
+export const VAR_PREFIX = '--aidream'
+
+function colorValues(tokens: Tokens): readonly string[] {
   const { color } = tokens
   return [
-    `--color-bg: ${color.bg.base};`,
-    `--color-bg-elevated: ${color.bg.elevated};`,
-    `--color-bg-overlay: ${color.bg.overlay};`,
-    `--color-fg: ${color.fg.primary};`,
-    `--color-fg-secondary: ${color.fg.secondary};`,
-    `--color-fg-muted: ${color.fg.muted};`,
-    `--color-accent: ${color.accent.base};`,
-    `--color-accent-hover: ${color.accent.hover};`,
-    `--color-accent-subtle: ${color.accent.subtle};`,
-    `--color-danger: ${color.danger.base};`,
-    `--color-danger-subtle: ${color.danger.subtle};`,
-    `--color-warning: ${color.warning.base};`,
-    `--color-warning-subtle: ${color.warning.subtle};`,
-    `--color-success: ${color.success.base};`,
-    `--color-success-subtle: ${color.success.subtle};`,
-    `--color-border: ${color.border.base};`,
-    `--color-border-subtle: ${color.border.subtle};`,
+    color.bg.base,
+    color.bg.elevated,
+    color.bg.overlay,
+    color.fg.primary,
+    color.fg.secondary,
+    color.fg.muted,
+    color.accent.base,
+    color.accent.hover,
+    color.accent.subtle,
+    color.danger.base,
+    color.danger.subtle,
+    color.warning.base,
+    color.warning.subtle,
+    color.success.base,
+    color.success.subtle,
+    color.border.base,
+    color.border.subtle,
   ]
 }
 
+function colorVariables(tokens: Tokens): string[] {
+  const values = colorValues(tokens)
+  return COLOR_VARIABLE_NAMES.map(
+    (name, index) => `${VAR_PREFIX}-${name}: ${values[index] ?? ''};`,
+  )
+}
+
+const RADIUS_KEYS = ['sm', 'md', 'lg', 'full'] as const
+const FONT_KEYS = ['sans', 'mono'] as const
+const Z_KEYS = ['base', 'sticky', 'overlay', 'modal', 'toast'] as const
+
 function staticVariables(tokens: Tokens): string[] {
   return [
-    ...SPACE_KEYS.map((key) => `--space-${String(key)}: ${tokens.space[key]};`),
-    `--radius-sm: ${tokens.radius.sm};`,
-    `--radius-md: ${tokens.radius.md};`,
-    `--radius-lg: ${tokens.radius.lg};`,
-    `--radius-full: ${tokens.radius.full};`,
-    `--font-sans: ${tokens.font.sans};`,
-    `--font-mono: ${tokens.font.mono};`,
-    `--z-base: ${String(tokens.z.base)};`,
-    `--z-sticky: ${String(tokens.z.sticky)};`,
-    `--z-overlay: ${String(tokens.z.overlay)};`,
-    `--z-modal: ${String(tokens.z.modal)};`,
-    `--z-toast: ${String(tokens.z.toast)};`,
+    ...SPACE_KEYS.map(
+      (key) => `${VAR_PREFIX}-space-${String(key)}: ${tokens.space[key]};`,
+    ),
+    ...RADIUS_KEYS.map(
+      (key) => `${VAR_PREFIX}-radius-${key}: ${tokens.radius[key]};`,
+    ),
+    ...FONT_KEYS.map(
+      (key) => `${VAR_PREFIX}-font-${key}: ${tokens.font[key]};`,
+    ),
+    ...Z_KEYS.map((key) => `${VAR_PREFIX}-z-${key}: ${String(tokens.z[key])};`),
+  ]
+}
+
+/**
+ * Tailwind 4 브리지. 런타임 변수를 Tailwind 네임스페이스에 이어 붙여
+ * `bg-bg-elevated` · `text-fg-muted` · `p-4` 같은 유틸리티가 생기게 한다.
+ *
+ * `inline` 이라 유틸리티가 `var(--aidream-*)` 를 직접 참조한다. 그래서 테마가
+ * 바뀌면 클래스를 다시 만들지 않아도 색이 따라온다.
+ *
+ * 이 블록도 생성물이다 — 손으로 옮겨 적는 사전을 만들면 반드시 갈라진다.
+ */
+function themeBridge(): string[] {
+  return [
+    ...COLOR_VARIABLE_NAMES.map(
+      (name) => `--color-${name}: var(${VAR_PREFIX}-${name});`,
+    ),
+    ...SPACE_KEYS.map(
+      (key) =>
+        `--spacing-${String(key)}: var(${VAR_PREFIX}-space-${String(key)});`,
+    ),
+    ...RADIUS_KEYS.map(
+      (key) => `--radius-${key}: var(${VAR_PREFIX}-radius-${key});`,
+    ),
+    ...FONT_KEYS.map((key) => `--font-${key}: var(${VAR_PREFIX}-font-${key});`),
   ]
 }
 
@@ -192,6 +251,8 @@ export function renderThemeCss(): string {
       ...colorVariables(darkTokens),
       'color-scheme: dark;',
     ]),
+    '',
+    block('@theme inline', themeBridge()),
     '',
   ].join('\n')
 }
