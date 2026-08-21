@@ -1,5 +1,7 @@
 import type { AssetStatus, Rendition, VideoAsset } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
+import { db } from '../client.js'
+import { executeDb } from '../errors.js'
+import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
 
 export interface CreateAssetData {
   uploadId?: string | null
@@ -32,32 +34,60 @@ export interface CreateRenditionData {
   sizeBytes: bigint
 }
 
-export function findAssetById(_id: string): Promise<VideoAsset | null> {
-  throw new NotImplementedError('T02:findAssetById')
+export function findAssetById(id: string): Promise<VideoAsset | null> {
+  return executeDb(async () => {
+    const row = await db.videoAsset.findUnique({ where: { id } })
+    return row === null ? null : mapVideoAsset(row)
+  })
 }
 
-export function createAsset(_input: CreateAssetData): Promise<VideoAsset> {
-  throw new NotImplementedError('T02:createAsset')
+export function createAsset(input: CreateAssetData): Promise<VideoAsset> {
+  return executeDb(async () =>
+    mapVideoAsset(await db.videoAsset.create({ data: input })),
+  )
 }
 
 export function updateAssetStatus(
-  _id: string,
-  _status: AssetStatus,
-  _patch?: AssetMetadataPatch,
+  id: string,
+  status: AssetStatus,
+  patch: AssetMetadataPatch = {},
 ): Promise<VideoAsset> {
-  throw new NotImplementedError('T02:updateAssetStatus')
+  return executeDb(async () =>
+    mapVideoAsset(
+      await db.videoAsset.update({
+        where: { id },
+        data: { status, ...patch },
+      }),
+    ),
+  )
 }
 
-export function incrementAssetAttempt(_id: string): Promise<VideoAsset> {
-  throw new NotImplementedError('T02:incrementAssetAttempt')
+export function incrementAssetAttempt(id: string): Promise<VideoAsset> {
+  return executeDb(async () =>
+    mapVideoAsset(
+      await db.videoAsset.update({
+        where: { id },
+        data: { attemptCount: { increment: 1 } },
+      }),
+    ),
+  )
 }
 
 export function createRendition(
-  _input: CreateRenditionData,
+  input: CreateRenditionData,
 ): Promise<Rendition> {
-  throw new NotImplementedError('T02:createRendition')
+  return executeDb(async () =>
+    mapRendition(await db.rendition.create({ data: input })),
+  )
 }
 
-export function listRenditionsByAsset(_assetId: string): Promise<Rendition[]> {
-  throw new NotImplementedError('T02:listRenditionsByAsset')
+export function listRenditionsByAsset(assetId: string): Promise<Rendition[]> {
+  return executeDb(async () =>
+    (
+      await db.rendition.findMany({
+        where: { assetId },
+        orderBy: [{ height: 'asc' }, { bitrateKbps: 'asc' }],
+      })
+    ).map(mapRendition),
+  )
 }

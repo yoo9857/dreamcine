@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-21 / 산출물·불변 스키마 자기검증 완료
 - [x] S2 Skeleton — 2026-08-21 / `pnpm gate:s2` PASS
-- [ ] S3 구현
+- [x] S3 구현 — 2026-08-21 / `pnpm gate:s3` PASS · 65 tests · DB lines 92.54% · seed 3/2/6
 
 ---
 
@@ -220,11 +220,11 @@ await withTransaction(async (tx) => {
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] `contract:prisma` 드리프트 0
-- [ ] 잔존 `NotImplementedError('T02:...')` = 0
-- [ ] `pnpm db:seed` 후 시드 데이터 조회 확인
-- [ ] `packages/db` 커버리지 ≥ 70%
-- [ ] `packages/db/src/index.ts` 가 `PrismaClient` 를 export 하지 않음 (grep 확인)
-- [ ] `apps/**` 에 `@prisma/client` import 0건 (depcruise 가 보장하지만 직접 확인)
-- [ ] 피드 커서 중복/누락 테스트 통과
+- [x] `pnpm gate` 통과
+- [x] `contract:prisma` 드리프트 0
+- [x] 잔존 `NotImplementedError('T02:...')` = 0
+- [x] `pnpm db:seed` 후 시드 데이터 조회 확인 (사용자 3, 시리즈 2, 에피소드 6)
+- [x] `packages/db` 커버리지 ≥ 70% (lines 92.54%, branches 80.32%)
+- [x] `packages/db/src/index.ts` 가 `PrismaClient` 를 export 하지 않음 (grep 0건)
+- [x] `apps/**` 에 `@prisma/client` import 0건 (depcruise + grep 0건)
+- [x] 피드 커서 중복/누락 테스트 통과 (동일 `publishedAt` 10건 + 삽입 경계)

@@ -66,6 +66,16 @@ module.exports = tseslint.config(
     },
   },
   {
+    files: [
+      'packages/db/src/**/*.ts',
+      'packages/db/tests/**/*.ts',
+      'prisma/**/*.ts',
+    ],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+  {
     files: ['**/*.cjs', '**/*.js'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {

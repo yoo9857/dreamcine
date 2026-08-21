@@ -1,5 +1,7 @@
 import type { UploadSession, UploadStatus } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
+import { db } from '../client.js'
+import { executeDb } from '../errors.js'
+import { mapUploadSession } from '../mappers/upload.mapper.js'
 
 export interface CompletedPart {
   partNumber: number
@@ -19,28 +21,51 @@ export interface CreateUploadSessionData {
 }
 
 export function findUploadSessionById(
-  _id: string,
+  id: string,
 ): Promise<UploadSession | null> {
-  throw new NotImplementedError('T02:findUploadSessionById')
+  return executeDb(async () => {
+    const row = await db.uploadSession.findUnique({ where: { id } })
+    return row === null ? null : mapUploadSession(row)
+  })
 }
 
 export function createUploadSession(
-  _input: CreateUploadSessionData,
+  input: CreateUploadSessionData,
 ): Promise<UploadSession> {
-  throw new NotImplementedError('T02:createUploadSession')
+  return executeDb(async () =>
+    mapUploadSession(await db.uploadSession.create({ data: input })),
+  )
 }
 
 export function updateUploadStatus(
-  _id: string,
-  _status: UploadStatus,
-  _patch?: { s3UploadId?: string | null; errorCode?: string | null },
+  id: string,
+  status: UploadStatus,
+  patch: { s3UploadId?: string | null; errorCode?: string | null } = {},
 ): Promise<UploadSession> {
-  throw new NotImplementedError('T02:updateUploadStatus')
+  return executeDb(async () =>
+    mapUploadSession(
+      await db.uploadSession.update({
+        where: { id },
+        data: { status, ...patch },
+      }),
+    ),
+  )
 }
 
 export function updateCompletedParts(
-  _id: string,
-  _parts: CompletedPart[],
+  id: string,
+  parts: CompletedPart[],
 ): Promise<UploadSession> {
-  throw new NotImplementedError('T02:updateCompletedParts')
+  const completedParts = parts.map((part) => ({
+    partNumber: part.partNumber,
+    etag: part.etag,
+  }))
+  return executeDb(async () =>
+    mapUploadSession(
+      await db.uploadSession.update({
+        where: { id },
+        data: { completedParts },
+      }),
+    ),
+  )
 }

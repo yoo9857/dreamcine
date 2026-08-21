@@ -1,0 +1,96 @@
+import type { Episode, Series, UploadSession, VideoAsset } from '@prisma/client'
+import { describe, expect, it } from 'vitest'
+import { mapVideoAsset } from '../src/mappers/asset.mapper.js'
+import { mapEpisode } from '../src/mappers/episode.mapper.js'
+import { mapSeries } from '../src/mappers/series.mapper.js'
+import { mapUploadSession } from '../src/mappers/upload.mapper.js'
+
+const now = new Date('2026-08-21T00:00:00.000Z')
+
+describe('Prisma model mappers', () => {
+  it('serializes every public BigInt as a decimal string', () => {
+    const series = {
+      id: 'series',
+      ownerId: 'owner',
+      slug: 'series',
+      title: 'Series',
+      synopsis: null,
+      posterKey: null,
+      ageRating: 'ALL',
+      isCompleted: false,
+      commentsOff: false,
+      episodeCount: 1,
+      totalViews: 9_007_199_254_740_993n,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    } satisfies Series
+    const episode = {
+      id: 'episode',
+      seriesId: series.id,
+      seasonId: null,
+      assetId: null,
+      number: 1,
+      title: 'Episode',
+      description: null,
+      thumbKey: null,
+      status: 'PUBLISHED',
+      ageRating: 'ALL',
+      aiDisclosure: null,
+      publishAt: null,
+      publishedAt: now,
+      viewCount: 9_007_199_254_740_994n,
+      likeCount: 0,
+      commentCount: 0,
+      rankScore: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    } satisfies Episode
+    const upload = {
+      id: 'upload',
+      userId: 'owner',
+      status: 'CREATED',
+      fileName: 'movie.mp4',
+      fileSize: 9_007_199_254_740_995n,
+      mimeType: 'video/mp4',
+      checksum: null,
+      objectKey: 'original/movie.mp4',
+      s3UploadId: null,
+      partSize: 10,
+      totalParts: 1,
+      completedParts: [],
+      errorCode: null,
+      expiresAt: now,
+      createdAt: now,
+      updatedAt: now,
+    } satisfies UploadSession
+    const asset = {
+      id: 'asset',
+      uploadId: upload.id,
+      status: 'READY',
+      originalKey: upload.objectKey,
+      hlsPrefix: null,
+      masterPath: null,
+      posterKey: null,
+      durationSec: null,
+      width: null,
+      height: null,
+      videoCodec: null,
+      audioCodec: null,
+      bitrateKbps: null,
+      sizeBytes: 9_007_199_254_740_996n,
+      attemptCount: 0,
+      errorCode: null,
+      errorDetail: null,
+      createdAt: now,
+      updatedAt: now,
+      readyAt: now,
+    } satisfies VideoAsset
+
+    expect(mapSeries(series).totalViews).toBe('9007199254740993')
+    expect(mapEpisode(episode).viewCount).toBe('9007199254740994')
+    expect(mapUploadSession(upload).fileSize).toBe('9007199254740995')
+    expect(mapVideoAsset(asset).sizeBytes).toBe('9007199254740996')
+  })
+})

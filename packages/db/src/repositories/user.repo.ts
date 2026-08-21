@@ -1,5 +1,7 @@
 import type { User, UserRole, UserStatus } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
+import { db } from '../client.js'
+import { executeDb } from '../errors.js'
+import { mapUser } from '../mappers/user.mapper.js'
 
 export interface CreateUserData {
   handle: string
@@ -16,36 +18,72 @@ export interface UpdateUserData {
   status?: UserStatus
 }
 
-export function findUserById(_id: string): Promise<User | null> {
-  throw new NotImplementedError('T02:findUserById')
+export function findUserById(id: string): Promise<User | null> {
+  return executeDb(async () => {
+    const row = await db.user.findFirst({ where: { id, deletedAt: null } })
+    return row === null ? null : mapUser(row)
+  })
 }
 
-export function findUserByEmail(_email: string): Promise<User | null> {
-  throw new NotImplementedError('T02:findUserByEmail')
+export function findUserByEmail(email: string): Promise<User | null> {
+  return executeDb(async () => {
+    const row = await db.user.findFirst({ where: { email, deletedAt: null } })
+    return row === null ? null : mapUser(row)
+  })
 }
 
-export function findUserByHandle(_handle: string): Promise<User | null> {
-  throw new NotImplementedError('T02:findUserByHandle')
+export function findUserByHandle(handle: string): Promise<User | null> {
+  return executeDb(async () => {
+    const row = await db.user.findFirst({ where: { handle, deletedAt: null } })
+    return row === null ? null : mapUser(row)
+  })
 }
 
-export function createUser(_input: CreateUserData): Promise<User> {
-  throw new NotImplementedError('T02:createUser')
+export function createUser(input: CreateUserData): Promise<User> {
+  return executeDb(async () =>
+    mapUser(
+      await db.user.create({
+        data: input,
+      }),
+    ),
+  )
 }
 
-export function updateUser(_id: string, _input: UpdateUserData): Promise<User> {
-  throw new NotImplementedError('T02:updateUser')
+export function updateUser(id: string, input: UpdateUserData): Promise<User> {
+  return executeDb(async () =>
+    mapUser(
+      await db.user.update({
+        where: { id, deletedAt: null },
+        data: input,
+      }),
+    ),
+  )
 }
 
 export function incrementUserFollowerCount(
-  _id: string,
-  _by: 1 | -1,
+  id: string,
+  by: 1 | -1,
 ): Promise<User> {
-  throw new NotImplementedError('T02:incrementUserFollowerCount')
+  return executeDb(async () =>
+    mapUser(
+      await db.user.update({
+        where: { id, deletedAt: null },
+        data: { followerCount: { increment: by } },
+      }),
+    ),
+  )
 }
 
 export function incrementUserSeriesCount(
-  _id: string,
-  _by: 1 | -1,
+  id: string,
+  by: 1 | -1,
 ): Promise<User> {
-  throw new NotImplementedError('T02:incrementUserSeriesCount')
+  return executeDb(async () =>
+    mapUser(
+      await db.user.update({
+        where: { id, deletedAt: null },
+        data: { seriesCount: { increment: by } },
+      }),
+    ),
+  )
 }
