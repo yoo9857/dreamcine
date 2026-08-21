@@ -1,0 +1,50 @@
+{
+  "name": "aidream",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc -b",
+    "depcruise": "depcruise apps packages scripts --config .dependency-cruiser.cjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "gate": "pnpm gate:static && pnpm gate:contract && pnpm gate:test",
+    "gate:s2": "pnpm gate:static",
+    "gate:s3": "pnpm gate",
+    "gate:static": "pnpm lint && pnpm typecheck && pnpm depcruise && pnpm format:check",
+    "gate:contract": "pnpm contract:openapi && pnpm contract:prisma && pnpm contract:errors && pnpm contract:limits && pnpm contract:deps && pnpm contract:capacity",
+    "gate:test": "vitest run --coverage && playwright test",
+    "contract:openapi": "tsx scripts/contract/check-openapi.ts",
+    "contract:prisma": "prisma validate && prisma migrate diff --exit-code --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma",
+    "contract:errors": "tsx scripts/contract/check-error-catalog.ts",
+    "contract:limits": "tsx scripts/contract/check-limits.ts",
+    "contract:deps": "tsx scripts/contract/check-deps.ts",
+    "contract:capacity": "tsx scripts/contract/check-capacity.ts",
+    "sss:remaining": "tsx scripts/sss/count-remaining.ts",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "@eslint/js": "9.32.0",
+    "@playwright/test": "1.54.2",
+    "@types/node": "22.17.2",
+    "@vitest/coverage-v8": "2.1.9",
+    "dependency-cruiser": "16.10.2",
+    "eslint": "9.32.0",
+    "eslint-config-prettier": "10.1.8",
+    "husky": "9.1.7",
+    "prettier": "3.6.2",
+    "tsx": "4.20.4",
+    "turbo": "2.5.6",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.39.1",
+    "vitest": "2.1.9"
+  }
+}
