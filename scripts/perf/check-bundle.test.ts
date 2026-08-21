@@ -3,9 +3,9 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { BUDGET_BYTES, checkBundle } from './check-bundle.js'
+import { BUDGET_BYTES, checkBundle, runCli } from './check-bundle.js'
 
 const temporaryRoots: string[] = []
 
@@ -138,6 +138,50 @@ describe('checkBundle', () => {
     expect(result.problems.join('\n')).toContain(
       '페이지 경로를 찾지 못했습니다',
     )
+  })
+
+  it('CLI 는 예산 안이면 0 으로 끝나고 경로별 크기를 보여준다', async () => {
+    const root = await createFixture({
+      pages: { '/(auth)/login/page': ['page.js'] },
+      sizes: { 'page.js': 1024 },
+    })
+    const cwd = vi.spyOn(process, 'cwd').mockReturnValue(root)
+    const out = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    process.exitCode = undefined
+    try {
+      await runCli()
+      const printed = out.mock.calls.flat().join('')
+      expect(process.exitCode).toBeUndefined()
+      expect(printed).toContain('/(auth)/login/page')
+      expect(printed).toContain('bundle budget: OK')
+    } finally {
+      cwd.mockRestore()
+      out.mockRestore()
+      process.exitCode = undefined
+    }
+  })
+
+  it('CLI 는 예산을 넘기면 1 로 끝난다', async () => {
+    // 종료 코드가 틀리면 예산을 넘겨도 CI 가 조용히 통과한다.
+    const root = await createFixture({
+      pages: { '/heavy/page': ['huge.js'] },
+      sizes: { 'huge.js': 900 * 1024 },
+    })
+    const cwd = vi.spyOn(process, 'cwd').mockReturnValue(root)
+    const out = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    const err = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    process.exitCode = undefined
+    try {
+      await runCli()
+      expect(process.exitCode).toBe(1)
+      expect(out.mock.calls.flat().join('')).toContain('FAIL')
+      expect(err.mock.calls.flat().join('')).toContain('예산')
+    } finally {
+      cwd.mockRestore()
+      out.mockRestore()
+      err.mockRestore()
+      process.exitCode = undefined
+    }
   })
 
   it('빌드 전에는 무엇을 해야 하는지 알려준다', async () => {

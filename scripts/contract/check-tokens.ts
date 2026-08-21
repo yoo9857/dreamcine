@@ -78,7 +78,11 @@ function isDirectExecution(): boolean {
   )
 }
 
-async function main(): Promise<void> {
+/**
+ * CLI 진입점. 종료 코드가 곧 게이트의 판정이다 — 문제를 찾고도 0 으로 끝나면
+ * CI 가 조용히 통과한다. 그래서 테스트가 이 함수를 직접 부른다.
+ */
+export async function runCli(): Promise<void> {
   const write = process.argv.includes('--write')
   const result = await checkTokens(process.cwd(), write)
 
@@ -93,7 +97,7 @@ async function main(): Promise<void> {
 }
 
 if (isDirectExecution()) {
-  main().catch((error: unknown) => {
+  runCli().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error)
     process.stderr.write(`${message}\n`)
     process.exitCode = 1
