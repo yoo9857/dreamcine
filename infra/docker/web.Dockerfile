@@ -15,6 +15,8 @@ RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY . .
+# 타입체크·빌드가 생성된 Prisma 클라이언트를 필요로 한다. (OBS-002)
+RUN pnpm prisma generate --schema prisma/schema.prisma
 RUN pnpm --filter @aidream/web build
 
 FROM node:${NODE_VERSION}-alpine3.22 AS runner

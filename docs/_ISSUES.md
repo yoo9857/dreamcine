@@ -62,6 +62,14 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [OBS-002] CI 가 Prisma 클라이언트를 생성하지 않아 정적 게이트가 계속 실패함
+- 발견 단계: T03/S3
+- 관측값: `main` 의 gate 워크플로가 T03/S1 이후 계속 실패했다(run 32463194812 · 32463352981 · 32492809381). 세 번 모두 `Run SSS gate` 에서 25초 이내에 죽었다 — 테스트가 아니라 `pnpm typecheck` 단계다.
+- 측정 방법: 생성된 클라이언트(`node_modules/.pnpm/@prisma+client*/node_modules/.prisma`)를 치우고 `pnpm typecheck` 를 실행하면 `TS2305: Module '"@prisma/client"' has no exported member 'Episode'` 등이 재현된다. `pnpm prisma generate` 후에는 통과한다.
+- 원인: `prisma generate` 를 실행하는 지점이 저장소 어디에도 없었다. `@prisma/client` 는 자체 postinstall 로 생성물을 만들지만, pnpm 9 는 의존성의 빌드 스크립트를 기본 차단한다. 로컬은 사람이 수동으로 generate 해서 증상이 가려져 있었다.
+- 조치: (1) `gate.yml` 에 `Generate Prisma client` 스텝 추가. (2) `web.Dockerfile`·`worker.Dockerfile` 의 build 단계에 generate 추가 — deps 단계는 `prisma/schema.prisma` 를 복사하지 않으므로 루트 `postinstall` 은 쓰지 않는다. (3) `Run SSS gate` 단일 스텝을 `Gate L1 static` / `L2 contract` / `L3 behaviour` 로 분리해, 로그 다운로드 권한 없이도 깨진 층이 드러나게 했다. (4) 실패 시 Playwright·커버리지 리포트를 아티팩트로 업로드하고, vitest 는 CI 에서 `github-actions` 리포터로 annotation 을 남긴다.
+- 상태: RESOLVED
+
 ## [OBS-001] `check-prisma` 실측 테스트가 기본 5초 타임아웃 경계에서 플레이키함
 - 발견 단계: T03/S3
 - 관측값: `scripts/contract/check-prisma.test.ts` 의 "현재 저장소의 실제 Prisma CLI 검사를 통과한다" 가 4.3s / 4.5s / 4.9s / 5.0s 로 측정되어 Vitest 기본 타임아웃(5s)을 오가며 실패했다.

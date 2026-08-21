@@ -10,6 +10,12 @@ export default defineConfig({
     alias: [{ find: /^@\//u, replacement: webRoot }],
   },
   test: {
+    // CI 는 워크플로 로그 다운로드에 관리자 권한이 필요하다. github-actions
+    // 리포터는 실패를 annotation 으로 올려 로그 없이도 원인을 볼 수 있게 한다.
+    reporters:
+      process.env.CI === undefined
+        ? ['default']
+        : ['default', 'github-actions'],
     include: [
       'packages/**/*.test.ts',
       'scripts/**/*.test.ts',
