@@ -1,5 +1,5 @@
 ARG NODE_VERSION=22.18.0
-FROM mwader/static-ffmpeg:7.1.1 AS ffmpeg
+FROM mwader/static-ffmpeg:7.1.1@sha256:11a44711684c0b9f754c047dcd64235b8b52deab251bd0e0a86f22faa160749c AS ffmpeg
 FROM node:${NODE_VERSION}-alpine3.22 AS deps
 
 WORKDIR /app

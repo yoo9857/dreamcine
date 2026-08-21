@@ -26,7 +26,8 @@ main() {
   case "${1:-dev}" in
     dev)
       check_ports
-      docker compose -f "${COMPOSE_FILE}" up -d --wait
+      docker compose -f "${COMPOSE_FILE}" up -d --wait postgres redis minio
+      docker compose -f "${COMPOSE_FILE}" run --rm minio-init
       ;;
     down) docker compose -f "${COMPOSE_FILE}" down ;;
     logs) docker compose -f "${COMPOSE_FILE}" logs --follow --tail=200 ;;

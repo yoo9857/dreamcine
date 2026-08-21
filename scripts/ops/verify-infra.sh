@@ -16,6 +16,14 @@ assert_header() {
 
 verify_dev() {
   local postgres_id redis_id minio_id status originals_status public_status headers
+  local hls_bucket="${S3_BUCKET_HLS:-aidream-hls}"
+
+  cleanup_cors_probe() {
+    docker compose -f "${COMPOSE_DEV}" run --rm --no-deps --entrypoint /bin/sh minio-init -c \
+      'mc alias set local "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc rm --force "local/$S3_BUCKET_HLS/cors-probe" >/dev/null' \
+      >/dev/null 2>&1 || true
+  }
+  trap cleanup_cors_probe EXIT
   postgres_id="$(docker compose -f "${COMPOSE_DEV}" ps -q postgres)"
   redis_id="$(docker compose -f "${COMPOSE_DEV}" ps -q redis)"
   minio_id="$(docker compose -f "${COMPOSE_DEV}" ps -q minio)"
@@ -37,10 +45,11 @@ verify_dev() {
   [[ "${public_status}" == '404' ]] || fail "hls anonymous access returned ${public_status}, expected 404"
 
   docker compose -f "${COMPOSE_DEV}" run --rm --no-deps --entrypoint /bin/sh minio-init -c 'mc alias set local "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && printf probe | mc pipe "local/$S3_BUCKET_HLS/cors-probe" >/dev/null'
-  headers="$(curl -sS -D - -o /dev/null -H 'Origin: http://localhost:3000' 'http://127.0.0.1:9000/aidream-hls/cors-probe')"
+  headers="$(curl -sS -D - -o /dev/null -H 'Origin: http://localhost:3000' "http://127.0.0.1:9000/${hls_bucket}/cors-probe")"
   assert_header "${headers}" '^access-control-allow-origin:[[:space:]]*http://localhost:3000'
   assert_header "${headers}" '^access-control-expose-headers:.*etag'
-  docker compose -f "${COMPOSE_DEV}" run --rm --no-deps --entrypoint /bin/sh minio-init -c 'mc alias set local "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc rm --force "local/$S3_BUCKET_HLS/cors-probe" >/dev/null'
+  cleanup_cors_probe
+  trap - EXIT
   printf 'PASS: dev PostgreSQL, Redis, MinIO policies and CORS\n'
 }
 

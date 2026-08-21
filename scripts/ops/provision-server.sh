@@ -16,7 +16,7 @@ install_packages() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
   apt-get install -y --no-install-recommends \
-    ca-certificates curl docker.io docker-compose-v2 unattended-upgrades ufw
+    ca-certificates curl docker-buildx docker.io docker-compose-v2 unattended-upgrades ufw
   systemctl enable --now docker unattended-upgrades
 }
 
