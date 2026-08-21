@@ -24,16 +24,6 @@ wait_for_minio() {
   return 1
 }
 
-configure_cors() {
-  local cors_file
-  cors_file="$(mktemp)"
-  trap 'rm -f "${cors_file}"' RETURN
-  printf '%s' '<CORSConfiguration><CORSRule><AllowedOrigin>*</AllowedOrigin><AllowedMethod>GET</AllowedMethod><AllowedMethod>HEAD</AllowedMethod><AllowedMethod>PUT</AllowedMethod><AllowedHeader>*</AllowedHeader><ExposeHeader>ETag</ExposeHeader><MaxAgeSeconds>3600</MaxAgeSeconds></CORSRule></CORSConfiguration>' >"${cors_file}"
-  mc cors set "local/${S3_BUCKET_ORIGINALS}" "${cors_file}"
-  mc cors set "local/${S3_BUCKET_HLS}" "${cors_file}"
-  mc cors set "local/${S3_BUCKET_THUMBS}" "${cors_file}"
-}
-
 main() {
   require_environment
   wait_for_minio
@@ -41,7 +31,6 @@ main() {
   mc anonymous set none "local/${S3_BUCKET_ORIGINALS}"
   mc anonymous set download "local/${S3_BUCKET_HLS}"
   mc anonymous set download "local/${S3_BUCKET_THUMBS}"
-  configure_cors
   mc anonymous get "local/${S3_BUCKET_ORIGINALS}"
   mc anonymous get "local/${S3_BUCKET_HLS}"
   mc anonymous get "local/${S3_BUCKET_THUMBS}"

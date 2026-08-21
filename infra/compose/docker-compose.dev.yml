@@ -38,6 +38,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aidream-local}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aidream-local-secret}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000}
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -72,10 +73,6 @@ services:
         mc anonymous set none "local/$${S3_BUCKET_ORIGINALS}"
         mc anonymous set download "local/$${S3_BUCKET_HLS}"
         mc anonymous set download "local/$${S3_BUCKET_THUMBS}"
-        printf '%s' '<CORSConfiguration><CORSRule><AllowedOrigin>*</AllowedOrigin><AllowedMethod>GET</AllowedMethod><AllowedMethod>HEAD</AllowedMethod><AllowedMethod>PUT</AllowedMethod><AllowedHeader>*</AllowedHeader><ExposeHeader>ETag</ExposeHeader><MaxAgeSeconds>3600</MaxAgeSeconds></CORSRule></CORSConfiguration>' > /tmp/cors.xml
-        mc cors set "local/$${S3_BUCKET_ORIGINALS}" /tmp/cors.xml
-        mc cors set "local/$${S3_BUCKET_HLS}" /tmp/cors.xml
-        mc cors set "local/$${S3_BUCKET_THUMBS}" /tmp/cors.xml
     restart: 'no'
 
 volumes:
