@@ -1,0 +1,106 @@
+/* 생성물이다. 직접 고치지 않는다. `pnpm contract:tokens` 가 대조한다. */
+/* 원천: packages/ui/src/tokens/index.ts */
+
+:root {
+  --color-bg: #0b0b10;
+  --color-bg-elevated: #16161d;
+  --color-bg-overlay: #21212b;
+  --color-fg: #f4f4f7;
+  --color-fg-secondary: #bcbcc9;
+  --color-fg-muted: #9c9caa;
+  --color-accent: #8b7cf6;
+  --color-accent-hover: #a394f8;
+  --color-accent-subtle: #1e1a3d;
+  --color-danger: #ff7a7a;
+  --color-danger-subtle: #3a1620;
+  --color-warning: #f0b849;
+  --color-warning-subtle: #3a2c12;
+  --color-success: #4ade80;
+  --color-success-subtle: #12301f;
+  --color-border: #71717f;
+  --color-border-subtle: #2a2a35;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-overlay: 100;
+  --z-modal: 1000;
+  --z-toast: 2000;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #f6f6f9;
+  --color-bg-overlay: #ffffff;
+  --color-fg: #16161d;
+  --color-fg-secondary: #4a4a58;
+  --color-fg-muted: #5f5f6d;
+  --color-accent: #5b3fd6;
+  --color-accent-hover: #4a31b8;
+  --color-accent-subtle: #efeaff;
+  --color-danger: #c2261f;
+  --color-danger-subtle: #fdeceb;
+  --color-warning: #8a5a00;
+  --color-warning-subtle: #fdf3e0;
+  --color-success: #1a7a45;
+  --color-success-subtle: #e7f6ed;
+  --color-border: #86869a;
+  --color-border-subtle: #e4e4ea;
+  color-scheme: light;
+  }
+}
+
+[data-theme='light'] {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #f6f6f9;
+  --color-bg-overlay: #ffffff;
+  --color-fg: #16161d;
+  --color-fg-secondary: #4a4a58;
+  --color-fg-muted: #5f5f6d;
+  --color-accent: #5b3fd6;
+  --color-accent-hover: #4a31b8;
+  --color-accent-subtle: #efeaff;
+  --color-danger: #c2261f;
+  --color-danger-subtle: #fdeceb;
+  --color-warning: #8a5a00;
+  --color-warning-subtle: #fdf3e0;
+  --color-success: #1a7a45;
+  --color-success-subtle: #e7f6ed;
+  --color-border: #86869a;
+  --color-border-subtle: #e4e4ea;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --color-bg: #0b0b10;
+  --color-bg-elevated: #16161d;
+  --color-bg-overlay: #21212b;
+  --color-fg: #f4f4f7;
+  --color-fg-secondary: #bcbcc9;
+  --color-fg-muted: #9c9caa;
+  --color-accent: #8b7cf6;
+  --color-accent-hover: #a394f8;
+  --color-accent-subtle: #1e1a3d;
+  --color-danger: #ff7a7a;
+  --color-danger-subtle: #3a1620;
+  --color-warning: #f0b849;
+  --color-warning-subtle: #3a2c12;
+  --color-success: #4ade80;
+  --color-success-subtle: #12301f;
+  --color-border: #71717f;
+  --color-border-subtle: #2a2a35;
+  color-scheme: dark;
+}

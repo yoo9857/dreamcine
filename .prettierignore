@@ -10,3 +10,6 @@ pnpm-lock.yaml
 
 # next build 가 자기 형식으로 다시 쓰는 파일
 apps/web/tsconfig.json
+
+# 토큰에서 생성되는 파일 (contract:tokens 가 정본을 보장)
+packages/ui/src/tokens/theme.css

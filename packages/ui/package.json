@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./tokens": "./src/tokens/index.ts",
     "./theme.css": "./src/tokens/theme.css"
   },
   "dependencies": {
