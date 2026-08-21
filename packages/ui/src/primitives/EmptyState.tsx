@@ -1,5 +1,6 @@
-import { NotImplementedError } from '@aidream/core'
 import type { ReactNode } from 'react'
+
+import { cn } from '../lib/cn.js'
 
 export interface EmptyStateProps {
   title: string
@@ -10,6 +11,30 @@ export interface EmptyStateProps {
   className?: string
 }
 
-export function EmptyState(_props: EmptyStateProps): ReactNode {
-  throw new NotImplementedError('T14:emptyState')
+export function EmptyState({
+  title,
+  description,
+  icon,
+  action,
+  className,
+}: EmptyStateProps): ReactNode {
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-3 rounded-lg border border-border-subtle bg-bg-elevated px-6 py-12 text-center',
+        className,
+      )}
+    >
+      {icon === undefined ? null : (
+        <span aria-hidden="true" className="text-fg-muted">
+          {icon}
+        </span>
+      )}
+      <p className="text-base font-semibold text-fg">{title}</p>
+      {description === undefined ? null : (
+        <p className="text-sm text-fg-secondary">{description}</p>
+      )}
+      {action}
+    </div>
+  )
 }
