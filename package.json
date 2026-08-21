@@ -36,6 +36,7 @@
     "contract:capacity": "tsx scripts/contract/check-capacity.ts",
     "db:seed": "prisma db seed --schema prisma/schema.prisma",
     "sss:remaining": "tsx scripts/sss/count-remaining.ts",
+    "sss:status": "tsx scripts/sss/status.ts",
     "prepare": "husky"
   },
   "prisma": {

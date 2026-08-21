@@ -122,10 +122,10 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 
 | # | 태스크 | S1 Spec | S2 Skeleton | S3 구현 | 잔존 NIE |
 |---|---|---|---|---|---|
-| T00 | BOOTSTRAP | ⬜ | ⬜ | ⬜ | — |
-| T01 | INFRA_DOCKER | ⬜ | ⬜ | ⬜ | — |
-| T02 | DB_PRISMA | ⬜ | ⬜ | ⬜ | — |
-| T03 | AUTH | ⬜ | ⬜ | ⬜ | — |
+| T00 | BOOTSTRAP | ✅ | ✅ | ✅ | — |
+| T01 | INFRA_DOCKER | ✅ | ✅ | ✅ | — |
+| T02 | DB_PRISMA | ✅ | ✅ | ✅ | — |
+| T03 | AUTH | ✅ | ✅ | ✅ | — |
 | T04 | STORAGE_S3 | ⬜ | ⬜ | ⬜ | — |
 | T05 | UPLOAD | ⬜ | ⬜ | ⬜ | — |
 | T06 | TRANSCODE_WORKER | ⬜ | ⬜ | ⬜ | — |
