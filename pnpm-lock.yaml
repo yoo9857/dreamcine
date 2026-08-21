@@ -99,6 +99,9 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
     devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
       '@types/nodemailer':
         specifier: 8.0.1
         version: 8.0.1

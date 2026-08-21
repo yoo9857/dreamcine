@@ -9,7 +9,22 @@ export interface RemainingReport {
 }
 
 const INCLUDED_EXTENSIONS = new Set(['.ts', '.tsx'])
-const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage'])
+
+/** 생성물은 소스가 아니다. `.next`/`.turbo` 는 빌드 산출물이다. */
+const EXCLUDED_DIRECTORIES = new Set([
+  'node_modules',
+  'dist',
+  'coverage',
+  '.next',
+  '.turbo',
+])
+
+/**
+ * 테스트는 센티넬을 **픽스처로** 쓴다 (예: 501 매핑 검증).
+ * 남은 구현량을 세는 것이 목적이므로 테스트 파일은 집계하지 않는다.
+ */
+const EXCLUDED_FILE_PATTERN = /\.(?:test|spec)\.tsx?$|\.e2e\.tsx?$/u
+
 const MARKER_PATTERN =
   /new\s+NotImplementedError\(\s*['"](T\d{2}):([A-Za-z0-9_]+)['"]/g
 
@@ -27,7 +42,11 @@ async function listSourceFiles(directory: string): Promise<string[]> {
       continue
     }
 
-    if (entry.isFile() && INCLUDED_EXTENSIONS.has(extname(entry.name))) {
+    if (
+      entry.isFile() &&
+      INCLUDED_EXTENSIONS.has(extname(entry.name)) &&
+      !EXCLUDED_FILE_PATTERN.test(entry.name)
+    ) {
       files.push(path)
     }
   }

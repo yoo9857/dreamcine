@@ -193,10 +193,12 @@ describe('checkPrismaContract', () => {
     expect(result.problems[0]).toContain('2개')
   })
 
+  // Prisma CLI 프로세스를 실제로 띄우므로 기본 5초 경계에 걸려 플레이키했다.
+  // 단정은 그대로 두고 시간만 넉넉히 준다. (O06_TESTING_QA.md §6)
   it('현재 저장소의 실제 Prisma CLI 검사를 통과한다', async () => {
     await expect(checkPrismaContract(process.cwd())).resolves.toEqual({
       ok: true,
       problems: [],
     })
-  })
+  }, 60_000)
 })

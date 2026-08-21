@@ -1,5 +1,4 @@
 import type { ErrorCode } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
 
 /**
  * 서버가 던지지 않는 클라이언트 전용 코드. HTTP 상태가 없으므로 상태 매핑에서
@@ -16,6 +15,100 @@ export type ClientOnlyErrorCode = (typeof CLIENT_ONLY_ERROR_CODES)[number]
 
 export type ServerErrorCode = Exclude<ErrorCode, ClientOnlyErrorCode>
 
-export function httpStatusFor(_code: ErrorCode): number {
-  throw new NotImplementedError('T03:statusMap')
+/**
+ * `Record<ServerErrorCode, number>` 이므로 카탈로그에 코드를 추가하면
+ * 매핑 누락이 **컴파일 에러**가 된다. 이것이 상태코드 누락을 막는 하네스다.
+ * 값의 원천은 09_ERROR_CATALOG.md §3 표다.
+ */
+export const STATUS_MAP: Record<ServerErrorCode, number> = {
+  // 인증 · 권한
+  E_AUTH_REQUIRED: 401,
+  E_AUTH_INVALID_CREDENTIALS: 401,
+  E_AUTH_EMAIL_NOT_VERIFIED: 403,
+  E_AUTH_SESSION_EXPIRED: 401,
+  E_AUTH_ACCOUNT_SUSPENDED: 403,
+  E_AUTH_OAUTH_FAILED: 502,
+  E_PERM_DENIED: 403,
+  E_PERM_NOT_OWNER: 403,
+  E_PERM_AGE_RESTRICTED: 403,
+
+  // 사용자
+  E_USER_NOT_FOUND: 404,
+  E_USER_HANDLE_TAKEN: 409,
+  E_USER_EMAIL_TAKEN: 409,
+  E_USER_SELF_ACTION: 400,
+
+  // 시리즈 · 에피소드
+  E_SERIES_NOT_FOUND: 404,
+  E_SERIES_LIMIT_EXCEEDED: 409,
+  E_EPISODE_NOT_FOUND: 404,
+  E_EPISODE_NOT_PUBLISHED: 404,
+  E_EPISODE_INVALID_TRANSITION: 409,
+  E_EPISODE_ASSET_NOT_READY: 409,
+  E_EPISODE_AI_DISCLOSURE_REQUIRED: 422,
+  E_EPISODE_NUMBER_DUPLICATE: 409,
+  E_EPISODE_SCHEDULE_IN_PAST: 422,
+
+  // 업로드
+  E_UPLOAD_SESSION_NOT_FOUND: 404,
+  E_UPLOAD_SESSION_EXPIRED: 410,
+  E_UPLOAD_TOO_LARGE: 413,
+  E_UPLOAD_UNSUPPORTED_TYPE: 415,
+  E_UPLOAD_INVALID_PART: 400,
+  E_UPLOAD_PART_MISSING: 409,
+  E_UPLOAD_ALREADY_COMPLETED: 409,
+  E_UPLOAD_ABORTED: 409,
+  E_UPLOAD_QUOTA_EXCEEDED: 429,
+
+  // 자산 · 미디어 처리
+  E_ASSET_NOT_FOUND: 404,
+  E_ASSET_NOT_READY: 409,
+  E_MEDIA_PROBE_FAILED: 422,
+  E_MEDIA_NO_VIDEO_STREAM: 422,
+  E_MEDIA_NO_AUDIO_STREAM: 422,
+  E_MEDIA_UNSUPPORTED_CODEC: 422,
+  E_MEDIA_RESOLUTION_TOO_LOW: 422,
+  E_MEDIA_DURATION_TOO_LONG: 422,
+  E_MEDIA_TRANSCODE_FAILED: 500,
+  E_MEDIA_TRANSCODE_TIMEOUT: 500,
+  E_MEDIA_DISK_FULL: 507,
+
+  // 피드 · 소셜
+  E_FEED_INVALID_CURSOR: 400,
+  E_SOCIAL_ALREADY_FOLLOWING: 409,
+  E_SOCIAL_NOT_FOLLOWING: 409,
+  E_SOCIAL_BLOCKED: 403,
+  E_COMMENT_NOT_FOUND: 404,
+  E_COMMENT_TOO_LONG: 422,
+  E_COMMENT_DEPTH_EXCEEDED: 422,
+  E_COMMENT_DISABLED: 403,
+
+  // 신고 · 심사
+  E_REPORT_DUPLICATE: 409,
+  E_REPORT_NOT_FOUND: 404,
+  E_REPORT_ALREADY_RESOLVED: 409,
+
+  // 레이트리밋 · 인프라 · 시스템
+  E_RATE_LIMITED: 429,
+  E_STORAGE_UNAVAILABLE: 503,
+  E_STORAGE_OBJECT_NOT_FOUND: 404,
+  E_QUEUE_UNAVAILABLE: 503,
+  E_DB_UNAVAILABLE: 503,
+  E_DB_CONFLICT: 409,
+  E_VALIDATION: 422,
+  E_NOT_FOUND: 404,
+  E_INTERNAL: 500,
+  E_NOT_IMPLEMENTED: 501,
+}
+
+function isClientOnly(code: ErrorCode): code is ClientOnlyErrorCode {
+  return (CLIENT_ONLY_ERROR_CODES as readonly string[]).includes(code)
+}
+
+/**
+ * 클라이언트 전용 코드가 서버 응답 경로에 도달하는 것은 버그다.
+ * 조용히 넘기지 않고 `E_INTERNAL` 과 같은 500 으로 취급한다.
+ */
+export function httpStatusFor(code: ErrorCode): number {
+  return isClientOnly(code) ? STATUS_MAP.E_INTERNAL : STATUS_MAP[code]
 }

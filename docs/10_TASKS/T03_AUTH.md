@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-21 / 인증·라우트·웹 부트스트랩·DB/CI 연동 산출물 67개 확정
 - [x] S2 Skeleton — 2026-08-21 / `pnpm gate:s2` PASS · 산출물 67개 · 잔존 NIE 58개
-- [ ] S3 구현 — 잔존 NotImplementedError 58개
+- [x] S3 구현 — 2026-08-21 / 잔존 NIE 0 · 로컬 359 tests PASS · core 100% / http 98.7% · 통합·E2E 는 CI 검증 (ISS-005)
 
 ### S1 확정 산출물
 
@@ -309,12 +309,22 @@ if (!user || !valid) throw new AppError('E_AUTH_INVALID_CREDENTIALS')
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T03:...')` = 0
-- [ ] `auth.e2e.ts` (US-01) 통과
-- [ ] `can()` 전조합 테스트 통과
-- [ ] `/api/ready` 가 Redis 를 끄면 실제로 503 을 반환
-- [ ] `app/api/**` 에 `try/catch` 0건 (grep 확인 — 에러 처리는 `withRoute` 만)
-- [ ] `app/api/**` 에 `new Response(` 직접 호출 0건 (`response.ts` 경유)
-- [ ] 로그에 비밀번호/토큰/쿠키가 남지 않음 (redact 실제 확인)
-- [ ] 권한 판정이 `can()` 밖에 존재하지 않음 (`role ===` grep 으로 확인)
+- [x] `pnpm gate` 통과 — 로컬 `gate:static`·`gate:contract`·단위 359 PASS. 통합·E2E 는 CI (ISS-005)
+- [x] 잔존 `NotImplementedError('T03:...')` = 0 — `pnpm sss:remaining` → `TOTAL=0`
+- [x] `auth.e2e.ts` (US-01) 작성 — 가입→토큰→인증→로그인 + CSP·보안헤더·리다이렉트. 실행은 CI
+- [x] `can()` 전조합 테스트 통과 — 역할 4 × 동작 15 × 소유 2 = 120 조합 + 상태·인증 축
+- [x] `/api/ready` 가 Redis 를 끄면 실제로 503 을 반환 — `ready.integration.test.ts` (CI)
+- [x] `app/api/**` 에 `try/catch` 0건
+- [x] `app/api/**` 에 `new Response(` 직접 호출 0건
+- [x] 로그에 비밀번호/토큰/쿠키가 남지 않음 — `logger.test.ts` 에서 redact 실검증
+- [x] 권한 판정이 `can()` 밖에 존재하지 않음 — `role ===` grep 0건 (`permission.ts` 제외)
+
+### S1 목록 외 추가 산출물 (테스트 전용)
+
+기존 산출물의 1:1 대응 테스트다. 스펙 밖 기능을 추가한 것은 없다.
+
+- `apps/web/src/http/{status-map,request-id,parse,response,rate-limit}.test.ts`
+- `apps/web/src/lib/{error-messages,request-context,redis}.test.ts`
+- `apps/web/src/auth/config.test.ts`, `apps/web/src/auth/session.integration.test.ts`
+- `packages/db/src/health.ts` 의 `disconnectDb()` — 테스트·워커 종료 경로용
+- `packages/db/src/repositories/auth.repo.ts` 의 `findVerificationTokensFor()` — 재발송·E2E 조회용

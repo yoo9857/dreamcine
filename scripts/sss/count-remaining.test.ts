@@ -55,6 +55,40 @@ describe('countRemaining', () => {
     })
   })
 
+  it('빌드 산출물 디렉터리를 무시한다', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'aidream-sss-'))
+    temporaryRoots.push(root)
+    for (const directory of ['.next', '.turbo', 'coverage', 'node_modules']) {
+      await mkdir(join(root, directory), { recursive: true })
+      await writeFile(
+        join(root, directory, 'generated.ts'),
+        sentinel('T99:generated'),
+      )
+    }
+
+    await expect(countRemaining(root)).resolves.toEqual({
+      byTask: {},
+      markers: [],
+      total: 0,
+    })
+  })
+
+  it('테스트 파일의 센티넬은 남은 구현량이 아니다', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'aidream-sss-'))
+    temporaryRoots.push(root)
+    await mkdir(join(root, 'src'), { recursive: true })
+    await writeFile(join(root, 'src', 'a.test.ts'), sentinel('T03:fixture'))
+    await writeFile(join(root, 'src', 'b.spec.tsx'), sentinel('T03:fixture'))
+    await writeFile(join(root, 'src', 'c.e2e.ts'), sentinel('T03:fixture'))
+    await writeFile(join(root, 'src', 'real.ts'), sentinel('T03:real'))
+
+    await expect(countRemaining(root)).resolves.toEqual({
+      byTask: { T03: 1 },
+      markers: ['T03:real'],
+      total: 1,
+    })
+  })
+
   it('존재하지 않는 루트는 경로가 포함된 오류로 거부한다', async () => {
     const root = join(tmpdir(), 'aidream-missing-root')
 

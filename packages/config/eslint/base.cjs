@@ -12,6 +12,8 @@ module.exports = tseslint.config(
       '**/dist/**',
       '**/playwright-report/**',
       '**/test-results/**',
+      // Next.js 가 생성·갱신하는 타입 진입점
+      '**/next-env.d.ts',
     ],
   },
   eslint.configs.recommended,

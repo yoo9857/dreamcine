@@ -62,6 +62,14 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [OBS-001] `check-prisma` 실측 테스트가 기본 5초 타임아웃 경계에서 플레이키함
+- 발견 단계: T03/S3
+- 관측값: `scripts/contract/check-prisma.test.ts` 의 "현재 저장소의 실제 Prisma CLI 검사를 통과한다" 가 4.3s / 4.5s / 4.9s / 5.0s 로 측정되어 Vitest 기본 타임아웃(5s)을 오가며 실패했다.
+- 측정 방법: `pnpm vitest run --exclude '**/*.integration.test.ts'` 반복 실행. 같은 코드에서 통과와 실패가 번갈아 나왔다.
+- 원인: 이 테스트는 `prisma validate` / `migrate diff` 프로세스를 실제로 띄운다. 시간이 오래 걸리는 것이 정상이며, 기본 타임아웃이 그 비용을 반영하지 않았다.
+- 조치: 단정은 그대로 두고 테스트 타임아웃을 60초로 명시했다. 하네스의 검사 강도는 변하지 않는다.
+- 상태: RESOLVED
+
 ## [DEP-001] @types/react · @types/react-dom · @types/nodemailer
 - 요청 단계: T03/S2
 - 용도: `apps/web` 의 TSX(레이아웃·인증 화면·폼 컴포넌트) 타입체크와 `src/lib/mail.ts` 의 nodemailer SMTP 발송 타입. 세 패키지 모두 **타입 선언 전용**이며 런타임 코드를 포함하지 않는다(번들 0바이트).
@@ -81,6 +89,7 @@
 - 제안: (A) 로컬에 Docker Desktop 을 설치해 `pnpm gate` 전체를 로컬에서 검증한다. (B) 로컬은 `gate:static` + `gate:contract` + 단위 테스트까지 검증하고, 통합·E2E 는 `.github/workflows/gate.yml`(ubuntu-24.04, Docker 사용 가능) 의 `pnpm gate` 결과를 단계 완료 근거로 삼는다.
 - 영향: B안을 택하면 각 단계의 완료 근거가 로컬 로그가 아니라 CI 실행 ID 가 된다(T00 이 이미 `CI 32454394087 PASS` 로 그 선례를 남겼다).
 - 결정: B안 승인 — 로컬은 `gate:static`·`gate:contract`·단위 테스트까지, 통합·E2E 는 GitHub Actions `gate` 워크플로 결과를 완료 근거로 사용 (2026-08-21, 사용자 승인)
+- 추가 관측 (T03/S3): win32 에서 `next build` 는 컴파일·타입검증·정적생성까지 통과하지만 `output: 'standalone'` 의 traced files 복사가 `EPERM: symlink` 로 실패한다. 관리자 권한이나 개발자 모드 없이 Windows 가 심볼릭 링크를 못 만드는 환경 제약이며 코드 결함이 아니다. ubuntu-24.04 CI 와 dreamcinema 서버에는 영향이 없다. 로컬에서 번들 결과를 확인해야 하면 `output` 을 끈 임시 빌드를 쓴다.
 - 상태: RESOLVED
 
 ## [ISS-004] T01 완료 조건이 후속 태스크의 미구현 애플리케이션을 요구함
