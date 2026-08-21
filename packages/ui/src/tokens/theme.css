@@ -136,4 +136,5 @@
   --radius-full: var(--aidream-radius-full);
   --font-sans: var(--aidream-font-sans);
   --font-mono: var(--aidream-font-mono);
+  --breakpoint-wide: 1440px;
 }

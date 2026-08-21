@@ -10,12 +10,11 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * 피드 열 수는 스펙 표 그대로다 — <640px 1열, 640~1023 2열,
- * 1024~1439 3열, ≥1440 4열. Tailwind 기본 브레이크포인트와 맞아떨어진다
- * (sm 640, lg 1024, 2xl 1536 대신 xl 1280 을 쓰지 않고 min-[1440px] 로 명시).
+ * 피드 열 수는 08_UIUX_SPEC.md §2 표 그대로다 — <640px 1열, 640~1023 2열,
+ * 1024~1439 3열, ≥1440 4열. `wide` 는 토큰이 정의한 1440px 브레이크포인트다.
  */
 const VARIANT = {
-  feed: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-[1440px]:grid-cols-4',
+  feed: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 wide:grid-cols-4',
   pair: 'grid-cols-1 sm:grid-cols-2',
 } as const
 

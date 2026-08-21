@@ -11,7 +11,7 @@ export interface SpinnerProps {
 const SIZE = {
   sm: 'size-4 border-2',
   md: 'size-6 border-2',
-  lg: 'size-8 border-[3px]',
+  lg: 'size-8 border-4',
 } as const
 
 export function Spinner({

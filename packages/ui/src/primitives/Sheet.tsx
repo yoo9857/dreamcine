@@ -19,7 +19,12 @@ export interface SheetProps {
   className?: string
 }
 
-/** Sheet 는 Dialog 와 같은 접근성 계약을 쓰고 배치만 다르다. */
+/**
+ * Sheet 는 Dialog 와 같은 접근성 계약을 쓰고 배치만 다르다.
+ *
+ * `max-h-[80dvh]` 는 간격 토큰이 아니라 **화면 비율**이다. 토큰화할 대상이
+ * 아니므로 뷰포트 단위는 리터럴 금지 규칙에서 제외한다.
+ */
 const SIDE = {
   left: 'inset-y-0 left-0 h-full w-80 border-r',
   right: 'inset-y-0 right-0 h-full w-80 border-l',

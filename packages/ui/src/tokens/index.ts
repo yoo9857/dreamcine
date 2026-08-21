@@ -45,6 +45,16 @@ export interface Tokens {
 
 export const THEMES: readonly Theme[] = ['dark', 'light']
 
+/**
+ * 08_UIUX_SPEC.md §2 의 피드 열 수 표에서 온 브레이크포인트.
+ * 640(sm) · 1024(lg) 는 Tailwind 기본값과 같아서 다시 정의하지 않고,
+ * 표에만 있는 1440 을 이름 있는 브레이크포인트로 올린다.
+ * 컴포넌트가 `min-[1440px]:` 같은 리터럴을 쓰지 않게 하는 것이 목적이다.
+ */
+export const BREAKPOINTS = { wide: '1440px' } as const
+
+export type BreakpointName = keyof typeof BREAKPOINTS
+
 /** 테마와 무관한 값. 색만 테마별로 갈린다. */
 const SHARED = {
   space: {
@@ -208,6 +218,10 @@ function themeBridge(): string[] {
       (key) => `--radius-${key}: var(${VAR_PREFIX}-radius-${key});`,
     ),
     ...FONT_KEYS.map((key) => `--font-${key}: var(${VAR_PREFIX}-font-${key});`),
+    // 브레이크포인트는 테마와 무관하므로 값을 그대로 싣는다.
+    ...Object.entries(BREAKPOINTS).map(
+      ([name, value]) => `--breakpoint-${name}: ${value};`,
+    ),
   ]
 }
 
