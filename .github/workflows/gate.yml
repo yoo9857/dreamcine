@@ -98,18 +98,46 @@ jobs:
       # CSP 의 unsafe-eval 을 요구한다). 빌드를 Playwright webServer 안에서
       # 돌리면 실패가 "webServer timeout" 으로만 보이므로 스텝을 분리한다.
       - name: Build web app
-        run: pnpm --filter @aidream/web build
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! pnpm --filter @aidream/web build 2>&1 | tee build.log; then
+            MSG=$(tail -c 1200 build.log | tr '\n\r' "  ")
+            echo "::error title=Build web app::${MSG}"
+            exit 1
+          fi
 
       # HARNESS.md §1 의 3층을 각각의 스텝으로 둔다. 워크플로 로그 다운로드는
       # 관리자 권한을 요구하므로, 어느 층이 깨졌는지는 스텝 이름으로 드러나야 한다.
       - name: Gate L1 static
-        run: pnpm gate:static
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! pnpm gate:static 2>&1 | tee gate-l1.log; then
+            MSG=$(tail -c 1200 gate-l1.log | tr '\n\r' "  ")
+            echo "::error title=Gate L1 static::${MSG}"
+            exit 1
+          fi
 
       - name: Gate L2 contract
-        run: pnpm gate:contract
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! pnpm gate:contract 2>&1 | tee gate-l2.log; then
+            MSG=$(tail -c 1200 gate-l2.log | tr '\n\r' "  ")
+            echo "::error title=Gate L2 contract::${MSG}"
+            exit 1
+          fi
 
       - name: Gate L3 behaviour
-        run: pnpm gate:test
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! pnpm gate:test 2>&1 | tee gate-l3.log; then
+            MSG=$(tail -c 1200 gate-l3.log | tr '\n\r' "  ")
+            echo "::error title=Gate L3 behaviour::${MSG}"
+            exit 1
+          fi
 
       - name: Collect dependency logs on failure
         if: failure()
@@ -133,5 +161,18 @@ jobs:
         with:
           name: coverage
           path: coverage
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload gate logs
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: gate-logs
+          path: |
+            build.log
+            gate-l1.log
+            gate-l2.log
+            gate-l3.log
           retention-days: 7
           if-no-files-found: ignore

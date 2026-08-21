@@ -504,6 +504,39 @@ describe('withRoute — 응답', () => {
     expect(response.headers.get('x-custom')).toBe('value')
   })
 
+  it('동적 세그먼트가 없는 라우트는 params 없이 호출된다', async () => {
+    // Next 는 정적 경로에서 params 를 주지 않는다. 실제 서버에서만 드러났던
+    // 형태이므로 회귀를 여기서 막는다. (/api/health 가 500 이던 원인)
+    const route = withRoute(
+      ({ params }) => Promise.resolve({ status: 200, body: params }),
+      { auth: 'none' },
+    )
+
+    const withoutParams = await route(request(), {})
+    expect(withoutParams.status).toBe(200)
+    expect(await withoutParams.json()).toEqual({})
+
+    const undefinedParams = await route(request(), { params: undefined })
+    expect(undefinedParams.status).toBe(200)
+    expect(await undefinedParams.json()).toEqual({})
+  })
+
+  it('catch-all 세그먼트의 배열 params 는 첫 값만 쓴다', async () => {
+    const route = withRoute(
+      ({ params }) => Promise.resolve({ status: 200, body: params }),
+      { auth: 'none' },
+    )
+    const response = await route(request(), {
+      params: Promise.resolve({
+        slug: ['a', 'b'],
+        id: 'x',
+        missing: undefined,
+      }),
+    })
+
+    expect(await response.json()).toEqual({ slug: 'a', id: 'x' })
+  })
+
   it('Next 15 의 params Promise 를 풀어서 넘긴다', async () => {
     const route = withRoute(
       ({ params, query }) =>

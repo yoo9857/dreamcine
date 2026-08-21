@@ -24,6 +24,29 @@ describe('Prisma error mapping', () => {
     })
   })
 
+  it('연결 실패(PrismaClientInitializationError)를 E_DB_UNAVAILABLE 로 본다', () => {
+    // Prisma 6.19.3 의 이 오류에는 code / errorCode 가 없다. 이름이 유일한 단서다.
+    const initializationError = Object.assign(new Error('cannot reach db'), {
+      name: 'PrismaClientInitializationError',
+      clientVersion: '6.19.3',
+    })
+
+    const mapped = mapPrismaError(initializationError)
+    expect(mapped.code).toBe('E_DB_UNAVAILABLE')
+    expect(mapped.cause).toBe(initializationError)
+  })
+
+  it('errorCode 만 있는 오류도 코드로 매핑한다', () => {
+    expect(mapPrismaError({ errorCode: 'P1001' }).code).toBe('E_DB_UNAVAILABLE')
+  })
+
+  it('알 수 없는 이름의 오류는 코드 규칙을 그대로 따른다', () => {
+    expect(
+      mapPrismaError({ name: 'PrismaClientValidationError', code: 'P2002' })
+        .code,
+    ).toBe('E_DB_CONFLICT')
+  })
+
   it('preserves an existing AppError', () => {
     const original = new AppError('E_DB_CONFLICT')
     expect(mapPrismaError(original)).toBe(original)

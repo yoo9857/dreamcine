@@ -72,11 +72,15 @@ export type RouteHandler<O extends RouteOptions> = (
 ) => Promise<RouteResult>
 
 /**
- * Next.js 15 의 라우트 핸들러 두 번째 인자. `params` 는 Promise 이며,
- * catch-all 세그먼트(`[...slug]`)에서는 값이 배열로 온다.
+ * Next.js 15 의 라우트 핸들러 두 번째 인자.
+ *
+ * `params` 는 Promise 이며 catch-all 세그먼트(`[...slug]`)에서는 값이 배열로
+ * 온다. **동적 세그먼트가 없는 라우트에서는 아예 없다** — `/api/health` 처럼
+ * 정적인 경로에서 `undefined` 가 들어온다. 실제 서버에서만 드러나는 형태이므로
+ * 타입에도 그대로 적는다.
  */
 export interface NextRouteContext {
-  params: Promise<Record<string, string | string[] | undefined>>
+  params?: Promise<Record<string, string | string[] | undefined>> | undefined
 }
 
 export type NextRouteHandler = (
@@ -95,9 +99,12 @@ const BODYLESS_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD'])
 
 /** catch-all 세그먼트의 배열은 첫 값만 쓴다. 라우트는 항상 문자열을 본다. */
 function normalizeParams(
-  raw: Record<string, string | string[] | undefined>,
+  raw: Record<string, string | string[] | undefined> | undefined | null,
 ): Record<string, string> {
   const params: Record<string, string> = {}
+  if (raw === undefined || raw === null) {
+    return params
+  }
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value === 'string') {
       params[key] = value

@@ -62,6 +62,23 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [OBS-004] DB 연결 실패가 500 E_INTERNAL 로 나감 (재시도 가능 여부가 감춰짐)
+- 발견 단계: T03/S3
+- 관측값: 실제 프로덕션 서버에 DB 없이 `POST /api/auth/signup` 을 보내면 `500 E_INTERNAL` 이 나왔다. 09_ERROR_CATALOG.md 기준으로는 `503 E_DB_UNAVAILABLE`(재시도 ○)이어야 한다.
+- 측정 방법: `next start` 로 프로덕션 빌드를 띄우고 닿을 수 없는 `DATABASE_URL` 로 요청. 수정 후 같은 요청이 `503 E_DB_UNAVAILABLE` 을 돌려준다.
+- 원인: `packages/db/src/errors.ts` 의 `mapPrismaError` 가 `error.code` 만 봤다. 연결 실패 시 Prisma 는 `PrismaClientInitializationError` 를 던지는데, 6.19.3 기준 이 오류에는 `code` 도 `errorCode` 도 없다. 이름이 유일한 식별자다. O02_EXCEPTION_POLICY.md §4-1 의 예시는 이 분기를 담고 있었으나 구현에서 빠져 있었다.
+- 조치: 이름 기반 분기 추가(`PrismaClientInitializationError` → `E_DB_UNAVAILABLE`), `errorCode` 도 코드 후보로 읽기, 단위 테스트 3개 추가.
+- 상태: RESOLVED
+
+## [OBS-003] 동적 세그먼트가 없는 라우트에서 `withRoute` 가 500 을 돌려줌
+- 발견 단계: T03/S3
+- 관측값: CI L3 가 `Timed out waiting 300000ms from config.webServer` 로 실패했다. 원인은 Playwright 가 기다리는 `/api/health` 가 **500** 을 돌려줘 서버가 ready 로 판정되지 않은 것이다.
+- 측정 방법: 프로덕션 빌드를 로컬에서 띄워 `curl /api/health` → `500 E_INTERNAL`. 서버 로그에 `TypeError: Cannot convert undefined or null to object (Object.entries)`.
+- 원인: Next 15 는 **동적 세그먼트가 없는 라우트에 `params` 를 주지 않는다**. `withRoute` 가 `Object.entries(await ctx.params)` 를 무조건 호출했다. 단위 테스트는 항상 `{ params: Promise.resolve({}) }` 를 넘겨서 이 형태를 재현하지 못했다.
+- 조치: `NextRouteContext.params` 를 선택적으로 바꾸고 `normalizeParams` 가 `undefined`/`null` 을 허용하도록 수정. `params` 없이 호출되는 경우와 catch-all 배열 params 회귀 테스트 추가.
+- 교훈: 단위 테스트가 프레임워크의 실제 호출 형태를 가정으로 대체하면 통과해도 서버는 죽는다. T03 이후 라우트 계층 변경은 프로덕션 빌드 기동 확인을 함께 한다.
+- 상태: RESOLVED
+
 ## [OBS-002] CI 가 Prisma 클라이언트를 생성하지 않아 정적 게이트가 계속 실패함
 - 발견 단계: T03/S3
 - 관측값: `main` 의 gate 워크플로가 T03/S1 이후 계속 실패했다(run 32463194812 · 32463352981 · 32492809381). 세 번 모두 `Run SSS gate` 에서 25초 이내에 죽었다 — 테스트가 아니라 `pnpm typecheck` 단계다.
