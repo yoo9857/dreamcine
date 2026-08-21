@@ -17,6 +17,16 @@
 	}
 }
 
+http://{$DOMAIN} {
+	import security_headers
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+http://www.{$DOMAIN} {
+	import security_headers
+	redir https://{$DOMAIN}{uri} permanent
+}
+
 www.{$DOMAIN} {
 	import security_headers
 	redir https://{$DOMAIN}{uri} permanent
@@ -40,6 +50,11 @@ www.{$DOMAIN} {
 		header_up X-Real-IP {remote_host}
 		health_uri /api/health
 		health_interval 10s
+	}
+
+	handle_errors {
+		import security_headers
+		respond "Service temporarily unavailable" {http.error.status_code}
 	}
 
 	log {
