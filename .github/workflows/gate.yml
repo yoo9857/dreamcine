@@ -12,10 +12,35 @@ concurrency:
   group: gate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_ENV: test
+  CAPACITY_TIER: T0
+  APP_URL: http://127.0.0.1:3000
+  NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+  POSTGRES_DB: aidream
+  POSTGRES_USER: aidream
+  POSTGRES_PASSWORD: aidream-local-only
+  DATABASE_URL: postgresql://aidream:aidream-local-only@127.0.0.1:5432/aidream?schema=public
+  REDIS_URL: redis://127.0.0.1:6379
+  AUTH_SECRET: gate-only-secret-value-32-characters-min
+  MINIO_ROOT_USER: aidream-local
+  MINIO_ROOT_PASSWORD: aidream-local-secret
+  S3_ENDPOINT: http://127.0.0.1:9000
+  S3_REGION: us-east-1
+  S3_ACCESS_KEY_ID: aidream-local
+  S3_SECRET_ACCESS_KEY: aidream-local-secret
+  S3_BUCKET_ORIGINALS: aidream-originals
+  S3_BUCKET_HLS: aidream-hls
+  S3_BUCKET_THUMBS: aidream-thumbs
+  CDN_BASE_URL: http://127.0.0.1:9000/aidream-hls
+  NEXT_PUBLIC_CDN_BASE_URL: http://127.0.0.1:9000/aidream-hls
+  WORKER_CONCURRENCY: 1
+  LOG_LEVEL: warn
+
 jobs:
   gate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Configure Git defaults
         run: git config --global init.defaultBranch main
@@ -45,5 +70,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # 로컬 개발 스택을 그대로 쓴다 (T01 산출물).
+      # 운영과의 구조 차이는 MinIO <-> Object Storage 뿐이어야 한다.
+      - name: Start dependencies
+        run: |
+          docker compose -f infra/compose/docker-compose.dev.yml \
+            up -d --wait postgres redis minio
+
+      - name: Create object storage buckets
+        run: |
+          docker compose -f infra/compose/docker-compose.dev.yml \
+            run --rm minio-init
+
+      - name: Apply database migrations
+        run: pnpm prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Run SSS gate
         run: pnpm gate
+
+      - name: Collect dependency logs on failure
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.dev.yml logs --tail 200

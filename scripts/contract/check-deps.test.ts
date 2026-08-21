@@ -58,6 +58,20 @@ describe('checkDeps', () => {
     expect(result.problems[0]).toContain('lodash')
   })
 
+  it('허용된 런타임 패키지의 타입 전용 동반 패키지를 승인한다', async () => {
+    const root = await createFixture({ '@types/zod': '3.25.76' })
+
+    await expect(checkDeps(root)).resolves.toEqual({ ok: true, problems: [] })
+  })
+
+  it('허용 목록 밖 패키지의 타입 전용 동반 패키지를 거부한다', async () => {
+    const root = await createFixture({ '@types/lodash': '4.17.21' })
+
+    const result = await checkDeps(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems[0]).toContain('@types/lodash')
+  })
+
   it('존재하지 않는 내부 패키지를 거부한다', async () => {
     const root = await createFixture({ '@aidream/missing': 'workspace:*' })
 

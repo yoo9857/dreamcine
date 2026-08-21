@@ -2,8 +2,8 @@
 
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-21 / 인증·라우트·웹 부트스트랩·DB/CI 연동 산출물 67개 확정
-- [ ] S2 Skeleton
-- [ ] S3 구현
+- [x] S2 Skeleton — 2026-08-21 / `pnpm gate:s2` PASS · 산출물 67개 · 잔존 NIE 58개
+- [ ] S3 구현 — 잔존 NotImplementedError 58개
 
 ### S1 확정 산출물
 

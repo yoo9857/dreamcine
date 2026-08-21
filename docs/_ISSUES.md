@@ -62,6 +62,27 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [DEP-001] @types/react · @types/react-dom · @types/nodemailer
+- 요청 단계: T03/S2
+- 용도: `apps/web` 의 TSX(레이아웃·인증 화면·폼 컴포넌트) 타입체크와 `src/lib/mail.ts` 의 nodemailer SMTP 발송 타입. 세 패키지 모두 **타입 선언 전용**이며 런타임 코드를 포함하지 않는다(번들 0바이트).
+- 대안 검토: `react`/`react-dom`/`nodemailer` 는 `03_TECH_STACK.md` §2·§3 에서 이미 승인된 의존성이다. 그러나 세 패키지는 자체 타입 선언을 배포하지 않으므로 DefinitelyTyped 패키지 없이는 `tsc -b` 가 `TS7016`(선언 파일 없음)으로 실패한다. `03_TECH_STACK.md` §7 의 `strict`/`verbatimModuleSyntax` 를 끄는 우회는 하네스 약화이므로 금지된다.
+- 위험: 없음에 가깝다. DefinitelyTyped, MIT, 런타임 미포함. 버전은 대응 런타임 패키지의 메이저에 고정한다.
+- 근거: `scripts/contract/check-deps.ts` 의 `DEPENDENCY_EVIDENCE` 맵에 `@types/node` 만 등재되어 있어, 승인된 런타임 패키지의 타입 전용 동반 패키지가 일괄적으로 "허용 목록 밖 의존성" 으로 판정된다.
+- 제안: (A) `check-deps.ts` 에 규칙을 추가한다 — `@types/{X}` 는 `{X}` 가 허용 목록에 있을 때만 허용. 타입 전용 동반 패키지를 일반화해 처리하므로 이후 태스크에서 같은 문제가 재발하지 않는다. (B) 세 패키지를 `03_TECH_STACK.md` 에 개별 등재한다. (C) 진행 중단.
+- 영향: A안은 `check-deps.ts` 와 그 단위 테스트가 함께 바뀐다. 허용 목록의 판정 강도는 유지된다(승인되지 않은 런타임 패키지의 `@types` 도 함께 거부됨).
+- 결정: A안 승인 — `check-deps.ts` 에 `@types/{X}` 는 `{X}` 가 허용 목록에 있을 때만 통과하는 규칙을 추가 (2026-08-21, 사용자 승인)
+- 상태: APPROVED
+
+## [ISS-005] 로컬 개발환경에 Docker 가 없어 통합·E2E 게이트를 실행할 수 없음
+- 발견 단계: T03/S2
+- 스펙 위치: `HARNESS.md` §3 `gate:test`, `10_TASKS/T03_AUTH.md` §7·§8, `20_OPS/O06_TESTING_QA.md`
+- 문제: `gate:test` 는 `@testcontainers/postgresql` 기반 통합 테스트와 PostgreSQL/Redis/MinIO 를 요구하는 Playwright E2E 를 포함한다. 현재 작업 머신(win32)에 Docker 가 설치되어 있지 않아 `pnpm gate` 를 로컬에서 초록으로 만들 수 없다.
+- 재현/근거: `docker --version` → `command not found`. `pnpm vitest run --exclude '**/*.integration.test.ts'` 는 58개 통과, `pnpm gate:static`·`pnpm gate:contract` 는 통과.
+- 제안: (A) 로컬에 Docker Desktop 을 설치해 `pnpm gate` 전체를 로컬에서 검증한다. (B) 로컬은 `gate:static` + `gate:contract` + 단위 테스트까지 검증하고, 통합·E2E 는 `.github/workflows/gate.yml`(ubuntu-24.04, Docker 사용 가능) 의 `pnpm gate` 결과를 단계 완료 근거로 삼는다.
+- 영향: B안을 택하면 각 단계의 완료 근거가 로컬 로그가 아니라 CI 실행 ID 가 된다(T00 이 이미 `CI 32454394087 PASS` 로 그 선례를 남겼다).
+- 결정: B안 승인 — 로컬은 `gate:static`·`gate:contract`·단위 테스트까지, 통합·E2E 는 GitHub Actions `gate` 워크플로 결과를 완료 근거로 사용 (2026-08-21, 사용자 승인)
+- 상태: RESOLVED
+
 ## [ISS-004] T01 완료 조건이 후속 태스크의 미구현 애플리케이션을 요구함
 - 발견 단계: T01/S3
 - 스펙 위치: `10_TASKS/T01_INFRA_DOCKER.md` §7·§8, `20_OPS/O01_DEPLOY.md` §6

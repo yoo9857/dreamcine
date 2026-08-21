@@ -1,3 +1,5 @@
+export * from './health.js'
+export * from './repositories/auth.repo.js'
 export * from './repositories/asset.repo.js'
 export * from './repositories/episode.repo.js'
 export * from './repositories/feed.repo.js'

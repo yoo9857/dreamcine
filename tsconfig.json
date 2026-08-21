@@ -14,12 +14,29 @@
     "scripts/**/*.ts"
   ],
   "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/db" },
-    { "path": "./packages/storage" },
-    { "path": "./packages/media" },
-    { "path": "./packages/queue" },
-    { "path": "./packages/ui" },
-    { "path": "./packages/api-client" }
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/db"
+    },
+    {
+      "path": "./packages/storage"
+    },
+    {
+      "path": "./packages/media"
+    },
+    {
+      "path": "./packages/queue"
+    },
+    {
+      "path": "./packages/ui"
+    },
+    {
+      "path": "./packages/api-client"
+    }
   ]
 }

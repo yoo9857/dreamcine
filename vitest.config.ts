@@ -13,9 +13,15 @@ export default defineConfig({
       include: [
         'packages/core/src/**/*.ts',
         'packages/db/src/**/*.ts',
+        'apps/web/src/**/*.ts',
         'scripts/**/*.ts',
       ],
-      exclude: ['**/*.test.ts', '**/dist/**', 'packages/core/src/index.ts'],
+      exclude: [
+        '**/*.test.ts',
+        '**/dist/**',
+        'packages/core/src/index.ts',
+        'apps/web/src/auth/types.ts',
+      ],
       thresholds: {
         branches: 70,
         functions: 70,
@@ -34,6 +40,12 @@ export default defineConfig({
           statements: 80,
         },
         'packages/db/src/**/*.ts': {
+          branches: 70,
+          functions: 70,
+          lines: 70,
+          statements: 70,
+        },
+        'apps/web/src/**/*.ts': {
           branches: 70,
           functions: 70,
           lines: 70,

@@ -62,6 +62,21 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
   turbo: /turbo\.json/u,
 }
 
+const TYPES_PREFIX = '@types/'
+
+/**
+ * 타입 전용 동반 패키지(`@types/{X}`)는 런타임 패키지 `{X}` 가 허용 목록에
+ * 있을 때만 통과한다. `@types/node` 처럼 자체 등재된 항목은 그 근거를 우선한다.
+ * 승인되지 않은 런타임 패키지의 `@types` 는 여전히 거부된다. (DEP-001)
+ */
+function allowedEvidence(dependency: string): RegExp | undefined {
+  const own = DEPENDENCY_EVIDENCE[dependency]
+  if (own !== undefined || !dependency.startsWith(TYPES_PREFIX)) {
+    return own
+  }
+  return DEPENDENCY_EVIDENCE[dependency.slice(TYPES_PREFIX.length)]
+}
+
 async function readRequired(path: string): Promise<string> {
   try {
     return await readFile(path, 'utf8')
@@ -148,7 +163,7 @@ export async function checkDeps(
         }
         continue
       }
-      const evidence = DEPENDENCY_EVIDENCE[dependency]
+      const evidence = allowedEvidence(dependency)
       if (evidence?.test(contractSource) !== true) {
         problems.push(
           `허용 목록 밖 의존성: ${relative(absoluteRoot, path)} -> ${dependency}`,

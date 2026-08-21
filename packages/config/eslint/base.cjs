@@ -76,7 +76,7 @@ module.exports = tseslint.config(
     },
   },
   {
-    files: ['**/*.cjs', '**/*.js'],
+    files: ['**/*.cjs', '**/*.js', '**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,
