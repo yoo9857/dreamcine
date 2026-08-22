@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { AppError } from '@aidream/core'
@@ -218,6 +219,8 @@ describe('database repository integration', () => {
   it('persists upload JSON, assets, status metadata, and renditions', async () => {
     const userId = await createFixtureUser('upload')
     const upload = await repo.createUploadSession({
+      // 키가 세션 id 를 품으므로 호출자가 정한다. (06 §1)
+      id: randomUUID(),
       userId,
       fileName: 'movie.mp4',
       fileSize: 5_000_000_000n,

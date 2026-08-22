@@ -6,6 +6,8 @@ import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
 export interface CreateAssetData {
   uploadId?: string | null
   originalKey: string
+  /** 완료 시점에 S3 가 알려준 실제 크기. 신고값이 아니다. */
+  sizeBytes?: bigint | null
 }
 
 export interface AssetMetadataPatch {
@@ -90,4 +92,19 @@ export function listRenditionsByAsset(assetId: string): Promise<Rendition[]> {
       })
     ).map(mapRendition),
   )
+}
+
+/**
+ * 업로드 세션에 연결된 자산을 찾는다.
+ *
+ * 완료 요청이 두 번 와도 자산이 하나여야 한다 — 두 번째 호출이 이것으로
+ * 첫 결과를 찾아 같은 답을 돌려준다. (T05 §7 ★)
+ */
+export function findAssetByUploadId(
+  uploadId: string,
+): Promise<VideoAsset | null> {
+  return executeDb(async () => {
+    const row = await db.videoAsset.findUnique({ where: { uploadId } })
+    return row === null ? null : mapVideoAsset(row)
+  })
 }

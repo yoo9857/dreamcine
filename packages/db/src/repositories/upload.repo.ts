@@ -9,6 +9,13 @@ export interface CompletedPart {
 }
 
 export interface CreateUploadSessionData {
+  /**
+   * 호출자가 정한다. 객체 키가 `originals/{userId}/{sessionId}/…` 라
+   * (06_MEDIA_PIPELINE.md §1, 변경 금지) **INSERT 전에 id 를 알아야** 키를
+   * 만들 수 있다. DB 가 만들게 두면 키를 나중에 고쳐 써야 하고, 그 사이에
+   * 죽으면 실제 저장 위치와 다른 키가 남는다.
+   */
+  id: string
   userId: string
   fileName: string
   fileSize: bigint
@@ -18,6 +25,8 @@ export interface CreateUploadSessionData {
   partSize: number
   totalParts: number
   expiresAt: Date
+  /** S3 멀티파트를 먼저 만들고 그 id 를 함께 넣는다. (T05 §5) */
+  s3UploadId?: string | null
 }
 
 export function findUploadSessionById(
@@ -68,4 +77,30 @@ export function updateCompletedParts(
       }),
     ),
   )
+}
+
+/**
+ * 최근 창 안에서 이 사용자가 올린(또는 올리는 중인) 바이트 합.
+ * 일일 총량 판정이 쓴다. (06_MEDIA_PIPELINE.md §2)
+ *
+ * **중단·실패한 세션은 세지 않는다.** 목적은 비용 상한이고, 취소한 업로드까지
+ * 신고 용량 전부로 계산하면 실수로 한 번 취소한 사용자가 하루를 못 쓴다.
+ * 대신 진행 중(CREATED/UPLOADING)인 것은 센다 — 동시에 여러 개를 시작해
+ * 상한을 우회하는 것을 막아야 한다.
+ */
+export function sumUploadBytesSince(
+  userId: string,
+  since: Date,
+): Promise<bigint> {
+  return executeDb(async () => {
+    const rows = await db.uploadSession.findMany({
+      where: {
+        userId,
+        createdAt: { gte: since },
+        status: { in: ['CREATED', 'UPLOADING', 'UPLOADED'] },
+      },
+      select: { fileSize: true },
+    })
+    return rows.reduce((total, row) => total + row.fileSize, 0n)
+  })
 }
