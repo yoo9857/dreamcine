@@ -1,21 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { avatarUrl, cdnUrl, masterUrl, thumbUrl } from './cdn.js'
+import { avatarUrl, cdnOrigin, cdnUrl, masterUrl, thumbUrl } from './cdn.js'
 
 const ASSET = 'ast_ghi789'
-let saved: string | undefined
+const VARIABLES = ['CDN_BASE_URL', 'NEXT_PUBLIC_CDN_BASE_URL'] as const
+const saved = new Map<string, string | undefined>()
 
 beforeEach(() => {
-  saved = process.env.CDN_BASE_URL
+  for (const name of VARIABLES) {
+    saved.set(name, process.env[name])
+  }
   process.env.CDN_BASE_URL = 'https://cdn.example.com'
+  // 테스트마다 명시적으로 정한다. 남아 있으면 우선순위 때문에 결과가 바뀐다.
+  Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_CDN_BASE_URL')
 })
 
 afterEach(() => {
-  if (saved === undefined) {
-    Reflect.deleteProperty(process.env, 'CDN_BASE_URL')
-  } else {
-    process.env.CDN_BASE_URL = saved
+  for (const [name, value] of saved) {
+    if (value === undefined) {
+      Reflect.deleteProperty(process.env, name)
+    } else {
+      process.env[name] = value
+    }
   }
+  saved.clear()
 })
 
 describe('cdnUrl', () => {
@@ -122,5 +130,58 @@ describe('avatarUrl', () => {
 
   it('빈 문자열도 없음으로 본다', () => {
     expect(avatarUrl('')).toBeNull()
+  })
+})
+
+describe('cdnOrigin', () => {
+  it('경로를 뺀 출처만 돌려준다', () => {
+    // CSP 소스에 경로를 넣으면 접두사 규칙에 걸려 세그먼트 요청이 조용히
+    // 막히는 경우가 생긴다.
+    process.env.CDN_BASE_URL = 'http://127.0.0.1:9000/aidream-hls'
+
+    expect(cdnOrigin()).toBe('http://127.0.0.1:9000')
+  })
+
+  it('경로가 없으면 그대로 출처다', () => {
+    expect(cdnOrigin()).toBe('https://cdn.example.com')
+  })
+
+  it('기본 포트는 생략된다', () => {
+    process.env.CDN_BASE_URL = 'https://cdn.example.com:443/x'
+
+    expect(cdnOrigin()).toBe('https://cdn.example.com')
+  })
+
+  it('설정이 없으면 null 이다', () => {
+    // 미들웨어가 매 요청 던지면 사이트 전체가 죽는다. CDN 설정 누락의 올바른
+    // 증상은 "영상이 재생되지 않음" 이지 "사이트 다운" 이 아니다.
+    Reflect.deleteProperty(process.env, 'CDN_BASE_URL')
+    Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_CDN_BASE_URL')
+
+    expect(cdnOrigin()).toBeNull()
+  })
+
+  it('빈 문자열도 없음으로 본다', () => {
+    process.env.CDN_BASE_URL = ''
+    Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_CDN_BASE_URL')
+
+    expect(cdnOrigin()).toBeNull()
+  })
+
+  it('URL 이 아니면 null 이다 (던지지 않는다)', () => {
+    process.env.CDN_BASE_URL = 'cdn.example.com'
+    Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_CDN_BASE_URL')
+
+    expect(cdnOrigin()).toBeNull()
+  })
+
+  it('NEXT_PUBLIC 값이 우선한다', () => {
+    // 브라우저 번들에서는 NEXT_PUBLIC_* 만 값으로 치환된다. 서버에서도 같은
+    // 값을 쓰지 않으면 클라이언트와 서버가 다른 URL 을 만든다.
+    process.env.NEXT_PUBLIC_CDN_BASE_URL = 'https://public.example.com'
+    process.env.CDN_BASE_URL = 'https://internal.example.com'
+
+    expect(cdnOrigin()).toBe('https://public.example.com')
+    expect(cdnUrl('hls/a')).toBe('https://public.example.com/hls/a')
   })
 })

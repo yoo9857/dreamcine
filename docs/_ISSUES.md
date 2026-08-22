@@ -279,3 +279,19 @@
 - 영향: T04 구현 자체는 막히지 않는다 — `cdnUrl(key)` 는 `CDN_BASE_URL` 과 키를 잇는 것으로 정의가 명확하다. 막히는 것은 "CDN URL 이 실제로 객체에 도달하는가" 를 검증하는 일이다.
 - 결정: T04 는 그대로 진행한다. 라우팅 정비는 T04 DoD 에 넣지 않고, 검증이 실제로 필요해지는 시점(T07 이전)에 인프라 과제로 처리한다. 그때까지 `thumbUrl()`·`avatarUrl()` 은 **문자열 수준까지만 검증됐다**고 본다 — 초록을 도달성 증명으로 읽지 않는다.
 - 상태: OPEN
+
+## [OBS-014] 10_NFR §8 의 커버리지 대상 일부가 게이트에 연결되어 있지 않았다
+- 발견 단계: T04/S3
+- 스펙 위치: `10_NFR.md` §8 (커버리지 기준 표), `HARNESS.md` §1 L3
+- 문제: §8 표는 `packages/storage` 70%, `packages/media` 85%, `packages/queue` 70%, `apps/worker/src/jobs` 70% 를 요구한다. 그런데 `vitest.config.ts` 의 커버리지 `include` 는 `packages/core`, `packages/db`, `apps/web/src`, `scripts` 뿐이었다. **스펙이 요구하는 기준을 게이트가 재지 않는 상태**였다 — 통과해도 그 항목에 대해서는 아무것도 증명하지 않는다.
+- 결정: `packages/storage` 는 실제 코드가 생겼으므로 지금 연결한다 (include + 70% 임계값). 나머지 셋은 아직 `export {}` 뿐인 자리표시자거나(`packages/media`, `packages/queue`) 디렉터리 자체가 없다(`apps/worker`). 빈 모듈에 임계값을 걸면 0/0 을 두고 도구가 무엇을 보고하든 의미가 없으므로, **각 코드가 생기는 태스크에서 함께 연결한다** — T06(media·worker), T05(queue).
+- 재발 방지 제안: `scripts/contract/check-coverage.ts` — §8 표를 파싱해, 소스가 존재하는 모든 대상이 `vitest.config.ts` 에 스펙 이상의 임계값으로 등록되어 있는지 검사한다. 지금 넣으면 위 자리표시자들 때문에 바로 실패하므로 T06 이후가 적절하다. (OBS-012 의 Docker COPY 검사와 같은 이유 — 합의된 지연 상태를 게이트가 막으면 게이트를 끄고 싶어진다)
+- 상태: OPEN (storage 는 연결 완료 / media·queue·worker 는 각 태스크에서)
+
+## [OBS-015] `completeMultipart` 가 던져도 업로드는 이미 완료됐을 수 있다
+- 발견 단계: T04/S3
+- 스펙 위치: `06_MEDIA_PIPELINE.md` §2, `09_ERROR_CATALOG.md` (`E_UPLOAD_ALREADY_COMPLETED` 409, 멱등 처리)
+- 문제: `CompleteMultipartUpload` 응답에는 객체 크기가 없다. 업로드 총량 회계가 크기를 필요로 하므로 완료 **직후 HeadObject** 로 실제 값을 읽는다(클라이언트가 신고한 파트 크기 합을 믿지 않기 위해서다). 그런데 완료는 성공하고 HeadObject 가 일시적으로 실패하면 **호출자에게는 실패로 보인다.** 호출자가 재시도하면 uploadId 는 이미 소멸했으므로 S3 가 `NoSuchUpload` 를 주고, 우리는 그것을 `E_UPLOAD_SESSION_EXPIRED`(410) 로 옮긴다 — 성공한 업로드가 "세션 만료" 로 끝난다.
+- 왜 storage 계층에서 고치지 않는가: 여기서는 "완료된 적이 있는가" 를 알 방법이 없다. 그 사실을 아는 것은 `upload_session` 을 들고 있는 서비스 계층이다.
+- T05 가 해야 할 일: complete 재시도에서 `E_UPLOAD_SESSION_EXPIRED` 를 받으면 **객체 존재를 먼저 확인**한다. 존재하면 `E_UPLOAD_ALREADY_COMPLETED` 로 멱등 처리하고(에러 카탈로그가 이미 그 코드를 정의해 두었다), 없으면 진짜 만료다.
+- 상태: OPEN (T05 에서 처리)

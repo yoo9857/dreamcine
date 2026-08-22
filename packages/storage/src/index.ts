@@ -23,10 +23,11 @@ export {
   deletePrefix,
   type DeletePrefixResult,
 } from './delete.js'
-export { mapS3Error } from './errors.js'
+export { mapS3Error, withS3 } from './errors.js'
 export { getObjectStream, type ObjectStream } from './get-object.js'
 export {
   MAX_PARTS_PER_SIGN,
+  normalizeETag,
   abortMultipart,
   completeMultipart,
   createMultipart,
