@@ -1,0 +1,126 @@
+name: deploy
+
+# O01_DEPLOY.md §2 의 마지막 칸 — 서버 적용.
+#
+# **수동 실행이다.** main 에 푸시할 때마다 자동 배포하지 않는다.
+# O01 §3-0 이 "정상이 아닌 상태에서 배포하지 않는다. 장애 중 배포는 원인을
+# 두 배로 만든다" 고 못박고 있고, 그 판단은 사람이 한다.
+#
+# 필요한 저장소 시크릿 (Settings → Secrets and variables → Actions):
+#
+#   DEPLOY_HOST         서버 주소
+#   DEPLOY_USER         배포 계정 (deploy 권장, root 아님)
+#   DEPLOY_SSH_KEY      개인키 전문 (ed25519 권장). **비밀번호가 아니다.**
+#   DEPLOY_KNOWN_HOSTS  서버의 호스트 키 한 줄.
+#                       서버에서 `ssh-keyscan -t ed25519 <host>` 로 얻는다.
+#   DEPLOY_PATH         서버의 저장소 경로 (예: /srv/aidream)
+#
+# 호스트 키를 시크릿으로 고정하는 이유: `StrictHostKeyChecking=no` 로 두면
+# 중간자가 끼어들어도 배포가 그대로 진행된다. 배포는 서버에 코드를 넣는
+# 행위라 그 대가가 크다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: '배포할 커밋 SHA (CI 가 이미지로 만든 것)'
+        required: true
+        type: string
+      deploy_worker:
+        description: '워커·스케줄러까지 배포 (apps/worker 가 있어야 함 — T06)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  # 배포가 겹치면 두 버전이 번갈아 올라간다. 앞선 배포를 죽이지 않고 기다린다.
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Validate input
+        run: |
+          set -euo pipefail
+          if ! printf '%s' '${{ inputs.sha }}' | grep -Eq '^[0-9a-f]{7,40}$'; then
+            echo '::error title=Invalid SHA::커밋 SHA 가 아닙니다'
+            exit 1
+          fi
+
+      - name: Configure SSH
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in KEY KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Missing secret::DEPLOY_${name} 가 비어 있습니다"
+              exit 1
+            fi
+          done
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${KEY}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "${KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          SHA: ${{ inputs.sha }}
+          DEPLOY_WORKER: ${{ inputs.deploy_worker && '1' || '0' }}
+          REGISTRY: ghcr.io/${{ github.repository }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes \
+            "${USER}@${HOST}" \
+            "REGISTRY='${REGISTRY}' DEPLOY_WORKER='${DEPLOY_WORKER}' bash -s" <<REMOTE
+          set -euo pipefail
+          cd '${DEPLOY_PATH}'
+
+          # 이미지는 CI 가 만든 것을 받는다. 서버에서 소스를 빌드하지 않는다.
+          # (O01 §1 — 재현성 + 서버 자원 보호)
+          echo '${GHCR_TOKEN}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+          # deploy.sh 자체는 저장소에서 온다. 스크립트가 바뀌면 배포 절차도
+          # 바뀌므로 배포 대상 커밋의 것을 쓴다.
+          git fetch --quiet origin '${SHA}'
+          git checkout --quiet '${SHA}' -- scripts/ops/deploy.sh infra/compose infra/caddy
+
+          scripts/ops/deploy.sh '${SHA}'
+          REMOTE
+
+      - name: Verify from outside
+        env:
+          DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DOMAIN}" ]; then
+            echo '::notice title=External check skipped::DEPLOY_DOMAIN 이 없어 외부 확인을 건너뜁니다'
+            exit 0
+          fi
+          # 서버 안에서의 헬스는 deploy.sh 가 이미 봤다. 여기서는 **밖에서**
+          # 본다 — Caddy·TLS·DNS 까지 포함한 경로가 실제로 열렸는지는
+          # 컨테이너 안에서 확인할 수 없다.
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "https://${DOMAIN}/api/health")"
+          if [ "${status}" != '200' ]; then
+            echo "::error title=External health failed::https://${DOMAIN}/api/health → ${status}"
+            exit 1
+          fi
+          mode="$(curl -sSI "https://${DOMAIN}/" | tr -d '\r' | grep -i '^x-aidream-mode:' || true)"
+          if [ -n "${mode}" ]; then
+            echo "::warning title=Still in bootstrap::${mode} — 서버 .env 의 BOOTSTRAP_MODE 가 아직 true 입니다"
+          fi
+          echo "PASS: https://${DOMAIN}/api/health"

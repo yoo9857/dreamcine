@@ -35,6 +35,57 @@
           └─ 6. 헬스 확인 → 실패 시 자동 롤백
 ```
 
+## 2-1. 실제 구현 (2026-08-22)
+
+§2 의 파이프라인이 코드로 존재한다.
+
+| 단계 | 어디에 |
+|---|---|
+| 게이트 | `.github/workflows/gate.yml` 의 `gate` 잡 |
+| 이미지 빌드·push | 같은 파일의 `image` 잡. `needs: gate` 가 "게이트 통과가 배포 조건" 을 구조로 만든다. 태그는 커밋 SHA, `latest` 없음 |
+| 서버 적용 | `.github/workflows/deploy.yml` — **수동 실행**(`workflow_dispatch`) |
+| 절차 | `scripts/ops/deploy.sh {sha}` |
+
+### 왜 자동 배포가 아닌가
+
+§3-0 이 "정상이 아닌 상태에서 배포하지 않는다" 고 못박고 있고, 그 판단은
+사람이 한다. main 에 푸시할 때마다 배포하면 그 판단이 사라진다.
+
+### 필요한 저장소 시크릿
+
+| 이름 | 값 |
+|---|---|
+| `DEPLOY_HOST` | 서버 주소 |
+| `DEPLOY_USER` | 배포 계정 (`deploy` 권장, root 아님) |
+| `DEPLOY_SSH_KEY` | 개인키 전문 (ed25519). **비밀번호가 아니다** |
+| `DEPLOY_KNOWN_HOSTS` | `ssh-keyscan -t ed25519 <host>` 결과 한 줄 |
+| `DEPLOY_PATH` | 서버의 저장소 경로 |
+| `DEPLOY_DOMAIN` | 외부 확인용 도메인 (선택) |
+
+**비밀번호 인증을 쓰지 않는다.** 비밀번호를 CI 시크릿에 넣어도 원격에서
+`sshpass` 로 넘기는 순간 프로세스 목록에 평문으로 노출된다. 키는 그 문제가
+없고, 서버에서 언제든 회수할 수 있다.
+
+**호스트 키를 고정한다.** `StrictHostKeyChecking=no` 로 두면 중간자가 끼어들어도
+배포가 그대로 진행된다. 배포는 서버에 코드를 넣는 행위라 그 대가가 크다.
+
+### 서버 준비 (한 번)
+
+```bash
+# 서버에서 — 배포 전용 키를 만들고 공개키만 authorized_keys 에 넣는다
+sudo -u deploy ssh-keygen -t ed25519 -N '' -f /home/deploy/.ssh/id_deploy
+sudo -u deploy sh -c 'cat /home/deploy/.ssh/id_deploy.pub >> /home/deploy/.ssh/authorized_keys'
+sudo -u deploy cat /home/deploy/.ssh/id_deploy      # → DEPLOY_SSH_KEY 시크릿
+ssh-keyscan -t ed25519 "$(hostname -f)"             # → DEPLOY_KNOWN_HOSTS 시크릿
+
+# deploy 계정이 docker 를 쓸 수 있어야 한다
+sudo usermod -aG docker deploy
+
+# 첫 배포 전에 부트스트랩을 끈다 — 켜져 있으면 Caddy 가 /api/* 를 뺀 전부를
+# 정적 페이지로 가로채 앱이 보이지 않는다
+sed -i 's/^BOOTSTRAP_MODE=.*/BOOTSTRAP_MODE=false/' .env
+```
+
 ## 3. 배포 절차 (상세)
 
 ### 3-0. 사전 확인
