@@ -1,9 +1,54 @@
 # T05 — 업로드: 멀티파트 · 재개 · 검증
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인 — 2026-08-22 / 산출물 20 + 추가 6 확정 · 참조 스펙 6개 정독 · 발견 3건
 - [ ] S2 Skeleton
 - [ ] S3 구현
+
+### S1 추가 산출물 (문서 표 밖 — 다른 파일을 건드린다)
+
+| 경로 | 이유 | 상태 |
+|---|---|---|
+| `apps/web/app/(studio)/layout.tsx` | 스튜디오 화면의 권한 경계. 화면마다 확인하면 새 화면에서 빠뜨린다 | 완료 |
+| `apps/web/src/auth/server-session.ts` (+test) | 서버 컴포넌트에는 `Request` 가 없다. 판정을 두 벌로 만들지 않으려고 `getSessionByToken` 을 갈라냈다 | 완료 |
+| `apps/web/src/components/QueryProvider.tsx` | `03_TECH_STACK` §3 이 지정한 react-query. T05 폴링과 T09 무한스크롤이 공유하는 기본값을 여기서 정한다 | 완료 |
+| `apps/web/src/http/handler.ts` | **티어 의존 레이트리밋 지원** — 아래 발견 참조 | S3 |
+| `packages/queue/package.json` | `bullmq` 추가 (`03_TECH_STACK` §3, check-deps 허용 목록에 이미 있음) | S2 |
+| `packages/storage/src/storage.integration.test.ts` | CORS `ExposeHeaders: ETag` 검증 3건 (OBS-017) | 완료 |
+
+### S1 발견
+
+**1. 레이트리밋 한도가 두 스펙에서 다르다 (ISS-009 — 사람 결정 대기)**
+
+| 항목 | `11_CAPACITY_TIERS` (T0) | `05_API_CONTRACT` §10 |
+|---|---|---|
+| 시간당 업로드 세션 | **5회** | 20회 / 1시간 |
+| 일일 업로드 총량 | **10GiB** | 50GB / 1일 |
+
+`06_MEDIA_PIPELINE` §2 가 "모든 상한은 `capacity` 객체에서 읽는다. 리터럴 금지"
+라고 명시하므로 **capacity 를 따른다.** §10 표의 값은 T1/T2 와 일치하므로
+티어 표의 스냅샷으로 읽는다. 안전한 방향이기도 하다 — T0 쪽이 더 엄격하다.
+
+**2. `withRoute` 가 티어 의존 한도를 표현할 수 없다**
+
+`RouteRateLimit.limit` 이 고정 `number` 다. 업로드 한도는 티어에 따라 달라지므로
+`limit: number | ((capacity: Capacity) => number)` 로 넓힌다. 라우트 파일이
+`CAPACITY_TIER` 를 직접 읽게 두면 env 참조가 흩어진다 — `handler.ts` 의
+`currentCapacity()` 가 이미 그 단일 지점이다.
+
+**3. CORS `ExposeHeaders: ETag` (문서가 S1 에서 확인하라고 지목한 항목)**
+
+`scripts/ops/verify-infra.sh` 에 단정이 있었으나 **CI 에서 실행되지 않았다.**
+게이트가 도는 자리(storage 통합 테스트)로 옮겼다. 범위는 개발/CI(MinIO) 까지다 —
+프로덕션(Linode) 버킷 CORS 는 `O01_DEPLOY` 런북의 수동 항목이며 자동화되어
+있지 않다. DoD 의 해당 항목은 배포 파이프라인(ISS-008)이 생겨야 닫을 수 있다.
+
+**의존성** — `bullmq`(`/BullMQ 5/`)와 `@tanstack/react-query` 모두 `check-deps`
+증거 테이블에 이미 있다. 새 DEP 결정이 필요하지 않다.
+
+**에러코드·모델** — `UploadSession`(completedParts Json, s3UploadId, expiresAt)과
+`VideoAsset`(attemptCount, errorCode)이 T02 에서 이미 완성되어 있다. §6 표의
+모든 에러코드가 `codes.ts` 에 존재한다. 새로 만들 것이 없다.
 
 ---
 
