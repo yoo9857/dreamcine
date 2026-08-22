@@ -6,6 +6,24 @@
  * `src/lib/error-messages.ts` 가 담당한다. (09_ERROR_CATALOG.md §5)
  */
 export interface Messages {
+  /**
+   * 서비스 이름을 한 곳에만 둔다.
+   *
+   * 지금 `00_PRODUCT.md` 는 **AIDREAM**, 라이브 도메인과 부트스트랩 페이지는
+   * **iLOG** 를 쓰고 있다. 스펙이 계약이므로 AIDREAM 을 따르되, 바뀔 때
+   * 고칠 곳이 하나여야 한다. (ISS-010)
+   */
+  readonly brand: {
+    readonly name: string
+    readonly tagline: string
+  }
+  readonly home: {
+    readonly lead: string
+    readonly enter: string
+    readonly join: string
+    readonly buildingTitle: string
+    readonly buildingBody: string
+  }
   readonly common: {
     readonly retry: string
     readonly loading: string
@@ -47,6 +65,18 @@ export interface Messages {
 }
 
 const KO: Messages = {
+  brand: {
+    name: 'AIDREAM',
+    tagline: 'AI로 만든 드라마를 올리고, 보고, 이야기하는 곳',
+  },
+  home: {
+    lead: '크리에이터가 만든 이야기를 시리즈로 엮고, 에피소드로 나눠 공개합니다.',
+    enter: '로그인',
+    join: '시작하기',
+    buildingTitle: '아직 공개된 작품이 없습니다',
+    buildingBody:
+      '첫 작품이 올라오면 이 자리에 보입니다. 크리에이터라면 지금 올려보세요.',
+  },
   common: {
     retry: '다시 시도',
     loading: '불러오는 중',

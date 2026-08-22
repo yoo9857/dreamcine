@@ -55,8 +55,17 @@ services:
     restart: unless-stopped
     logging: *production-logging
 
+  # 워커·스케줄러는 `media` 프로파일에 둔다.
+  #
+  # `${WORKER_IMAGE:?...}` 는 **파일 전체 보간 시점**에 평가되므로, 어떤
+  # 서비스를 올리든 변수가 없으면 compose 가 통째로 거부한다. `apps/worker` 는
+  # T06 에서 생기므로 그때까지 web-only 배포까지 막히게 된다.
+  #
+  # 그래서 태그 강제는 `scripts/ops/deploy.sh` 로 옮겼다 — 프로파일을 켤 때만
+  # 검사한다. 결정이 실제로 내려지는 자리에 두는 편이 정확하다.
   worker:
-    image: ${WORKER_IMAGE:?WORKER_IMAGE with an immutable tag is required}
+    profiles: ['media']
+    image: ${WORKER_IMAGE:-}
     env_file:
       - ../../.env
     environment:
@@ -72,7 +81,8 @@ services:
     logging: *production-logging
 
   scheduler:
-    image: ${WORKER_IMAGE:?WORKER_IMAGE with an immutable tag is required}
+    profiles: ['media']
+    image: ${WORKER_IMAGE:-}
     env_file:
       - ../../.env
     environment:

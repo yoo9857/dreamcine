@@ -353,3 +353,41 @@ test('로그아웃하면 훔친 쿠키로도 다시 들어올 수 없다', async
   await page.context().addCookies(stolen)
   expect((await page.request.get('/api/me')).status()).toBe(401)
 })
+
+test('홈이 열리고 로그인·가입으로 들어갈 수 있다', async ({ page }) => {
+  // 배포하면 방문자가 보는 첫 화면이다. 404 로 돌아가는 회귀를 막는다.
+  // (`/` 는 T09 가 피드로 교체한다 — 그때 이 테스트도 피드 기준으로 바뀐다.)
+  const response = await page.goto('/')
+  expect(response?.status()).toBe(200)
+
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await expect(page.getByRole('link', { name: '시작하기' })).toBeVisible()
+
+  await page.getByRole('link', { name: '로그인' }).click()
+  await expect(page).toHaveURL(/\/login$/u)
+})
+
+test('로그인 성공 후 홈으로 돌아온다', async ({ page }) => {
+  const user = account()
+
+  await page.goto('/signup')
+  await fillSignup(page, user)
+  await page.click('button[type="submit"]')
+  await expect(page.getByTestId('signup-sent')).toBeVisible()
+
+  const tokens = await findVerificationTokensFor(
+    `${VERIFY_TOKEN_PREFIX}${user.email}`,
+  )
+  await page.goto(`/verify?token=${encodeURIComponent(tokens[0]?.token ?? '')}`)
+  await expect(page.getByTestId('verify-success')).toBeVisible()
+
+  await page.goto('/login')
+  await page.fill('input[name="email"]', user.email)
+  await page.fill('input[name="password"]', user.password)
+  await page.click('button[type="submit"]')
+
+  // 로그인 폼은 next 파라미터가 없으면 `/` 로 보낸다. 그 자리가 비어 있으면
+  // 인증을 마친 사용자가 404 를 만난다.
+  await expect(page).toHaveURL(/\/$/u)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+})
