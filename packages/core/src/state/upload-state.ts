@@ -1,4 +1,3 @@
-import { NotImplementedError } from '../errors/not-implemented.js'
 import type { UploadStatus } from '../enums.js'
 
 /**
@@ -25,9 +24,21 @@ export const TERMINAL_UPLOAD_STATUS = [
 export type TerminalUploadStatus = (typeof TERMINAL_UPLOAD_STATUS)[number]
 
 export function isTerminalUploadStatus(
-  _status: UploadStatus,
-): _status is TerminalUploadStatus {
-  throw new NotImplementedError('T05:uploadState')
+  status: UploadStatus,
+): status is TerminalUploadStatus {
+  return (TERMINAL_UPLOAD_STATUS as readonly UploadStatus[]).includes(status)
+}
+
+/**
+ * 갈 수 있는 곳의 표. 표로 두는 이유는 조건문이 흩어지지 않게 하려는 것이다.
+ * 끝난 상태에서 나가는 화살표는 없다.
+ */
+const ALLOWED: Readonly<Record<UploadStatus, readonly UploadStatus[]>> = {
+  CREATED: ['UPLOADING', 'ABORTED', 'FAILED'],
+  UPLOADING: ['UPLOADED', 'ABORTED', 'FAILED'],
+  UPLOADED: [],
+  FAILED: [],
+  ABORTED: [],
 }
 
 /**
@@ -38,10 +49,10 @@ export function isTerminalUploadStatus(
  * 둘을 섞으면 두 번째 완료가 새 자산을 만든다. (T05 §5 멱등성)
  */
 export function canTransitionUpload(
-  _from: UploadStatus,
-  _to: UploadStatus,
+  from: UploadStatus,
+  to: UploadStatus,
 ): boolean {
-  throw new NotImplementedError('T05:uploadState')
+  return ALLOWED[from].includes(to)
 }
 
 /**
@@ -59,6 +70,16 @@ export type CompleteDecision =
   /** 되돌릴 수 없는 상태. 에러코드가 사용자에게 다음 행동을 알려준다. */
   | { readonly kind: 'rejected'; readonly code: 'ABORTED' | 'FAILED' }
 
-export function decideComplete(_status: UploadStatus): CompleteDecision {
-  throw new NotImplementedError('T05:uploadState')
+export function decideComplete(status: UploadStatus): CompleteDecision {
+  switch (status) {
+    case 'CREATED':
+    case 'UPLOADING':
+      return { kind: 'proceed' }
+    case 'UPLOADED':
+      return { kind: 'already-completed' }
+    case 'ABORTED':
+      return { kind: 'rejected', code: 'ABORTED' }
+    case 'FAILED':
+      return { kind: 'rejected', code: 'FAILED' }
+  }
 }

@@ -1,7 +1,6 @@
-import { NotImplementedError } from '@aidream/core'
-import type { Queue } from 'bullmq'
+import { Queue, type ConnectionOptions } from 'bullmq'
 
-import type { DefinedQueue, JobPayload } from './jobs.js'
+import { JOB_SCHEMAS, type DefinedQueue, type JobPayload } from './jobs.js'
 
 export interface EnqueueOptions {
   /**
@@ -18,11 +17,63 @@ export interface EnqueueOptions {
 }
 
 /**
+ * 완료된 잡을 얼마나 남길지.
+ *
+ * 전부 지우면 `jobId` 중복 방지가 **즉시 풀린다** — 완료 직후 같은 요청이
+ * 다시 오면 새 잡이 된다. 한 시간은 남겨 재시도 구간을 덮는다.
+ * 무한정 남기면 Redis 가 잡 기록으로 찬다.
+ */
+const REMOVE_ON_COMPLETE = { age: 3_600, count: 1_000 } as const
+
+/** 실패는 더 오래 남긴다 — 사람이 원인을 볼 시간이 필요하다. */
+const REMOVE_ON_FAIL = { age: 24 * 3_600 } as const
+
+/**
+ * `REDIS_URL` 을 BullMQ 연결 설정으로 옮긴다.
+ *
+ * `ioredis` 를 직접 쓰지 않는 이유: 그것은 bullmq 의 전이 의존이다.
+ * 선언하지 않은 패키지를 import 하면 bullmq 가 판올림하면서 조용히 사라질 수
+ * 있다. URL 을 우리가 풀어 넘기면 그 위험이 없다.
+ */
+function connectionFromUrl(raw: string): ConnectionOptions {
+  const url = new URL(raw)
+  const database = url.pathname.replace('/', '')
+  return {
+    host: url.hostname,
+    port: url.port === '' ? 6379 : Number(url.port),
+    ...(url.username === '' ? {} : { username: url.username }),
+    ...(url.password === '' ? {} : { password: url.password }),
+    ...(database === '' ? {} : { db: Number(database) }),
+    /*
+      BullMQ 는 블로킹 명령을 쓰므로 요청별 재시도 상한이 있으면 안 된다.
+      워커 쪽 요구사항이지만 같은 설정을 쓰는 편이 헷갈리지 않는다.
+    */
+    maxRetriesPerRequest: null,
+  }
+}
+
+function redisUrl(): string {
+  const raw = process.env.REDIS_URL
+  if (raw === undefined || raw === '') {
+    throw new Error('REDIS_URL 이 없습니다')
+  }
+  return raw
+}
+
+const queues = new Map<DefinedQueue, Queue>()
+
+/**
  * 큐 하나를 얻는다. 연결은 재사용한다 — 발행할 때마다 새로 열면 Redis
  * 커넥션이 요청 수만큼 쌓인다.
  */
-export function getQueue(_name: DefinedQueue): Queue {
-  throw new NotImplementedError('T05:enqueue')
+export function getQueue(name: DefinedQueue): Queue {
+  const existing = queues.get(name)
+  if (existing !== undefined) {
+    return existing
+  }
+  const created = new Queue(name, { connection: connectionFromUrl(redisUrl()) })
+  queues.set(name, created)
+  return created
 }
 
 /**
@@ -32,15 +83,27 @@ export function getQueue(_name: DefinedQueue): Queue {
  * 워커 쪽에서, 그것도 몇 초 뒤에 나타난다 — 원인에서 먼 곳이다. 여기서 막으면
  * 호출한 자리에서 바로 드러난다.
  */
-export function enqueue<Q extends DefinedQueue>(
-  _name: Q,
-  _payload: JobPayload<Q>,
-  _options?: EnqueueOptions,
+export async function enqueue<Q extends DefinedQueue>(
+  name: Q,
+  payload: JobPayload<Q>,
+  options: EnqueueOptions = {},
 ): Promise<void> {
-  throw new NotImplementedError('T05:enqueue')
+  const parsed = JOB_SCHEMAS[name].parse(payload)
+
+  await getQueue(name).add(name, parsed, {
+    ...(options.jobId === undefined ? {} : { jobId: options.jobId }),
+    ...(options.delayMs === undefined ? {} : { delay: options.delayMs }),
+    ...(options.attempts === undefined ? {} : { attempts: options.attempts }),
+    removeOnComplete: REMOVE_ON_COMPLETE,
+    removeOnFail: REMOVE_ON_FAIL,
+  })
 }
 
 /** 테스트와 종료 처리를 위해 열린 커넥션을 닫는다. */
-export function closeQueues(): Promise<void> {
-  throw new NotImplementedError('T05:enqueue')
+export async function closeQueues(): Promise<void> {
+  const open = [...queues.values()]
+  queues.clear()
+  await Promise.all(open.map((queue) => queue.close()))
 }
+
+export { connectionFromUrl }
