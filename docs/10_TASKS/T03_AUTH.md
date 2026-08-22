@@ -4,7 +4,7 @@
 - [x] S1 Spec 확인 — 2026-08-21 / 인증·라우트·웹 부트스트랩·DB/CI 연동 산출물 67개 확정
 - [x] S2 Skeleton — 2026-08-21 / `pnpm gate:s2` PASS · 산출물 67개 · 잔존 NIE 58개
 - [x] S3 구현 — 2026-08-21 / 잔존 NIE 0 · 로컬 359 tests PASS · core 100% / http 98.7% · 통합·E2E 는 CI 검증 (ISS-005)
-- [ ] E2E 실검증 — CI 런 32538124862 (2026-08-22) 에서 E2E 가 **처음 실제 실행**되어 7 통과 / 5 실패. 두 개의 실제 결함을 찾았다 (ISS-006 로그인 전면 불능, ISS-007 로그아웃 미취소). 수정 후 재검증 대기.
+- [x] E2E 실검증 — CI 런 32538124862 (2026-08-22) 에서 E2E 가 **처음 실제 실행**되어 7 통과 / 5 실패. 세 개의 실제 결함을 찾았다 (ISS-006 로그인 전면 불능, ISS-007 로그아웃 미취소, OBS-011 브라우저 기본 검증이 접근성 오류 경로를 가로챔). 수정 후 **런 32540282862 에서 14/14 통과** — `pnpm gate` 3층 전부 초록.
 
 ### 검증 이력 — 왜 게이트가 초록인데 로그인이 죽어 있었나
 
@@ -327,9 +327,9 @@ if (!user || !valid) throw new AppError('E_AUTH_INVALID_CREDENTIALS')
 
 ## 8. 완료 조건 (DoD)
 
-- [x] `pnpm gate` 통과 — 로컬 `gate:static`·`gate:contract`·단위 359 PASS. 통합·E2E 는 CI (ISS-005)
+- [x] `pnpm gate` 통과 — CI 런 32540282862 에서 L1·L2·L3 전부 통과 (단위+통합+E2E). 로컬은 Docker 부재로 단위까지만 (ISS-005)
 - [x] 잔존 `NotImplementedError('T03:...')` = 0 — `pnpm sss:remaining` → `TOTAL=0`
-- [x] `auth.e2e.ts` (US-01) 작성 — 가입→토큰→인증→로그인 + CSP·보안헤더·리다이렉트. 실행은 CI
+- [x] `auth.e2e.ts` (US-01) **실행 통과** — 가입→토큰→인증→로그인 + CSP·보안헤더·리다이렉트. CI 런 32540282862 / 14 tests. DB 세션 브리지(`jwt.encode`)가 실물로 검증된 첫 지점이다.
 - [x] `can()` 전조합 테스트 통과 — 역할 4 × 동작 15 × 소유 2 = 120 조합 + 상태·인증 축
 - [x] `/api/ready` 가 Redis 를 끄면 실제로 503 을 반환 — `ready.integration.test.ts` (CI)
 - [x] `app/api/**` 에 `try/catch` 0건

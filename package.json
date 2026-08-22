@@ -27,7 +27,7 @@
     "gate:s3": "pnpm gate",
     "gate:static": "pnpm lint && pnpm typecheck && pnpm depcruise && pnpm e2e:collect && pnpm format:check",
     "gate:contract": "pnpm contract:openapi && pnpm contract:prisma && pnpm contract:errors && pnpm contract:limits && pnpm contract:deps && pnpm contract:capacity && pnpm contract:proxy && pnpm contract:tokens",
-    "e2e:collect": "playwright test --list",
+    "e2e:collect": "playwright test --list --reporter=list",
     "gate:test": "vitest run --coverage && playwright test --pass-with-no-tests",
     "contract:openapi": "tsx scripts/contract/check-openapi.ts",
     "contract:prisma": "tsx scripts/contract/check-prisma.ts",

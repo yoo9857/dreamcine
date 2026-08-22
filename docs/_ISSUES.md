@@ -246,3 +246,12 @@
 - 왜 게이트가 못 잡았는가: jsdom 은 constraint validation 의 제출 차단을 구현하지 않는다. 단위/컴포넌트 테스트로는 원리적으로 재현되지 않으며, 실제 브라우저 E2E 만이 잡을 수 있다.
 - 결정: 두 폼에 `noValidate` 를 추가한다. 검증은 zod 단일 지점이 소유하고, 문구·스타일·스크린리더 연결을 우리가 통제한다. 행동 가드는 이미 존재하는 위 E2E 다 — 이 결함을 실제로 찾아낸 그 테스트다. (2026-08-22, 위임 범위 내 수정)
 - 상태: RESOLVED
+
+## [OBS-012] `apps/web/public` 이 없어 web 이미지를 빌드할 수 없었음
+- 발견 단계: OBS-010 처리 중 (부수 발견)
+- 스펙 위치: `02_REPO_LAYOUT.md` §4 — `apps/web/public/` (manifest.json, icons, sw.js)
+- 문제: `infra/docker/web.Dockerfile` 의 runner 스테이지는 `COPY --from=build /app/apps/web/public ./apps/web/public` 을 수행한다. Docker 의 `COPY` 는 소스가 없으면 **빌드를 실패시킨다.** 그런데 `apps/web/public` 이 저장소에 없었다 — 즉 프로덕션 web 이미지는 지금까지 한 번도 빌드될 수 없는 상태였다.
+- 재현/근거: `ls apps/web/public` → 없음. 스펙 §4 의 트리에는 존재한다. ISS-004 결정 A 로 이미지 빌드 검증이 T06 이후로 미뤄져 있어 아무도 실행하지 않았다.
+- 결정: `apps/web/public/.gitkeep` 으로 계약된 디렉터리를 만든다. 스펙이 이 디렉터리에 요구하는 `manifest.json`·아이콘·`sw.js` 는 해당 소유 태스크가 채운다 — 지금 내용을 발명하지 않는다.
+- 가드를 지금 넣지 않는 이유: Dockerfile 의 `COPY` 소스 전수 검사를 넣으면 `apps/worker` 가 아직 없어 즉시 실패한다. 그것은 ISS-004 결정 A 로 **이미 합의된 지연 상태**이며, 합의된 상태를 게이트가 막으면 게이트를 끄고 싶어진다. T06 으로 `apps/worker` 가 생긴 뒤 이 검사를 추가하는 것이 맞다.
+- 상태: RESOLVED (가드는 T06 이후 과제)
