@@ -255,3 +255,16 @@
 - 결정: `apps/web/public/.gitkeep` 으로 계약된 디렉터리를 만든다. 스펙이 이 디렉터리에 요구하는 `manifest.json`·아이콘·`sw.js` 는 해당 소유 태스크가 채운다 — 지금 내용을 발명하지 않는다.
 - 가드를 지금 넣지 않는 이유: Dockerfile 의 `COPY` 소스 전수 검사를 넣으면 `apps/worker` 가 아직 없어 즉시 실패한다. 그것은 ISS-004 결정 A 로 **이미 합의된 지연 상태**이며, 합의된 상태를 게이트가 막으면 게이트를 끄고 싶어진다. T06 으로 `apps/worker` 가 생긴 뒤 이 검사를 추가하는 것이 맞다.
 - 상태: RESOLVED (가드는 T06 이후 과제)
+
+## [ISS-008] 배포 파이프라인이 존재하지 않아 CI 초록이 사이트에 도달하지 않음
+- 발견 단계: 사용자 질문 — "https://ilog.info/ 에는 하나도 달라진게없는데 왜?"
+- 스펙 위치: `20_OPS/O01_DEPLOY.md` §1·§2 (게이트 통과가 배포 조건, 이미지는 CI 가 빌드, 태그는 커밋 SHA, `scripts/ops/deploy.sh {sha}`)
+- 문제: `ilog.info` 는 Caddy 의 부트스트랩 정적 페이지를 서빙하고 있다. 응답 헤더 `X-AIDream-Mode: bootstrap`, `Content-Length: 4700` 이 `infra/caddy/bootstrap/index.html`(4700 바이트)과 정확히 일치한다. 즉 앱으로 프록시가 넘어간 적이 없다. CI 초록과 사이트 변경 사이에 세 개가 비어 있다.
+  1. **이미지 빌드·push 워크플로가 없다** — `.github/workflows/` 에 `gate.yml` 하나뿐. O01 §2 가 요구하는 `aidream/web:{sha}` 이미지가 생성된 적이 없다.
+  2. **`scripts/ops/deploy.sh` 가 없다** — O01 §2 가 참조하지만 `scripts/ops/` 에는 `harden-ssh.sh`, `minio-init.sh`, `provision-server.sh`, `verify-infra.sh` 뿐이다.
+  3. **서버가 부트스트랩 모드다** — `BOOTSTRAP_MODE=false` 와 `WEB_IMAGE={sha}` 설정이 필요하다. `docker-compose.prod.yml` 은 `WEB_IMAGE: ${WEB_IMAGE:?...}` 로 불변 태그를 강제하므로 이미지 없이는 뜨지 않는다.
+- 덧붙여: OBS-012 로 30분 전까지 web 이미지는 **빌드 자체가 불가능**했다. ISS-004 결정 A 로 이미지 검증이 T06 이후로 미뤄져 있어 드러나지 않았다.
+- 지금 배포하면 안 되는 이유: 앱의 화면은 `/login`·`/signup`·`/verify`·`/studio`(리다이렉트) 뿐이고 **`/` 는 404** 다 (홈 피드는 T09 소관). 부트스트랩을 끄면 지금의 소개 페이지가 404 로 바뀐다.
+- 결정: **T04 부터 원래 INDEX 순서를 유지한다.** 배포 파이프라인은 별도 과제로 남긴다. 레지스트리는 **GitHub Container Registry**(`ghcr.io`, `GITHUB_TOKEN` 으로 push 가능 — 추가 자격증명 불필요)를 쓴다. (2026-08-22, 사용자 결정)
+- 남은 판단: 배포 시점은 최소 홈 화면이 생긴 뒤여야 한다. T09 완료 시점 또는 그 전에 임시 랜딩을 넣을지는 사람 결정.
+- 상태: OPEN (의도적 보류 — 순서 결정 완료)

@@ -327,7 +327,7 @@ if (!user || !valid) throw new AppError('E_AUTH_INVALID_CREDENTIALS')
 
 ## 8. 완료 조건 (DoD)
 
-- [x] `pnpm gate` 통과 — CI 런 32540282862 에서 L1·L2·L3 전부 통과 (단위+통합+E2E). 로컬은 Docker 부재로 단위까지만 (ISS-005)
+- [x] `pnpm gate` 통과 — CI 런 32540282862 에서 L1·L2·L3 전부 통과 (단위+통합+E2E). 이어 런 32540805435 에서 **프로덕션과 동일한 standalone 서버**로 14/14 재통과 (OBS-010) — Prisma·argon2 네이티브 바인딩 포함 런타임이 실물 검증됐다. 로컬은 Docker 부재로 단위까지만 (ISS-005)
 - [x] 잔존 `NotImplementedError('T03:...')` = 0 — `pnpm sss:remaining` → `TOTAL=0`
 - [x] `auth.e2e.ts` (US-01) **실행 통과** — 가입→토큰→인증→로그인 + CSP·보안헤더·리다이렉트. CI 런 32540282862 / 14 tests. DB 세션 브리지(`jwt.encode`)가 실물로 검증된 첫 지점이다.
 - [x] `can()` 전조합 테스트 통과 — 역할 4 × 동작 15 × 소유 2 = 120 조합 + 상태·인증 축
