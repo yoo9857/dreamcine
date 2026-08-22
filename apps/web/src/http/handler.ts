@@ -45,7 +45,17 @@ export interface RouteResult {
 
 export interface RouteRateLimit {
   bucket: string
-  limit: number
+  /**
+   * 고정값이거나, 티어에서 읽는 함수다.
+   *
+   * 업로드 한도는 티어에 따라 달라진다 (11_CAPACITY_TIERS.md §3 — T0 는
+   * 시간당 5회, T1 이상은 20회). 라우트가 `CAPACITY_TIER` 를 직접 읽게 두면
+   * env 참조가 흩어진다 — `currentCapacity()` 가 이미 그 단일 지점이다.
+   *
+   * 06_MEDIA_PIPELINE.md §2: "모든 상한은 capacity 객체에서 읽는다.
+   * 리터럴 금지 — T0→T1 승급 시 코드가 바뀌면 안 된다." (ISS-009)
+   */
+  limit: number | ((capacity: Capacity) => number)
   windowSec: number
   by: 'ip' | 'user'
 }
@@ -175,8 +185,16 @@ async function enforceRateLimit(
   ip: string,
 ): Promise<void> {
   const identity = rule.by === 'user' ? (session?.userId ?? ip) : ip
+  /*
+    티어 의존 한도는 **요청 시점에** 푼다. 모듈 로드 시점에 고정하면
+    CAPACITY_TIER 를 바꾸고 재기동해도 옛 값이 남는다.
+  */
+  const limit =
+    typeof rule.limit === 'function'
+      ? rule.limit(currentCapacity())
+      : rule.limit
   const decision = await checkRateLimit(
-    { bucket: rule.bucket, limit: rule.limit, windowSec: rule.windowSec },
+    { bucket: rule.bucket, limit, windowSec: rule.windowSec },
     identity,
   )
   if (!decision.allowed) {

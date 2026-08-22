@@ -5,5 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
-  }
+  },
+  "dependencies": {
+    "@aidream/core": "workspace:*",
+    "bullmq": "5.81.3",
+    "zod": "3.25.76"
+  },
+  "sideEffects": false
 }
