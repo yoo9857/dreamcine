@@ -1,9 +1,49 @@
 # T04 — Object Storage 어댑터 · 서명 URL · CDN URL
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인 — 2026-08-22 / 산출물 16개 확정 · 참조 스펙 4개 정독 · 발견 2건 기록
 - [ ] S2 Skeleton
 - [ ] S3 구현
+
+### S1 확정 산출물 (16)
+
+| # | 경로 | 비고 |
+|---|---|---|
+| 1 | `packages/storage/package.json` | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` 추가 |
+| 2 | `packages/storage/src/client.ts` | 일반용 + **스트리밍용 별도 인스턴스** (§6 주의) |
+| 3 | `packages/storage/src/buckets.ts` | 키 조립 전부 + 파일명 새니타이즈 |
+| 4 | `packages/storage/src/buckets.test.ts` | 키 문자열 · 경로 탈출 · 유니코드 · 절단 |
+| 5 | `packages/storage/src/cache-presets.ts` | `IMMUTABLE_1Y`, `NO_STORE` (§5 가 요구) |
+| 6 | `packages/storage/src/cache-presets.test.ts` | |
+| 7 | `packages/storage/src/cdn.ts` | ★ CDN URL 유일 지점 |
+| 8 | `packages/storage/src/cdn.test.ts` | 슬래시 중복/누락 |
+| 9 | `packages/storage/src/errors.ts` | S3 에러 → `AppError` |
+| 10 | `packages/storage/src/errors.test.ts` | §6 표의 매핑 전부 |
+| 11 | `packages/storage/src/presign.ts` | GET 15분 (워커 전용) · PUT 6시간 |
+| 12 | `packages/storage/src/multipart.ts` | create/sign/complete/abort/listStale |
+| 13 | `packages/storage/src/put-object.ts` | `cacheControl` **필수 인자** |
+| 14 | `packages/storage/src/get-object.ts` | Node stream. 메모리 적재 금지 |
+| 15 | `packages/storage/src/delete.ts` | 단일 + 프리픽스 배치 |
+| 16 | `packages/storage/src/index.ts` | 공개 배럴. `S3Client` export 금지 |
+
+추가 산출물 2개 (표 밖 — 다른 패키지를 건드린다):
+
+| 경로 | 이유 |
+|---|---|
+| `packages/storage/src/storage.integration.test.ts` | §7 통합 케이스. MinIO 대상, 모킹 금지 |
+| `packages/config/eslint/base.cjs` | **스펙이 린트를 요구한다** — `06_MEDIA_PIPELINE.md` §5: "앱 코드에서 문자열로 CDN 도메인을 이어붙이는 것은 린트로 금지한다". DoD 의 `grep 확인` 을 사람 눈이 아니라 기계가 하게 만든다 |
+
+### S1 발견
+
+**의존성** — `@aws-sdk/client-s3` 와 `@aws-sdk/s3-request-presigner` 는
+`03_TECH_STACK.md` §3 이 명시하고 `check-deps.ts` 증거 테이블에도 이미 있다.
+새 DEP 결정이 필요하지 않다. 현재 `client-s3` 는 `apps/web` 에만 있고
+presigner 는 미설치다 — 둘 다 `packages/storage` 로 들여온다.
+
+**에러코드** — §6 표의 모든 코드가 `packages/core/src/errors/codes.ts` 에 이미
+존재한다. 새로 추가할 것이 없다.
+
+**CDN 경로 라우팅** — OBS-013 으로 기록. 아래.
 
 ---
 
@@ -32,6 +72,7 @@ Object Storage 공급자를 바꾸더라도 이 패키지 밖은 손대지 않�
 | `packages/storage/src/get-object.ts` | 워커용 스트리밍 다운로드 | S2→S3 |
 | `packages/storage/src/delete.ts` | 단일/프리픽스 일괄 삭제 | S2→S3 |
 | `packages/storage/src/cdn.ts` | ★ CDN URL 조립 **유일 지점** | S2→S3 |
+| `packages/storage/src/cache-presets.ts` | `IMMUTABLE_1Y`, `NO_STORE` (§5 가 요구) | S2→S3 |
 | `packages/storage/src/errors.ts` | S3 에러 → `AppError` | S3 |
 | `packages/storage/src/index.ts` | 공개 배럴 (`S3Client` 는 export 금지) | S2 |
 | `packages/storage/tests/**` | MinIO 대상 통합 테스트 | S3 |
