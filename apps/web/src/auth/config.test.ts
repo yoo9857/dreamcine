@@ -20,6 +20,31 @@ function providerIds(config: ReturnType<typeof createAuthConfig>): string[] {
   )
 }
 
+/**
+ * `@auth/core/lib/utils/assert.js` 의 판정을 그대로 옮긴 것.
+ *
+ * 이 조건이 참이면 Auth.js 는 `UnsupportedStrategy` 를 돌려주고, 로그인은
+ * `/login?error=Configuration` 으로 죽는다. `onlyCredentials` 가 함께 참이어야
+ * 하므로 Google 을 설정한 환경에서는 통과하고 없는 환경에서만 터진다 —
+ * 환경에 따라 로그인이 되거나 안 되는 버그였다. (ISS-006)
+ */
+function rejectedByAuthjs(
+  config: ReturnType<typeof createAuthConfig>,
+): boolean {
+  const providers = config.providers.map((provider) =>
+    typeof provider === 'function' ? provider() : provider,
+  )
+  const hasCredentials = providers.some(
+    (provider) => provider.type === 'credentials',
+  )
+  const onlyCredentials = !providers.some(
+    (provider) => provider.type !== 'credentials',
+  )
+  return (
+    hasCredentials && config.session?.strategy === 'database' && onlyCredentials
+  )
+}
+
 beforeEach(() => {
   delete process.env.AUTH_GOOGLE_ID
   delete process.env.AUTH_GOOGLE_SECRET
@@ -40,10 +65,32 @@ afterEach(() => {
 })
 
 describe('createAuthConfig', () => {
-  it('DB 세션 전략을 쓴다 (JWT 아님)', () => {
+  /**
+   * 앞선 테스트는 스펙의 **문구**(`strategy: 'database'`)를 그대로 단정했고,
+   * 그래서 로그인이 완전히 죽은 상태로 계속 통과했다. 단정해야 할 것은
+   * 문구가 아니라 **Auth.js 가 이 설정을 받아들이는가** 이다. (ISS-006)
+   */
+  it('Google 이 없는 환경에서도 Auth.js 가 설정을 거부하지 않는다', () => {
+    expect(rejectedByAuthjs(createAuthConfig())).toBe(false)
+  })
+
+  it('Google 이 있는 환경에서도 설정을 거부하지 않는다', () => {
+    process.env.AUTH_GOOGLE_ID = 'google-client-id'
+    process.env.AUTH_GOOGLE_SECRET = 'google-client-secret'
+
+    expect(rejectedByAuthjs(createAuthConfig())).toBe(false)
+  })
+
+  /**
+   * 쿠키를 만드는 방식은 `'jwt'` 라고 말하지만, 그 값은 JWT 가 아니라
+   * `jwt.encode` 가 만든 **DB Session 행의 토큰**이다. 즉시 정지·강제
+   * 로그아웃은 그 행을 지우는 것으로 성립한다. (07_AUTH_SECURITY §1)
+   */
+  it('쿠키 발급은 브리지가 맡는다 (encode 가 세션 토큰을 만든다)', () => {
     const config = createAuthConfig()
 
-    expect(config.session?.strategy).toBe('database')
+    expect(config.session?.strategy).toBe('jwt')
+    expect(typeof config.jwt?.encode).toBe('function')
   })
 
   it('30일 rolling 세션을 설정한다', () => {

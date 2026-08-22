@@ -103,8 +103,26 @@ export function createAuthConfig(): NextAuthConfig {
     // 쿠키 기본값이 이미 httpOnly + secure(prod) + sameSite=lax 이며
     // 이름은 `authjs.session-token` / `__Secure-authjs.session-token` 이다.
     // `session.ts` 의 SESSION_COOKIE_NAMES 와 짝을 이룬다.
+    /**
+     * `strategy` 는 **Auth.js 에게 쿠키를 어떻게 만들지** 알려주는 값이다.
+     * 우리가 원하는 결과(DB 세션)는 위 브리지가 만든다.
+     *
+     * 여기에 `'database'` 를 쓰면 Auth.js 가 설정 자체를 거부한다 —
+     * `@auth/core/lib/utils/assert.js` 는 Credentials 공급자가 있고
+     * `session.strategy === 'database'` 이면 `UnsupportedStrategy` 를 돌려주고,
+     * 그것이 `/login?error=Configuration` 으로 나타난다. 로그인이 전면 불능이 된다.
+     *
+     * 그 판정 조건에 함정이 하나 더 있다 — `onlyCredentials` 도 함께 참이어야
+     * 한다. 즉 Google 을 설정한 환경에서는 통과하고, `AUTH_GOOGLE_ID` 가 없는
+     * 환경에서만 터진다. 환경에 따라 로그인이 되거나 안 되는 버그였다. (ISS-006)
+     *
+     * 그래서 Auth.js 에는 `'jwt'` 라고 말하고, `jwt.encode` 에서 실제 Session
+     * 행을 만들어 그 토큰을 쿠키 값으로 돌려준다. 쿠키가 가리키는 것은 JWT 가
+     * 아니라 DB 행이므로, 07_AUTH_SECURITY.md §1 이 요구하는 즉시 정지·강제
+     * 로그아웃·기기 관리가 그대로 성립한다.
+     */
     session: {
-      strategy: 'database',
+      strategy: 'jwt',
       maxAge: SESSION_MAX_AGE_SEC,
       updateAge: SESSION_UPDATE_AGE_SEC,
     },

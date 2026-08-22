@@ -179,3 +179,45 @@
 - 제안: Playwright `testDir`를 `apps/web/e2e`로 격리하고 T00 부트스트랩에서는 빈 테스트 집합을 허용한다.
 - 결정: 전용 `playwright.config.ts`와 `--pass-with-no-tests` 적용 (2026-08-21, 사용자 개선 진행 승인)
 - 상태: RESOLVED
+
+## [OBS-006] Caddy가 `X-Forwarded-For`를 덮어쓰지 않아 IP 레이트리밋을 우회할 수 있었음
+- 발견 단계: T03 CI 실패 조사 중 (부수 발견)
+- 스펙 위치: `07_AUTH_SECURITY.md` §8 (신원 = `X-Forwarded-For` 첫 IP), §10 (크리덴셜 스터핑 = 방어), `05_API_CONTRACT.md` §10
+- 문제: 앱은 계약대로 XFF의 **첫 값**을 레이트리밋 신원으로 쓴다. 그런데 `infra/caddy/Caddyfile`은 `X-Real-IP`만 `{remote_host}`로 세팅하고 XFF는 건드리지 않았다. Caddy `reverse_proxy`의 기본 동작은 들어온 XFF **뒤에 덧붙이는 것**이므로, 클라이언트가 보낸 값이 첫 값으로 남는다. 매 요청 XFF를 바꾸면 IP 키 레이트리밋이 무력화되고, §10이 "방어"로 표시한 크리덴셜 스터핑이 사실상 무방비가 된다.
+- 재현/근거: `@auth`와 무관한 순수 프록시 문제. `apps/web/src/http/handler.ts:128` `clientIp()`가 XFF 첫 값을 그대로 신원으로 사용하며, 이 동작은 `handler.test.ts`의 "by:'ip' 는 X-Forwarded-For 첫 값을 신원으로 쓴다"로 계약으로 고정되어 있다. 반면 수정 전 Caddyfile의 `reverse_proxy` 블록에는 XFF 관련 지시문이 없었다.
+- 제안: 스펙(앱 동작)은 그대로 두고, 프록시가 XFF를 덮어써 "첫 값 = 실제 접속 IP"라는 전제를 성립시킨다. 스펙이 명시하지 않은 **암묵 전제**였으므로 스펙 변경 없이 인프라에서 충족시킬 수 있다.
+- 결정: `header_up X-Forwarded-For {remote_host}` 추가. 재발 방지로 계약 검사 `scripts/contract/check-proxy.ts`(+ `pnpm contract:proxy`)를 추가해, 앱이 XFF 첫 값을 신뢰하는 동안 Caddyfile의 모든 `reverse_proxy` 블록이 XFF를 덮어쓰도록 강제한다. 지시문 삭제·주석 처리 양쪽에서 실제로 실패하는지 확인했다. (2026-08-22, 위임 범위 내 수정)
+- 상태: RESOLVED
+
+## [ISS-006] `session.strategy: 'database'` + Credentials 조합을 Auth.js가 거부해 로그인이 전면 불능이었음
+- 발견 단계: T03 DoD 검증 (CI E2E 최초 실행)
+- 스펙 위치: `07_AUTH_SECURITY.md` §1 — 세션 전략 | **DB 세션** (`strategy: 'database'`)
+- 문제: 스펙 §1은 DB 세션을 요구하며 괄호로 `strategy: 'database'`를 명시한다. 그러나 Auth.js v5는 Credentials 공급자와 `session.strategy === 'database'`가 함께 있으면 설정 자체를 거부한다. 스펙이 요구하는 이메일+비밀번호 로그인과 스펙이 명시한 옵션 값이 **동시에 성립할 수 없다.**
+- 재현/근거: `node_modules/.../@auth/core/lib/utils/assert.js:114-119` — `hasCredentials && dbStrategy && onlyCredentials` 이면 `UnsupportedStrategy`. CI 런 32538124862에서 로그인 시도가 `/login?error=Configuration`으로 리다이렉트되며 `/api/me`가 401. **판정에 `onlyCredentials`가 포함되므로 Google을 설정한 환경에서는 통과하고 `AUTH_GOOGLE_ID`가 없는 환경에서만 터진다** — 환경에 따라 로그인이 되거나 안 되는 버그였다.
+- 왜 게이트가 못 잡았는가: `config.test.ts`가 스펙의 **문구**를 그대로 단정(`expect(strategy).toBe('database')`)했다. 검증해야 할 것은 문구가 아니라 "Auth.js가 이 설정을 받아들이는가"였고, 그래서 로그인이 완전히 죽은 상태로 계속 초록이었다.
+- 제안: 스펙의 실질 요구(즉시 취소 가능한 DB 세션)는 `config.ts`의 `jwt.encode` 브리지가 이미 충족한다 — 쿠키 값이 JWT가 아니라 실제 Session 행의 토큰이다. Auth.js에게 알리는 `strategy`는 "쿠키를 어떻게 만드는가"일 뿐이므로 `'jwt'`가 되어야 브리지가 동작한다.
+- 영향/남은 판단: 코드를 `'jwt'`로 고쳤고 실질 계약(DB 세션·즉시 취소)은 유지된다. 다만 **스펙 §1의 괄호 문구는 실행 불가능한 값으로 남아 있다.** 스펙은 불변이라 수정하지 않았다. 사람이 §1 괄호를 `strategy: 'jwt'` + DB 세션 브리지로 정정할지 결정해야 한다.
+- 결정: 코드를 `strategy: 'jwt'`로 수정. 테스트를 문구 단정에서 `rejectedByAuthjs()`(assert.js 판정을 그대로 옮긴 것) 검사로 교체하고, Google 있음/없음 두 환경 모두에서 확인한다. 스펙 문구 정정은 **사람 결정 대기**. (2026-08-22)
+- 상태: OPEN (코드 수정 완료 / 스펙 문구 정정 미결)
+
+## [ISS-007] 로그아웃이 DB 세션 행을 지우지 않아 실제로 취소되지 않았음
+- 발견 단계: ISS-006 수정 중 (부수 발견)
+- 스펙 위치: `07_AUTH_SECURITY.md` §1 (강제 로그아웃·기기 관리·즉시 정지), `05_API_CONTRACT.md` §7 (`* /api/auth/[...nextauth]` — 로그인/로그아웃 위임)
+- 문제: 세션 쿠키는 JWT가 아니라 DB Session 행을 가리킨다. 그런데 Auth.js의 signOut은 `strategy: 'jwt'` 경로에서 `jwt.decode`만 부르고 `adapter.deleteSession`은 호출하지 않는다. 우리 `decode`는 항상 null을 돌려주므로 결과적으로 **쿠키만 지워지고 세션 행은 만료(30일)까지 살아있다.** 쿠키 값이 이미 새어나간 상황에서 로그아웃이 아무것도 취소하지 못한다.
+- 재현/근거: `node_modules/.../@auth/core/lib/actions/signout.js` — `if (session.strategy === "jwt") { ...jwt.decode...; events.signOut({token}) } else { adapter.deleteSession(...) }`.
+- 결정: `apps/web/src/auth/signout.ts`의 `withSessionRevocation`으로 `[...nextauth]`의 POST를 한 겹 감싼다. Auth.js에 **위임한 뒤**, 응답이 세션 쿠키를 비웠을 때만 행을 지운다 — 요청만 보고 미리 지우면 내장 CSRF를 통과하지 못한 요청으로도 강제 로그아웃이 가능해진다. 단위 테스트 8건으로 고정. (2026-08-22, 위임 범위 내 수정)
+- 상태: RESOLVED
+
+## [OBS-007] E2E 전체가 하나의 IP 신원을 공유해 인증 레이트리밋을 서로 잡아먹었음
+- 발견 단계: T03 DoD 검증 (CI 런 32538124862)
+- 스펙 위치: `05_API_CONTRACT.md` §10 (`POST /api/auth/*` 10회/10분, 키 IP)
+- 문제: E2E는 모두 같은 호스트에서 오므로 레이트리밋 신원이 하나로 뭉친다. 스위트가 `auth` 버킷을 기본 7회 쓰는데 한도가 10회/10분이고 CI `retries: 2`가 붙어 있어, 한 건이라도 재시도되면 한도를 넘겨 **관계없는 테스트가 429로 무너진다.** 실제로 진짜 원인(ISS-006 로그인 불능)이 "가입 화면이 안 뜬다"로 위장돼 보였다.
+- 결정: `apps/web/e2e/fixtures.ts`에서 `extraHTTPHeaders`를 테스트별 고유 XFF(10.0.0.0/8)로 오버라이드해 "서로 다른 사용자"를 정직하게 흉내낸다. 프로덕션에서는 OBS-006 수정으로 Caddy가 XFF를 덮어쓰므로 클라이언트가 이 값을 위조할 수 없다. 한도 자체는 전용 IP를 쓰는 전용 E2E가 따로 검증하며, 재시도로 자기 한도를 소진해도 실패하지 않는 형태로 작성했다. (2026-08-22, 위임 범위 내 수정)
+- 상태: RESOLVED
+
+## [OBS-008] Playwright `APIRequestContext`는 http로 `Secure` 쿠키를 보내지 않음
+- 발견 단계: T14 DoD 검증 (CI 런 32538124862)
+- 스펙 위치: `08_UIUX_SPEC.md` §7 (테마), `OBS-005`
+- 문제: 테마 쿠키는 프로덕션 빌드에서 `Secure`가 붙는다. Chrome은 localhost 예외로 http에서도 이를 저장·전송하지만, Playwright의 `APIRequestContext`(`page.request`)는 규칙대로 http에 `Secure` 쿠키를 보내지 않는다. 그래서 브라우저 탐색·새로고침 단정은 통과하고 `page.request.get('/login')` 단정만 실패했다 — 제품 결함이 아니라 검증 도구 차이였다.
+- 결정: 테마 E2E가 확인하려는 것은 "서버가 보낸 HTML에 테마가 이미 들어있는가"이므로, `page.request` 대신 **실제 탐색의 응답 본문**(`(await page.goto('/login'))?.text()`)을 읽는다. 브라우저 쿠키 저장소를 그대로 쓰므로 의도에 더 가깝다. (2026-08-22, 위임 범위 내 수정)
+- 상태: RESOLVED

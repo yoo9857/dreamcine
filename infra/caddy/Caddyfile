@@ -60,6 +60,12 @@ www.{$DOMAIN} {
 
 	handle {
 		reverse_proxy web:3000 {
+			# 앱은 레이트리밋 신원으로 X-Forwarded-For 의 **첫 값**을 쓴다
+			# (07_AUTH_SECURITY.md §8). Caddy 의 기본 동작은 들어온 XFF 에
+			# 뒤로 덧붙이는 것이라, 클라이언트가 보낸 값이 첫 값으로 남는다.
+			# 그러면 매 요청 XFF 를 바꿔 IP 레이트리밋을 그냥 우회할 수 있다.
+			# 여기서 **덮어써서** "첫 값 = 실제 접속 IP" 를 성립시킨다. (OBS-006)
+			header_up X-Forwarded-For {remote_host}
 			header_up X-Real-IP {remote_host}
 			health_uri /api/health
 			health_interval 10s
