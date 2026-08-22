@@ -455,3 +455,76 @@ describe.skipIf(skip)('삭제', () => {
     expect(result.failed).toEqual([])
   }, 300_000)
 })
+
+describe.skipIf(skip)('CORS — 브라우저 직접 업로드의 전제', () => {
+  /*
+    브라우저가 파트를 PUT 하고 응답의 `ETag` 를 읽어야 멀티파트를 완료할 수
+    있다. 버킷 CORS 에 `ExposeHeaders: ETag` 가 없으면 브라우저가 그 헤더를
+    가려버려 **완료가 영구히 불가능**하다. (T05 §5)
+
+    `scripts/ops/verify-infra.sh` 가 같은 단정을 갖고 있지만 CI 에서 실행되지
+    않는다 — 존재하지만 돌지 않는 검사다. 게이트가 실제로 도는 자리로 옮긴다.
+    (OBS-017)
+
+    주의: 이것은 **개발/CI 스택**(MinIO)을 검증한다. 프로덕션(Linode Object
+    Storage)의 버킷 CORS 는 배포 런북의 수동 항목이며 아직 자동화되어 있지
+    않다. 초록을 프로덕션 증명으로 읽지 않는다.
+  */
+  const ORIGIN = 'http://127.0.0.1:3000'
+
+  it('ETag 를 브라우저에 노출한다', async () => {
+    const key = `${HLS_PREFIX}cors-probe.txt`
+    await putObject({
+      bucket: BUCKET.HLS,
+      key,
+      body: Buffer.from('probe'),
+      contentType: 'text/plain',
+      cacheControl: NO_STORE,
+    })
+
+    const response = await fetch(cdnUrl(key), { headers: { Origin: ORIGIN } })
+    const exposed = response.headers.get('access-control-expose-headers') ?? ''
+
+    expect(response.status).toBe(200)
+    expect(exposed.toLowerCase()).toContain('etag')
+  }, 60_000)
+
+  it('앱 출처를 허용한다', async () => {
+    const key = `${HLS_PREFIX}cors-origin.txt`
+    await putObject({
+      bucket: BUCKET.HLS,
+      key,
+      body: Buffer.from('probe'),
+      contentType: 'text/plain',
+      cacheControl: NO_STORE,
+    })
+
+    const response = await fetch(cdnUrl(key), { headers: { Origin: ORIGIN } })
+    const allowed = response.headers.get('access-control-allow-origin') ?? ''
+
+    expect([ORIGIN, '*']).toContain(allowed)
+  }, 60_000)
+
+  it('서명 URL 로의 PUT 이 CORS 를 통과한다', async () => {
+    // 실제 업로드 경로다 — 브라우저가 서명 URL 로 직접 PUT 한다.
+    const key = `${ORIGINALS_PREFIX}cors-put.bin`
+    const { uploadId } = await createMultipart(
+      BUCKET.ORIGINALS,
+      key,
+      'application/octet-stream',
+    )
+    const [part] = await signParts(BUCKET.ORIGINALS, key, uploadId, [1], 600)
+
+    const response = await fetch(part?.url ?? '', {
+      method: 'PUT',
+      body: randomBytes(1024),
+      headers: { Origin: ORIGIN },
+    })
+
+    expect(response.status).toBe(200)
+    // 이 헤더를 못 읽으면 완료를 만들 수 없다.
+    expect(response.headers.get('etag')).not.toBeNull()
+
+    await abortMultipart(BUCKET.ORIGINALS, key, uploadId)
+  }, 60_000)
+})

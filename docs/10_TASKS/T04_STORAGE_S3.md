@@ -257,11 +257,11 @@ MinIO 를 대상으로 한 통합 테스트. **모킹하지 않는다** — S3 �
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T04:...')` = 0
-- [ ] MinIO 통합 테스트 전부 통과
-- [ ] `packages/storage/src/index.ts` 가 `S3Client` 를 export 하지 않음
-- [ ] `CDN_BASE_URL` 참조가 `cdn.ts` 에만 존재 (grep 확인)
-- [ ] `putObject` 호출부 전부에 `cacheControl` 지정 (타입이 강제하지만 확인)
-- [ ] 새니타이즈 테스트에 경로 탈출 케이스 포함
-- [ ] 스트리밍 다운로드가 500MB 파일에서 타임아웃 없이 완료
+- [x] `pnpm gate` 통과 — CI 런 32566642241 (`6f9db71`) L1·L2·L3 전부 초록
+- [x] 잔존 `NotImplementedError('T04:...')` = 0 — `pnpm sss:remaining` → `TOTAL=0`
+- [x] MinIO 통합 테스트 전부 통과 — 18건. ETag 정규화·멀티파트 왕복·1001개 페이지네이션 삭제·서명 만료 403·공개/비공개 경계 실물 검증
+- [x] `packages/storage/src/index.ts` 가 `S3Client` 를 export 하지 않음 — export 목록에 0건 (주석으로 이유만 남김)
+- [x] `CDN_BASE_URL` 참조가 `cdn.ts` 에만 존재 — 소스 전체에서 `core/src/env.ts`(스키마 정의)와 `storage/src/cdn.ts` 둘뿐. **grep 이 아니라 린트가 강제한다** (`CDN_SINGLE_POINT`, 06 §5 가 린트를 요구)
+- [x] `putObject` 호출부 전부에 `cacheControl` 지정 — 호출 11건 전부. 타입이 필수 인자로 강제
+- [x] 새니타이즈 테스트에 경로 탈출 케이스 포함 — `../../etc/passwd`, 윈도우 구분자, `....` 반복, 점만 남는 이름
+- [ ] 스트리밍 다운로드가 500MB 파일에서 타임아웃 없이 완료 — **미검증.** 통합 테스트는 5MiB 까지만 확인했다. `s3Streaming()` 에 `requestTimeout` 이 없다는 것은 단위 테스트로 고정했지만, 실제 대용량 스트림이 끊기지 않는지는 T06(트랜스코드 워커)이 원본을 내려받을 때 처음 실증된다. 초록을 대용량 증명으로 읽지 않는다.
