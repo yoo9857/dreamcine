@@ -41,10 +41,31 @@ USAGE
   exit 2
 }
 
-readonly SHA="${1:-}"
-[[ -n "${SHA}" ]] || usage
-[[ "${SHA}" =~ ^[0-9a-f]{7,40}$ ]] || fail "커밋 SHA 가 아닙니다: ${SHA}"
+readonly INPUT_SHA="${1:-}"
+[[ -n "${INPUT_SHA}" ]] || usage
+[[ "${INPUT_SHA}" =~ ^[0-9a-f]{7,40}$ ]] ||
+  fail "커밋 SHA 가 아닙니다: ${INPUT_SHA}"
 
+# CI 는 **40자 전체 SHA** 로 태그한다 (`github.sha`). 사람은 보통 짧게 적으므로
+# 여기서 풀어 준다. 풀지 않으면 `docker manifest inspect` 가 "없는 이미지" 로
+# 실패하고, 원인이 "짧게 썼다" 라는 것을 알아채기 어렵다.
+resolve_sha() {
+  local input="$1"
+  if [[ ${#input} -eq 40 ]]; then
+    printf '%s' "${input}"
+    return 0
+  fi
+  local resolved
+  if resolved=$(git -C "${REPO_ROOT}" rev-parse --verify --quiet "${input}^{commit}" 2>/dev/null); then
+    printf '%s' "${resolved}"
+    return 0
+  fi
+  printf 'ERROR: 짧은 SHA 를 풀 수 없습니다: %s\n' "${input}" >&2
+  printf '       git fetch 후 다시 시도하거나 40자 전체 SHA 를 쓰세요.\n' >&2
+  exit 1
+}
+
+readonly SHA="$(resolve_sha "${INPUT_SHA}")"
 readonly REGISTRY="${REGISTRY:-ghcr.io/yoo9857/dreamcine}"
 readonly WEB_IMAGE="${REGISTRY}/web:${SHA}"
 readonly WORKER_IMAGE="${REGISTRY}/worker:${SHA}"
