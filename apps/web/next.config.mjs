@@ -11,7 +11,7 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   // workspace 패키지는 TypeScript 소스를 그대로 노출한다.
-  transpilePackages: ['@aidream/core', '@aidream/db'],
+  transpilePackages: ['@aidream/core', '@aidream/db', '@aidream/storage'],
   // 린트는 루트 게이트(`pnpm lint`)가 단일 지점에서 수행한다.
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },

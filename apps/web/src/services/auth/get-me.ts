@@ -5,6 +5,7 @@ import {
   type UserStatus,
 } from '@aidream/core'
 import { findUserById } from '@aidream/db'
+import { avatarUrl } from '@aidream/storage'
 
 export interface MeResult {
   id: string
@@ -17,15 +18,6 @@ export interface MeResult {
   status: UserStatus
   emailVerified: string | null
   createdAt: string
-}
-
-/** 아바타는 키로 저장하고 URL 은 응답 시점에 CDN 기준으로 조립한다. */
-function avatarUrl(avatarKey: string | null): string | null {
-  const base = process.env.CDN_BASE_URL
-  if (avatarKey === null || base === undefined || base === '') {
-    return null
-  }
-  return `${base.replace(/\/$/u, '')}/${avatarKey}`
 }
 
 export function toMeResult(user: User): MeResult {

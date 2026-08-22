@@ -1,3 +1,4 @@
+import { cdnOrigin } from '@aidream/storage'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { SESSION_COOKIE_NAMES } from '@/src/auth/types'
@@ -25,9 +26,16 @@ function createNonce(): string {
  * 그것을 필요로 하지 않는다. `media-src` 에서 CDN 을 빼면 영상이 재생되지 않는다.
  */
 function contentSecurityPolicy(nonce: string): string {
-  const cdn = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? ''
+  /*
+    CDN 출처는 `packages/storage` 의 단일 지점에서 가져온다. 여기서 env 를
+    직접 읽으면 도메인을 갈아탈 때 고칠 곳이 둘이 된다. (06_MEDIA_PIPELINE §5)
+
+    경로 없는 **출처**를 쓴다 — CSP 소스에 경로를 넣으면 접두사 규칙에 걸려
+    세그먼트 요청이 조용히 막히는 경우가 생긴다.
+  */
+  const cdn = cdnOrigin()
   const withCdn = (base: string): string =>
-    cdn === '' ? base : `${base} ${cdn}`
+    cdn === null ? base : `${base} ${cdn}`
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'`,

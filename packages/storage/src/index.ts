@@ -17,7 +17,7 @@ export {
   thumbKey,
 } from './buckets.js'
 export { IMMUTABLE_1Y, NO_STORE } from './cache-presets.js'
-export { avatarUrl, cdnUrl, masterUrl, thumbUrl } from './cdn.js'
+export { avatarUrl, cdnOrigin, cdnUrl, masterUrl, thumbUrl } from './cdn.js'
 export {
   deleteObject,
   deletePrefix,

@@ -80,6 +80,9 @@ importers:
       '@aidream/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@aidream/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@aidream/ui':
         specifier: workspace:*
         version: link:../../packages/ui

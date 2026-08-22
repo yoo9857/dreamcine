@@ -11,6 +11,7 @@
   "dependencies": {
     "@aidream/core": "workspace:*",
     "@aidream/db": "workspace:*",
+    "@aidream/storage": "workspace:*",
     "@aidream/ui": "workspace:*",
     "@aws-sdk/client-s3": "3.1115.0",
     "@node-rs/argon2": "2.1.0",
