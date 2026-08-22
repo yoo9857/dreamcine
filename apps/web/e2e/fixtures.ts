@@ -29,7 +29,10 @@ function testIp(testId: string): string {
 export const RATE_LIMIT_TEST_IP = '10.255.255.254'
 
 export const test = base.extend({
-  extraHTTPHeaders: async (_fixtures, use, testInfo) => {
+  // 첫 인자는 반드시 구조분해 패턴이어야 한다 — Playwright 가 소스를 파싱해
+  // 픽스처 의존성을 알아내기 때문이다. 쓰는 의존성이 없으므로 빈 패턴을 둔다.
+  // eslint-disable-next-line no-empty-pattern
+  extraHTTPHeaders: async ({}, use, testInfo) => {
     await use({ 'x-forwarded-for': testIp(testInfo.testId) })
   },
 })

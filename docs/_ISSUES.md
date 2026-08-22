@@ -221,3 +221,19 @@
 - 문제: 테마 쿠키는 프로덕션 빌드에서 `Secure`가 붙는다. Chrome은 localhost 예외로 http에서도 이를 저장·전송하지만, Playwright의 `APIRequestContext`(`page.request`)는 규칙대로 http에 `Secure` 쿠키를 보내지 않는다. 그래서 브라우저 탐색·새로고침 단정은 통과하고 `page.request.get('/login')` 단정만 실패했다 — 제품 결함이 아니라 검증 도구 차이였다.
 - 결정: 테마 E2E가 확인하려는 것은 "서버가 보낸 HTML에 테마가 이미 들어있는가"이므로, `page.request` 대신 **실제 탐색의 응답 본문**(`(await page.goto('/login'))?.text()`)을 읽는다. 브라우저 쿠키 저장소를 그대로 쓰므로 의도에 더 가깝다. (2026-08-22, 위임 범위 내 수정)
 - 상태: RESOLVED
+
+## [OBS-009] E2E 수집 오류가 CI 한 바퀴를 돌기 전에는 드러나지 않았음
+- 발견 단계: T03 재검증 (CI 런 32539552603)
+- 스펙 위치: `HARNESS.md` §1 (3층 게이트)
+- 문제: `e2e/fixtures.ts` 의 픽스처 첫 인자를 `_fixtures` 로 썼다. Playwright 는 소스를 파싱해 픽스처 의존성을 알아내므로 첫 인자가 **구조분해 패턴**이어야 하고, 아니면 수집 단계에서 전체 스위트가 죽는다. eslint·tsc·depcruise 는 이것을 알 수 없어 L1 이 초록이었고, L3 에서 14개 테스트가 한 번도 실행되지 않은 채 실패했다 — 6분짜리 CI 왕복을 쓰고서야 알았다.
+- 결정: `pnpm e2e:collect`(`playwright test --list`)를 L1 `gate:static` 에 추가한다. `--list` 는 webServer 를 띄우지 않고 DB 도 필요 없어 로컬에서 몇 초에 끝난다. 실패 시 실제로 exit 1 이 되는지 확인했다. (2026-08-22, 위임 범위 내 수정)
+- 상태: RESOLVED
+
+## [OBS-010] E2E 는 `next start` 로 검증하지만 프로덕션은 standalone 서버로 돈다
+- 발견 단계: T03 재검증 (CI 런 32539552603 로그)
+- 스펙 위치: `03_TECH_STACK.md` (Next.js `output: 'standalone'`), `infra/docker/web.Dockerfile`
+- 문제: CI 로그에 Next 경고가 남는다 — `"next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.` 서버는 정상 기동하고 테스트도 통과하지만, **E2E 가 검증하는 서버와 프로덕션이 실행하는 서버가 다르다.** standalone 번들에서만 드러나는 문제(누락된 런타임 의존성, 정적 파일 경로)는 E2E 를 통과한다.
+- 참고: 로컬(Windows)에서는 standalone 빌드 자체가 심볼릭 링크 권한(EPERM)으로 실패해 재현이 불가하다. 검증은 CI/서버에서만 가능하다.
+- 제안: Playwright `webServer.command` 를 standalone 서버 기동으로 바꾼다. `.next/static` 과 `public` 을 standalone 디렉터리로 복사하는 단계가 함께 필요하다 (Next 문서가 요구하는 절차).
+- 영향: 지금 당장 실패하는 것은 없다. 다만 "E2E 초록 = 프로덕션 기동 안전" 이라고 말할 수 없다.
+- 상태: OPEN (T03 재검증 초록 확인 후 별도 처리)
