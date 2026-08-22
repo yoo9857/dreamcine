@@ -295,3 +295,19 @@
 - 왜 storage 계층에서 고치지 않는가: 여기서는 "완료된 적이 있는가" 를 알 방법이 없다. 그 사실을 아는 것은 `upload_session` 을 들고 있는 서비스 계층이다.
 - T05 가 해야 할 일: complete 재시도에서 `E_UPLOAD_SESSION_EXPIRED` 를 받으면 **객체 존재를 먼저 확인**한다. 존재하면 `E_UPLOAD_ALREADY_COMPLETED` 로 멱등 처리하고(에러 카탈로그가 이미 그 코드를 정의해 두었다), 없으면 진짜 만료다.
 - 상태: OPEN (T05 에서 처리)
+
+## [OBS-016] `@aidream/storage` 배럴이 미들웨어(Edge 런타임) 빌드를 깨뜨렸다
+- 발견 단계: T04/S3 (CI 런 32565988473 — `Build web app` 실패)
+- 스펙 위치: `07_AUTH_SECURITY.md` §6 (미들웨어가 CSP 를 만든다), `06_MEDIA_PIPELINE.md` §5 (CDN URL 단일 지점)
+- 문제: OBS-013 대응으로 미들웨어가 CSP 의 CDN 출처를 `@aidream/storage` 의 `cdnOrigin()` 에서 가져오게 했다. 그런데 배럴이 `get-object.ts` 를 함께 끌어오고 그것이 `node:stream` 을 쓴다. **미들웨어는 Edge 런타임**이라 Node 코어 모듈을 쓸 수 없어 webpack 이 실패했다.
+  ```
+  Import trace: node:stream ← packages/storage/src/get-object.ts ← packages/storage/src/index.ts
+  ```
+- 결정: `packages/storage` 에 `./cdn` 서브패스 export 를 열고 미들웨어가 그것을 쓴다. `cdn.ts` 는 `@aidream/core`(zod, Node 임포트 없음)와 `buckets.ts` 만 의존하므로 Edge 안전하다. 배럴에는 "Node 런타임 전용" 이라고 명시했다 — T07 의 플레이어가 클라이언트에서 `masterUrl` 을 쓸 때도 서브패스를 써야 S3 SDK 가 브라우저 번들에 실리지 않는다.
+- 가드: `dependency-cruiser` 에 `middleware-must-be-edge-safe` 규칙을 추가했다. CI 6분 왕복 대신 로컬 수 초에 잡힌다.
+- **가드를 만들며 겪은 것 (기록 가치가 있다)**: 처음에는 `to: { reachable: true, path: '^node:' }` 로 전이 의존을 보려 했다. 통과했지만 **되돌려도 통과했다** — 거짓 초록이었다. 두 가지가 겹쳐 있었다.
+  1. 코어 모듈은 그래프에 `node:` 접두사 **없이** 들어온다 (`stream`, `crypto`).
+  2. 고쳐도 여전히 안 잡혔다. `doNotFollow: node_modules` 때문에 워크스페이스 패키지가 베어 스펙파이어(`@aidream/storage`)에서 그래프가 끊겨 전이 추적 자체가 불가능하다.
+  전역 해석 설정을 바꾸면 기존 규칙들의 동작까지 흔들리므로, **Node 전용 배럴을 이름으로 금지**하는 좁은 규칙으로 바꿨다. 좁은 대신 실제로 발동하는 것을 확인했다. 전이 검출은 CI 의 `Build web app` 이 최종 방어선이다.
+  또 하나: `path: '^apps/web/middleware\.ts$'` 는 **문자열**이라 `\.` 가 그냥 `.` 이 된다(아무 문자와 매칭). eslint 의 `no-useless-escape` 가 잡아 주었고 `[.]` 로 바꿨다.
+- 상태: RESOLVED

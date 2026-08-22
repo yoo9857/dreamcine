@@ -1,4 +1,4 @@
-import { cdnOrigin } from '@aidream/storage'
+import { cdnOrigin } from '@aidream/storage/cdn'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { SESSION_COOKIE_NAMES } from '@/src/auth/types'
