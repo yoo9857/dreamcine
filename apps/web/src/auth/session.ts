@@ -72,7 +72,17 @@ function toSessionUser(user: User): SessionUser {
 export async function getSessionFromRequest(
   req: Request,
 ): Promise<RouteSession | null> {
-  const token = sessionTokenFrom(req)
+  return getSessionByToken(sessionTokenFrom(req))
+}
+
+/**
+ * 토큰으로부터의 세션 해석. `getSessionFromRequest` 와 서버 컴포넌트가
+ * **같은 판정**을 쓰게 하려고 갈라 두었다 — 만료·롤링·정지 처리가 두 벌이 되면
+ * 한쪽만 고쳐지는 날이 온다.
+ */
+export async function getSessionByToken(
+  token: string | undefined,
+): Promise<RouteSession | null> {
   if (token === undefined) {
     return null
   }
@@ -105,6 +115,22 @@ export async function getSessionFromRequest(
     user: toSessionUser(found.user),
     expiresAt,
   }
+}
+
+/**
+ * 쿠키 저장소(서버 컴포넌트의 `cookies()`)에서 세션 토큰을 찾는다.
+ * 이름 목록은 `SESSION_COOKIE_NAMES` 한 곳에서만 온다.
+ */
+export function sessionTokenFromCookies(
+  read: (name: string) => string | undefined,
+): string | undefined {
+  for (const name of SESSION_COOKIE_NAMES) {
+    const value = read(name)
+    if (value !== undefined && value !== '') {
+      return value
+    }
+  }
+  return undefined
 }
 
 /** 정지 계정 감지 등 즉시 무효화가 필요할 때 쓴다. (07_AUTH_SECURITY.md §1) */

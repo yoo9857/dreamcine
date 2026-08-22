@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
+import { QueryProvider } from '@/src/components/QueryProvider'
 import { ThemeToggle } from '@/src/components/ThemeToggle'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 
@@ -35,17 +36,19 @@ export default async function RootLayout({
   return (
     <html lang="ko" {...(theme === null ? {} : { 'data-theme': theme })}>
       <body>
-        <ToastProvider>
-          {/*
+        <QueryProvider>
+          <ToastProvider>
+            {/*
             08_UIUX_SPEC.md §7 은 시스템 설정 외에 수동 토글도 요구한다.
             상단바(T09)가 생기면 그쪽으로 옮긴다. 그때까지 화면 어디서든
             닿을 수 있게 고정해 둔다.
           */}
-          <div className="fixed right-4 top-4 z-10">
-            <ThemeToggle current={theme ?? 'dark'} />
-          </div>
-          {children}
-        </ToastProvider>
+            <div className="fixed right-4 top-4 z-10">
+              <ThemeToggle current={theme ?? 'dark'} />
+            </div>
+            {children}
+          </ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   )
