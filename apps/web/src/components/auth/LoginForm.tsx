@@ -44,6 +44,15 @@ export function LoginForm(): ReactNode {
 
   return (
     <form
+      /*
+        브라우저 기본 검증을 끈다. `type="email"` 필드에 잘못된 값이 있으면
+        Chrome 이 제출 자체를 막고 자기 말풍선을 띄우는데, 그러면 우리
+        검증(zod)이 실행되지 않아 `aria-invalid`·`aria-describedby`·화면 문구가
+        전부 생기지 않는다. 08_UIUX_SPEC.md §10 이 요구하는 "어디를 고쳐야
+        하는지 알 수 있어야 한다" 를 브라우저 말풍선이 대신할 수 없다 —
+        스타일도 문구도 우리가 통제하지 못하고 스크린리더 지원도 제각각이다.
+      */
+      noValidate
       onSubmit={(event) => {
         void handleSubmit(submit)(event)
       }}
