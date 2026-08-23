@@ -185,3 +185,14 @@ pnpm sss:remaining    # 잔존 NotImplementedError 마커
 CI 는 `.github/workflows/gate.yml` 하나에 gate → image 순으로 들어 있다.
 실패 원인은 **annotation 에 실려 있다** — 워크플로 로그 다운로드는 관리자
 권한이 필요하므로 그렇게 만들어 두었다.
+
+---
+
+## 2026-08-23 운영 확인
+
+- GitHub `origin/main` 최신 커밋: `e5f74d8` (`T05/S3: 인수인계 문서`)
+- 서버 `/opt/dreamcine` 커밋: `46fbef7` — 최신 커밋 미배포
+- 서버 운영 `.env`: 미존재 (`.env.example`만 존재)
+- `CDN_BASE_URL`: 운영값 미설정
+- 실행 컨테이너: `aidream-caddy-1`만 실행 중
+- 결론: Git push는 완료됐으나 운영 배포는 환경변수 준비 후 진행 필요
