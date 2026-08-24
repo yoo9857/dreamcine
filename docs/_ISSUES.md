@@ -62,6 +62,30 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [ISS-014] 재공개 상태 전이가 기존 publishedAt을 보존할 수 없음
+- 발견 단계: T08/S1
+- 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §3,
+  `10_TASKS/T08_SERIES_EPISODE.md` §4·§7·§8
+- 문제: T08은 `HIDDEN → PUBLISHED` 재공개 시 최초 공개 시각인 `publishedAt`을
+  유지하도록 요구하고, 상태기계가 반환한 `patch`를 서비스가 계산 없이 그대로 DB에
+  쓰도록 강제한다. 그러나 `TransitionContext`에는 기존 `publishedAt`이 없고,
+  `TransitionVerdict`의 성공 `patch.publishedAt`은 필수 `Date | null`이다. 따라서 순수
+  상태기계는 최초 공개인지 재공개인지 알 수 있어도 재공개 때 보존해야 할 실제 값을
+  알 수 없으며, `null`이나 `now` 중 어느 값을 반환해도 계약을 위반한다.
+- 재현/근거: 문서에 제시된 시그니처만으로 `HIDDEN → PUBLISHED`를 호출하면 입력은
+  `current`, `next`, 자산·AI 표기·예약시각·현재시각·권한뿐이다. 기존 공개시각은 어느
+  필드에도 없다. 반면 완료 조건은 "`publishedAt`이 UNHIDE로 갱신되지 않음"이고,
+  테스트 절도 "최초 공개 시 설정, 재공개 시 유지"를 필수로 둔다.
+- 제안:
+  1. 권장: `TransitionContext`에 `publishedAt: Date | null`을 추가하고 성공 patch가
+     최초 공개에는 `now`, 재공개에는 입력의 기존 값을 반환하게 한다. 상태기계가
+     계산을 단독 소유하고 서비스는 patch를 그대로 쓰는 원칙이 유지된다.
+  2. 대안: 성공 patch를 `publishedAt?: Date | null`로 바꾸고 재공개 때 필드를 생략해
+     DB가 기존 값을 유지하게 한다. 다만 "patch가 최종 값을 명시한다"는 계약은 약해진다.
+- 영향: `episode-state.ts` 시그니처와 전수 단위 테스트, `publish-episode.ts`,
+  예약공개 잡이 구성하는 상태기계 입력, T08 작업지시서의 S2 예시.
+- 상태: OPEN (사람 판단 대기)
+
 ## [ISS-013] 연령 확인 결과를 재생 API가 검증할 계약과 데이터가 없음
 - 발견 단계: T07/S1
 - 스펙 위치: `00_SPEC/05_API_CONTRACT.md` §5, `00_SPEC/04_DOMAIN_MODEL.md` §2,
