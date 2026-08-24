@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
     (name: string, data: unknown, opts: unknown) => Promise<unknown>
   >(),
   close: vi.fn<() => Promise<void>>(),
+  getJob: vi.fn<(id: string) => Promise<unknown>>(),
+  getState: vi.fn<() => Promise<string>>(),
+  retry: vi.fn<(state: 'failed') => Promise<void>>(),
   constructed: [] as { name: string; options: unknown }[],
 }))
 
@@ -15,13 +18,13 @@ vi.mock('bullmq', () => ({
     }
     add = mocks.add
     close = mocks.close
+    getJob = mocks.getJob
   },
 }))
 
 const { QUEUE } = await import('./queues.js')
-const { closeQueues, connectionFromUrl, enqueue, getQueue } = await import(
-  './enqueue.js'
-)
+const { closeQueues, connectionFromUrl, enqueue, getQueue, retryJob } =
+  await import('./enqueue.js')
 
 /** 완료 잡 보존 설정의 모양. `expect.anything()` 은 any 라 린트에 걸린다. */
 const REMOVE_ON_COMPLETE_SHAPE = { age: 3_600, count: 1_000 }
@@ -34,6 +37,12 @@ beforeEach(() => {
   mocks.add.mockResolvedValue({})
   mocks.close.mockReset()
   mocks.close.mockResolvedValue(undefined)
+  mocks.getJob.mockReset()
+  mocks.getJob.mockResolvedValue(undefined)
+  mocks.getState.mockReset()
+  mocks.getState.mockResolvedValue('failed')
+  mocks.retry.mockReset()
+  mocks.retry.mockResolvedValue(undefined)
   mocks.constructed.length = 0
 })
 
@@ -185,13 +194,21 @@ describe('enqueue', () => {
     await enqueue(
       QUEUE.RECOVER_STUCK,
       { olderThanMinutes: 10 },
-      { delayMs: 5_000, attempts: 3 },
+      {
+        delayMs: 5_000,
+        attempts: 3,
+        backoff: { type: 'transcode' },
+      },
     )
 
     expect(mocks.add).toHaveBeenCalledWith(
       'asset.recoverStuck',
       { olderThanMinutes: 10 },
-      expect.objectContaining({ delay: 5_000, attempts: 3 }),
+      expect.objectContaining({
+        delay: 5_000,
+        attempts: 3,
+        backoff: { type: 'transcode' },
+      }),
     )
   })
 
@@ -201,6 +218,7 @@ describe('enqueue', () => {
     const options = mocks.add.mock.calls[0]?.[2] as Record<string, unknown>
     expect(options).not.toHaveProperty('jobId')
     expect(options).not.toHaveProperty('delay')
+    expect(options).not.toHaveProperty('backoff')
   })
 })
 
@@ -220,5 +238,46 @@ describe('closeQueues', () => {
     getQueue(QUEUE.VIDEO_TRANSCODE)
 
     expect(mocks.constructed).toHaveLength(2)
+  })
+})
+
+describe('retryJob', () => {
+  it('기존 실패 잡은 같은 jobId로 retry한다', async () => {
+    mocks.getJob.mockResolvedValue({
+      getState: mocks.getState,
+      retry: mocks.retry,
+    })
+
+    await retryJob(QUEUE.VIDEO_TRANSCODE, 'asset_1', { assetId: 'asset_1' })
+
+    expect(mocks.retry).toHaveBeenCalledWith('failed')
+    expect(mocks.add).not.toHaveBeenCalled()
+  })
+
+  it('기존 잡이 없으면 같은 jobId로 새로 발행한다', async () => {
+    await retryJob(QUEUE.VIDEO_TRANSCODE, 'asset_2', { assetId: 'asset_2' })
+
+    expect(mocks.add).toHaveBeenCalledWith(
+      QUEUE.VIDEO_TRANSCODE,
+      { assetId: 'asset_2' },
+      expect.objectContaining({
+        jobId: 'asset_2',
+        attempts: 3,
+        backoff: { type: 'transcode' },
+      }),
+    )
+  })
+
+  it('이미 대기·실행 중인 잡은 중복 발행하지 않는다', async () => {
+    mocks.getState.mockResolvedValue('active')
+    mocks.getJob.mockResolvedValue({
+      getState: mocks.getState,
+      retry: mocks.retry,
+    })
+
+    await retryJob(QUEUE.VIDEO_TRANSCODE, 'asset_3', { assetId: 'asset_3' })
+
+    expect(mocks.retry).not.toHaveBeenCalled()
+    expect(mocks.add).not.toHaveBeenCalled()
   })
 })

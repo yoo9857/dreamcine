@@ -1,14 +1,12 @@
-import { NotImplementedError } from '@aidream/core'
+import { withRoute } from '@/src/http/handler'
+import { accepted } from '@/src/http/response'
+import { retryAsset } from '@/src/services/asset/retry-asset'
 
-interface AssetRetryRouteContext {
-  readonly params: Promise<{ id: string }>
-}
-
-export function POST(
-  request: Request,
-  context: AssetRetryRouteContext,
-): Promise<Response> {
-  void request
-  void context
-  throw new NotImplementedError('T06:assetRetryApi')
-}
+export const POST = withRoute(
+  async ({ session, params }) =>
+    accepted(await retryAsset(session, params.id ?? '')),
+  {
+    auth: 'required',
+    rateLimit: { bucket: 'assets', limit: 10, windowSec: 60, by: 'user' },
+  },
+)

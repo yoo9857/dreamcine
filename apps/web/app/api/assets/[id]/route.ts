@@ -1,14 +1,13 @@
-import { NotImplementedError } from '@aidream/core'
+import { withRoute } from '@/src/http/handler'
+import { ok } from '@/src/http/response'
+import { getAssetStatus } from '@/src/services/asset/get-asset-status'
 
-interface AssetRouteContext {
-  readonly params: Promise<{ id: string }>
-}
-
-export function GET(
-  request: Request,
-  context: AssetRouteContext,
-): Promise<Response> {
-  void request
-  void context
-  throw new NotImplementedError('T06:assetStatusApi')
-}
+export const GET = withRoute(
+  async ({ session, params }) =>
+    ok(await getAssetStatus(session, params.id ?? '')),
+  {
+    auth: 'required',
+    csrf: false,
+    rateLimit: { bucket: 'assets', limit: 300, windowSec: 60, by: 'user' },
+  },
+)

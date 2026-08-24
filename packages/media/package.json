@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "production": "./dist/index.js",
+      "default": "./src/index.ts"
+    }
   },
   "dependencies": {
-    "@aidream/core": "workspace:*"
+    "@aidream/core": "workspace:*",
+    "zod": "3.25.76"
   },
   "sideEffects": false
 }

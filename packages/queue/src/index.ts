@@ -19,7 +19,9 @@ export {
 } from './jobs.js'
 export {
   closeQueues,
+  connectionFromUrl,
   enqueue,
   getQueue,
+  retryJob,
   type EnqueueOptions,
 } from './enqueue.js'

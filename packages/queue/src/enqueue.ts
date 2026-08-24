@@ -14,6 +14,7 @@ export interface EnqueueOptions {
   /** 지연 발행 (ms). 예약 공개·복구 잡이 쓴다. */
   readonly delayMs?: number
   readonly attempts?: number
+  readonly backoff?: number | { readonly type: string; readonly delay?: number }
 }
 
 /**
@@ -94,6 +95,7 @@ export async function enqueue<Q extends DefinedQueue>(
     ...(options.jobId === undefined ? {} : { jobId: options.jobId }),
     ...(options.delayMs === undefined ? {} : { delay: options.delayMs }),
     ...(options.attempts === undefined ? {} : { attempts: options.attempts }),
+    ...(options.backoff === undefined ? {} : { backoff: options.backoff }),
     removeOnComplete: REMOVE_ON_COMPLETE,
     removeOnFail: REMOVE_ON_FAIL,
   })
@@ -104,6 +106,27 @@ export async function closeQueues(): Promise<void> {
   const open = [...queues.values()]
   queues.clear()
   await Promise.all(open.map((queue) => queue.close()))
+}
+
+export async function retryJob<Q extends DefinedQueue>(
+  name: Q,
+  jobId: string,
+  payload: JobPayload<Q>,
+): Promise<void> {
+  const queue = getQueue(name)
+  const existing = await queue.getJob(jobId)
+  if (existing === undefined) {
+    await enqueue(name, payload, {
+      jobId,
+      attempts: 3,
+      backoff: { type: 'transcode' },
+    })
+    return
+  }
+  const state = await existing.getState()
+  if (state === 'failed') {
+    await existing.retry('failed')
+  }
 }
 
 export { connectionFromUrl }

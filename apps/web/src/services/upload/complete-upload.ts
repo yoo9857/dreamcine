@@ -211,7 +211,15 @@ async function completeMultipartIdempotently(
  */
 async function enqueueTranscode(assetId: string): Promise<void> {
   try {
-    await enqueue(QUEUE.VIDEO_TRANSCODE, { assetId }, { jobId: assetId })
+    await enqueue(
+      QUEUE.VIDEO_TRANSCODE,
+      { assetId },
+      {
+        jobId: assetId,
+        attempts: 3,
+        backoff: { type: 'transcode' },
+      },
+    )
   } catch (error: unknown) {
     getLogger().error(
       { err: error, assetId },

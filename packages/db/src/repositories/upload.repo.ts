@@ -104,3 +104,21 @@ export function sumUploadBytesSince(
     return rows.reduce((total, row) => total + row.fileSize, 0n)
   })
 }
+
+export function listExpiredUploadSessions(
+  now: Date,
+  limit = 1000,
+): Promise<UploadSession[]> {
+  return executeDb(async () =>
+    (
+      await db.uploadSession.findMany({
+        where: {
+          status: { in: ['CREATED', 'UPLOADING'] },
+          expiresAt: { lt: now },
+        },
+        orderBy: { expiresAt: 'asc' },
+        take: limit,
+      })
+    ).map(mapUploadSession),
+  )
+}

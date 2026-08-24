@@ -18,14 +18,15 @@ FROM deps AS build
 COPY . .
 # 타입체크·빌드가 생성된 Prisma 클라이언트를 필요로 한다. (OBS-002)
 RUN pnpm prisma generate --schema prisma/schema.prisma
-RUN pnpm --filter @aidream/worker build
+RUN pnpm exec tsc -b \
+  packages/core packages/db packages/media packages/queue packages/storage apps/worker
 
 FROM node:${NODE_VERSION}-alpine3.22 AS runner
 ENV NODE_ENV=production
 ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
 ENV FFPROBE_PATH=/usr/local/bin/ffprobe
 ENV TMP_DIR=/tmp/aidream
-WORKDIR /app
+WORKDIR /app/apps/worker
 
 COPY --from=ffmpeg /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /ffprobe /usr/local/bin/ffprobe
@@ -33,9 +34,11 @@ RUN ffmpeg -version | grep -q '^ffmpeg version 7\.1\.1' && \
   mkdir -p /tmp/aidream && chown node:node /tmp/aidream
 COPY --from=build --chown=node:node /app/apps/worker/dist ./dist
 COPY --from=build --chown=node:node /app/apps/worker/package.json ./package.json
-COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/packages /app/packages
+COPY --from=deps --chown=node:node /app/node_modules /app/node_modules
+COPY --from=deps --chown=node:node /app/apps/worker/node_modules ./node_modules
 
 USER node
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD node -e "process.kill(1,0)"
-CMD ["node", "dist/index.js"]
+CMD ["node", "--conditions=production", "dist/index.js"]

@@ -1,4 +1,3 @@
-import { NotImplementedError } from '../errors/not-implemented.js'
 import type { AssetStatus } from '../enums.js'
 
 export interface AssetTransitionContext {
@@ -10,8 +9,16 @@ export function canTransitionAsset(
   to: AssetStatus,
   context: AssetTransitionContext,
 ): boolean {
-  void from
-  void to
-  void context
-  throw new NotImplementedError('T06:assetState')
+  if (from === 'FAILED' && to === 'PENDING') {
+    return context.attemptCount < 3
+  }
+
+  const transitions: Readonly<Record<AssetStatus, readonly AssetStatus[]>> = {
+    PENDING: ['PROBING'],
+    PROBING: ['TRANSCODING', 'FAILED'],
+    TRANSCODING: ['READY', 'FAILED'],
+    READY: [],
+    FAILED: [],
+  }
+  return transitions[from].includes(to)
 }

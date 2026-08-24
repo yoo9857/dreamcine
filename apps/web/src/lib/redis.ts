@@ -11,6 +11,7 @@ export interface RedisGateway {
   expire(key: string, seconds: number): Promise<void>
   ttl(key: string): Promise<number>
   ping(): Promise<void>
+  get(key: string): Promise<string | null>
 }
 
 export interface RedisTarget {
@@ -282,6 +283,12 @@ class RedisClient implements RedisGateway {
     if (reply !== 'PONG') {
       throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-pong' })
     }
+  }
+
+  async get(key: string): Promise<string | null> {
+    const reply = await this.#connection.command(['GET', key])
+    if (reply === null || typeof reply === 'string') return reply
+    throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
   }
 
   close(): void {

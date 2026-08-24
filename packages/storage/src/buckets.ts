@@ -151,6 +151,10 @@ export function thumbKey(assetId: string, file: string): string {
   return `${BUCKET.THUMBS}/${assertSegment(assetId, 'assetId')}/${assertSegment(file, 'file')}`
 }
 
+export function thumbPrefix(assetId: string): string {
+  return `${BUCKET.THUMBS}/${assertSegment(assetId, 'assetId')}/`
+}
+
 /** `thumbs/avatars/{userId}.webp` */
 export function avatarKey(userId: string): string {
   return `${BUCKET.THUMBS}/avatars/${assertSegment(userId, 'userId')}.webp`

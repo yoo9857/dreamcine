@@ -1,4 +1,9 @@
-import type { AssetStatus, Rendition, VideoAsset } from '@aidream/core'
+import type {
+  AssetStatus,
+  ErrorCode,
+  Rendition,
+  VideoAsset,
+} from '@aidream/core'
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
@@ -34,6 +39,29 @@ export interface CreateRenditionData {
   bitrateKbps: number
   playlistPath: string
   sizeBytes: bigint
+}
+
+export interface FinalizeAssetData {
+  readonly assetId: string
+  readonly userId: string | null
+  readonly hlsPrefix: string
+  readonly masterPath: string
+  readonly posterKey: string
+  readonly durationSec: number
+  readonly width: number
+  readonly height: number
+  readonly videoCodec: string
+  readonly audioCodec: string | null
+  readonly bitrateKbps: number
+  readonly readyAt: Date
+  readonly renditions: readonly Omit<CreateRenditionData, 'assetId'>[]
+}
+
+export interface FailAssetData {
+  readonly assetId: string
+  readonly userId: string | null
+  readonly errorCode: ErrorCode
+  readonly retryable: boolean
 }
 
 export function findAssetById(id: string): Promise<VideoAsset | null> {
@@ -107,4 +135,117 @@ export function findAssetByUploadId(
     const row = await db.videoAsset.findUnique({ where: { uploadId } })
     return row === null ? null : mapVideoAsset(row)
   })
+}
+
+export function finalizeAsset(input: FinalizeAssetData): Promise<VideoAsset> {
+  return executeDb(() =>
+    db.$transaction(async (tx) => {
+      await tx.rendition.createMany({
+        data: input.renditions.map((rendition) => ({
+          ...rendition,
+          assetId: input.assetId,
+        })),
+        skipDuplicates: true,
+      })
+      const asset = await tx.videoAsset.update({
+        where: { id: input.assetId },
+        data: {
+          status: 'READY',
+          hlsPrefix: input.hlsPrefix,
+          masterPath: input.masterPath,
+          posterKey: input.posterKey,
+          durationSec: input.durationSec,
+          width: input.width,
+          height: input.height,
+          videoCodec: input.videoCodec,
+          audioCodec: input.audioCodec,
+          bitrateKbps: input.bitrateKbps,
+          errorCode: null,
+          errorDetail: null,
+          readyAt: input.readyAt,
+        },
+      })
+      if (input.userId !== null) {
+        await tx.notification.create({
+          data: {
+            userId: input.userId,
+            type: 'TRANSCODE_DONE',
+            payload: { assetId: input.assetId },
+          },
+        })
+      }
+      return mapVideoAsset(asset)
+    }),
+  )
+}
+
+export function failAsset(input: FailAssetData): Promise<VideoAsset> {
+  return executeDb(() =>
+    db.$transaction(async (tx) => {
+      const asset = await tx.videoAsset.update({
+        where: { id: input.assetId },
+        data: {
+          status: 'FAILED',
+          attemptCount: { increment: 1 },
+          errorCode: input.errorCode,
+          errorDetail: null,
+        },
+      })
+      if (
+        input.userId !== null &&
+        (!input.retryable || asset.attemptCount >= 3)
+      ) {
+        await tx.notification.create({
+          data: {
+            userId: input.userId,
+            type: 'TRANSCODE_FAILED',
+            payload: { assetId: input.assetId, errorCode: input.errorCode },
+          },
+        })
+      }
+      return mapVideoAsset(asset)
+    }),
+  )
+}
+
+export function listAssetsForCleanup(
+  status: AssetStatus,
+  before: Date,
+  orphanOnly: boolean,
+  limit = 1000,
+): Promise<VideoAsset[]> {
+  return executeDb(async () =>
+    (
+      await db.videoAsset.findMany({
+        where: {
+          status,
+          updatedAt: { lt: before },
+          ...(orphanOnly ? { episode: { is: null } } : {}),
+        },
+        orderBy: { updatedAt: 'asc' },
+        take: limit,
+      })
+    ).map(mapVideoAsset),
+  )
+}
+
+export function deleteAssetById(assetId: string): Promise<void> {
+  return executeDb(async () => {
+    await db.videoAsset.delete({ where: { id: assetId } })
+  })
+}
+
+export function listStuckPendingAssets(
+  before: Date,
+  limit = 1000,
+): Promise<VideoAsset[]> {
+  return executeDb(async () =>
+    (
+      await db.videoAsset.findMany({
+        where: { status: 'PENDING', updatedAt: { lt: before } },
+        orderBy: { updatedAt: 'asc' },
+        take: limit,
+      })
+    ).map(mapVideoAsset),
+  )
 }

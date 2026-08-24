@@ -4,8 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./cdn": "./src/cdn.ts"
+    ".": {
+      "production": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./cdn": {
+      "production": "./dist/cdn.js",
+      "default": "./src/cdn.ts"
+    }
   },
   "dependencies": {
     "@aidream/core": "workspace:*",

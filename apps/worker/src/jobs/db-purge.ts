@@ -1,4 +1,5 @@
-import { NotImplementedError } from '@aidream/core'
+import { AppError } from '@aidream/core'
+import { purgeExpiredData } from '@aidream/db'
 
 export interface DbPurgeInput {
   readonly dryRun: boolean
@@ -11,7 +12,25 @@ export interface DbPurgeResult {
   readonly deleted: number
 }
 
-export function purgeDatabase(input: DbPurgeInput): Promise<DbPurgeResult> {
-  void input
-  throw new NotImplementedError('T06:dbPurge')
+export interface DbPurgeDependencies {
+  readonly purge: (input: {
+    now: Date
+    dryRun: boolean
+    limit: number
+  }) => Promise<DbPurgeResult>
+}
+
+export function purgeDatabase(
+  input: DbPurgeInput,
+  dependencies: DbPurgeDependencies = { purge: purgeExpiredData },
+): Promise<DbPurgeResult> {
+  const limit = input.limit ?? 1000
+  if (!Number.isInteger(limit) || limit <= 0 || limit > 1000) {
+    throw new AppError('E_VALIDATION', { field: 'limit' })
+  }
+  return dependencies.purge({
+    now: input.now,
+    dryRun: input.dryRun,
+    limit,
+  })
 }

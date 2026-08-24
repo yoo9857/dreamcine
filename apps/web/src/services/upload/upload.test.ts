@@ -267,7 +267,11 @@ describe('completeUpload — 멱등성', () => {
     expect(mocks.enqueue).toHaveBeenCalledWith(
       'video.transcode',
       { assetId: 'ast_1' },
-      { jobId: 'ast_1' },
+      {
+        jobId: 'ast_1',
+        attempts: 3,
+        backoff: { type: 'transcode' },
+      },
     )
   })
 
