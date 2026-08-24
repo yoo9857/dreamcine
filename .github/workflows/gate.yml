@@ -226,8 +226,42 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
+        with:
+          # 직전 push 와 비교해 문서 전용 변경인지 판정한다.
+          fetch-depth: 2
+
+      - name: Detect deployable changes
+        id: changes
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          build=true
+
+          # 비교 기준이 없거나 잘못되면 절대 생략하지 않는다.
+          if [[ "${BEFORE_SHA}" != '0000000000000000000000000000000000000000' ]] && \
+             git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            build=false
+            while IFS= read -r file; do
+              case "${file}" in
+                docs/*|.github/*|README.md|*.md) ;;
+                *)
+                  build=true
+                  break
+                  ;;
+              esac
+            done < <(git diff --name-only "${BEFORE_SHA}" "${CURRENT_SHA}")
+          fi
+
+          echo "build=${build}" >> "$GITHUB_OUTPUT"
+          if [[ "${build}" == 'false' ]]; then
+            echo '::notice title=Images skipped::문서·CI 설정 전용 변경이라 웹·워커 이미지 게시를 생략합니다.'
+          fi
 
       - name: Log in to GitHub Container Registry
+        if: steps.changes.outputs.build == 'true'
         uses: docker/login-action@v4.6.0
         with:
           registry: ghcr.io
@@ -235,11 +269,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Buildx
+        if: steps.changes.outputs.build == 'true'
         uses: docker/setup-buildx-action@v4.3.0
 
       # 워커는 T06 에서 생긴다. 그때까지 이 스텝은 스스로 건너뛴다 —
       # 사람이 워크플로를 고쳐야 켜지는 구조로 두면 켜는 것을 잊는다.
       - name: Detect worker source
+        if: steps.changes.outputs.build == 'true'
         id: worker
         run: |
           if [ -f apps/worker/package.json ]; then
@@ -250,6 +286,7 @@ jobs:
           fi
 
       - name: Build and push web image
+        if: steps.changes.outputs.build == 'true'
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
@@ -262,7 +299,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push worker image
-        if: steps.worker.outputs.present == 'true'
+        if: steps.changes.outputs.build == 'true' && steps.worker.outputs.present == 'true'
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
@@ -273,6 +310,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Report images
+        if: steps.changes.outputs.build == 'true'
         run: |
           {
             echo '### 배포 가능한 이미지'
@@ -285,4 +323,13 @@ jobs:
               echo '# WORKER_IMAGE — apps/worker 가 아직 없습니다 (T06)'
             fi
             echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report skipped images
+        if: steps.changes.outputs.build == 'false'
+        run: |
+          {
+            echo '### 컨테이너 이미지 생략'
+            echo
+            echo '문서·CI 설정 전용 변경이라 런타임 이미지에는 영향이 없습니다.'
           } >> "$GITHUB_STEP_SUMMARY"
