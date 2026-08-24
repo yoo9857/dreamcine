@@ -307,7 +307,8 @@
 - 제안: 개발/CI 에 프로덕션과 같은 경로 라우팅을 세운다. dev compose 에 MinIO 앞단 라우팅(예: Caddy 로 `/hls/*` → `aidream-hls`, `/thumbs/*` → `aidream-thumbs`)을 두고 `CDN_BASE_URL` 을 그 앞단으로 돌린다. 그러면 개발·CI·프로덕션이 같은 규칙을 쓴다.
 - 영향: T04 구현 자체는 막히지 않는다 — `cdnUrl(key)` 는 `CDN_BASE_URL` 과 키를 잇는 것으로 정의가 명확하다. 막히는 것은 "CDN URL 이 실제로 객체에 도달하는가" 를 검증하는 일이다.
 - 결정: T04 는 그대로 진행한다. 라우팅 정비는 T04 DoD 에 넣지 않고, 검증이 실제로 필요해지는 시점(T07 이전)에 인프라 과제로 처리한다. 그때까지 `thumbUrl()`·`avatarUrl()` 은 **문자열 수준까지만 검증됐다**고 본다 — 초록을 도달성 증명으로 읽지 않는다.
-- 상태: OPEN
+- 해결 (2026-08-24): 개발 compose 에 전용 Caddy CDN 프록시를 추가했다. `/hls/*` 는 `S3_BUCKET_HLS`, `/thumbs/*` 는 `S3_BUCKET_THUMBS` 로만 전달하며, CI와 로컬의 `CDN_BASE_URL` 은 공통 출처 `http://127.0.0.1:9002` 를 사용한다. storage 통합 테스트가 두 버킷의 실제 객체를 같은 CDN 출처로 읽어 회귀를 막는다.
+- 상태: RESOLVED
 
 ## [OBS-014] 10_NFR §8 의 커버리지 대상 일부가 게이트에 연결되어 있지 않았다
 - 발견 단계: T04/S3

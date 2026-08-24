@@ -13,7 +13,7 @@ require_docker() {
 
 check_ports() {
   local port
-  for port in 5432 6379 9000 9001; do
+  for port in 5432 6379 9000 9001 9002; do
     if command -v ss >/dev/null 2>&1 && ss -lnt "sport = :${port}" | grep -q LISTEN; then
       printf 'ERROR: local port %s is already in use\n' "${port}" >&2
       exit 1
@@ -26,7 +26,7 @@ main() {
   case "${1:-dev}" in
     dev)
       check_ports
-      docker compose -f "${COMPOSE_FILE}" up -d --wait postgres redis minio
+      docker compose -f "${COMPOSE_FILE}" up -d --wait postgres redis minio cdn
       docker compose -f "${COMPOSE_FILE}" run --rm minio-init
       ;;
     down) docker compose -f "${COMPOSE_FILE}" down ;;

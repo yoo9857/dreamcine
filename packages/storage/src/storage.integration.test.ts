@@ -37,6 +37,7 @@ const skip = !hasS3 && !runningInCi
 const RUN = randomUUID().replaceAll('-', '').slice(0, 12)
 const ORIGINALS_PREFIX = `originals/it_${RUN}/`
 const HLS_PREFIX = `hls/it_${RUN}/`
+const THUMBS_PREFIX = `thumbs/it_${RUN}/`
 
 /** S3 멀티파트의 마지막 아닌 파트는 5MiB 이상이어야 한다. */
 const MIN_PART_BYTES = 5 * 1024 * 1024
@@ -98,7 +99,7 @@ beforeAll(() => {
   process.env.S3_BUCKET_ORIGINALS ??= 'aidream-originals'
   process.env.S3_BUCKET_HLS ??= 'aidream-hls'
   process.env.S3_BUCKET_THUMBS ??= 'aidream-thumbs'
-  process.env.CDN_BASE_URL ??= 'http://127.0.0.1:9000/aidream-hls'
+  process.env.CDN_BASE_URL ??= 'http://127.0.0.1:9002'
 })
 
 afterAll(async () => {
@@ -107,6 +108,7 @@ afterAll(async () => {
   }
   await deletePrefix(BUCKET.ORIGINALS, ORIGINALS_PREFIX)
   await deletePrefix(BUCKET.HLS, HLS_PREFIX)
+  await deletePrefix(BUCKET.THUMBS, THUMBS_PREFIX)
   resetS3Clients()
 })
 
@@ -368,6 +370,25 @@ describe.skipIf(skip)('공개·비공개 경계', () => {
 
     expect(response.status).toBe(200)
     expect(await response.text()).toBe(payload)
+  }, 60_000)
+
+  it('같은 CDN 출처에서 썸네일 버킷을 읽을 수 있다', async () => {
+    // OBS-013 회귀 방지: base URL 하나가 첫 경로 세그먼트로 공개 버킷을
+    // 갈라야 한다. 문자열 모킹이 아니라 실제 프록시와 MinIO를 통과한다.
+    const key = `${THUMBS_PREFIX}public.jpg`
+    const payload = Buffer.from('thumbnail-probe')
+    await putObject({
+      bucket: BUCKET.THUMBS,
+      key,
+      body: payload,
+      contentType: 'image/jpeg',
+      cacheControl: IMMUTABLE_1Y,
+    })
+
+    const response = await fetch(cdnUrl(key))
+
+    expect(response.status).toBe(200)
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(payload)
   }, 60_000)
 })
 

@@ -1,0 +1,19 @@
+:9002 {
+	handle /health {
+		respond "ok" 200
+	}
+
+	handle /hls/* {
+		rewrite * /{$S3_BUCKET_HLS}{uri}
+		reverse_proxy minio:9000
+	}
+
+	handle /thumbs/* {
+		rewrite * /{$S3_BUCKET_THUMBS}{uri}
+		reverse_proxy minio:9000
+	}
+
+	handle {
+		respond 404
+	}
+}

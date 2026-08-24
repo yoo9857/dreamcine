@@ -71,7 +71,6 @@ describe('cdnUrl', () => {
   })
 
   it('경로가 있는 base 도 보존한다', () => {
-    // 개발/CI 는 MinIO 버킷 경로를 base 에 담는다. (OBS-013)
     process.env.CDN_BASE_URL = 'http://127.0.0.1:9000/aidream-hls'
 
     expect(cdnUrl('hls/a/master.m3u8')).toBe(

@@ -16,7 +16,7 @@ const LEADING_SLASHES = /^\/+/u
  *
  * 공개 버킷은 둘(`hls`, `thumbs`)인데 base URL 은 하나다. 키가 `hls/…` ·
  * `thumbs/…` 로 시작하므로 CDN 이 첫 경로 세그먼트로 오리진을 가른다는
- * 전제다. 개발/CI 값은 아직 그 전제를 만족하지 않는다. (OBS-013)
+ * 전제다. 개발/CI 는 `Caddyfile.dev-cdn` 으로 같은 경로 규칙을 재현한다.
  */
 function rawBase(): string | undefined {
   /*

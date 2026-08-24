@@ -75,6 +75,26 @@ services:
         mc anonymous set download "local/$${S3_BUCKET_THUMBS}"
     restart: 'no'
 
+  cdn:
+    image: caddy:2.10.2-alpine
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      S3_BUCKET_HLS: ${S3_BUCKET_HLS:-aidream-hls}
+      S3_BUCKET_THUMBS: ${S3_BUCKET_THUMBS:-aidream-thumbs}
+    ports:
+      - '9002:9002'
+    volumes:
+      - ../caddy/Caddyfile.dev-cdn:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:9002/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   redis-data:

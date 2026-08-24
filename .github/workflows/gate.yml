@@ -32,8 +32,8 @@ env:
   S3_BUCKET_ORIGINALS: aidream-originals
   S3_BUCKET_HLS: aidream-hls
   S3_BUCKET_THUMBS: aidream-thumbs
-  CDN_BASE_URL: http://127.0.0.1:9000/aidream-hls
-  NEXT_PUBLIC_CDN_BASE_URL: http://127.0.0.1:9000/aidream-hls
+  CDN_BASE_URL: http://127.0.0.1:9002
+  NEXT_PUBLIC_CDN_BASE_URL: http://127.0.0.1:9002
   WORKER_CONCURRENCY: 1
   LOG_LEVEL: warn
 
@@ -81,7 +81,7 @@ jobs:
       - name: Start dependencies
         run: |
           docker compose -f infra/compose/docker-compose.dev.yml \
-            up -d --wait postgres redis minio
+            up -d --wait postgres redis minio cdn
 
       - name: Create object storage buckets
         run: |
