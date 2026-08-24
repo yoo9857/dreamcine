@@ -8,11 +8,13 @@ import {
   findUserByEmail,
   setUserEmailVerified,
 } from '@aidream/db'
+import { cdnOrigin } from '@aidream/storage/cdn'
 import type { BrowserContext, Page, Route } from '@playwright/test'
 
 import { expect, test } from './fixtures'
 
 const appUrl = process.env.APP_URL ?? 'http://127.0.0.1:3000'
+const storageOrigin = cdnOrigin() ?? 'http://127.0.0.1:9000'
 const CREATOR_EMAIL = 'upload-e2e@example.com'
 
 async function creatorSession(context: BrowserContext): Promise<string> {
@@ -71,7 +73,7 @@ async function mockUpload(
         totalParts: options.totalParts,
         parts: Array.from({ length: options.totalParts }, (_, index) => ({
           partNumber: index + 1,
-          url: `https://storage.test/part-${String(index + 1)}`,
+          url: `${storageOrigin}/e2e-upload/part-${String(index + 1)}`,
           expiresAt: new Date(Date.now() + 60_000).toISOString(),
         })),
         expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
@@ -79,7 +81,18 @@ async function mockUpload(
       201,
     )
   })
-  await page.route('https://storage.test/part-*', async (route) => {
+  await page.route(`${storageOrigin}/e2e-upload/part-*`, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': appUrl,
+          'Access-Control-Allow-Methods': 'PUT, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      })
+      return
+    }
     const match = /part-(\d+)$/u.exec(route.request().url())
     const partNumber = Number(match?.[1] ?? 0)
     if (options.partDelayMs !== undefined) {
@@ -88,7 +101,11 @@ async function mockUpload(
     completed.add(partNumber)
     await route.fulfill({
       status: 200,
-      headers: { ETag: `"etag-${String(partNumber)}"` },
+      headers: {
+        'Access-Control-Allow-Origin': appUrl,
+        'Access-Control-Expose-Headers': 'ETag',
+        ETag: `"etag-${String(partNumber)}"`,
+      },
     })
   })
   await page.route('**/api/uploads/upl_e2e', async (route) => {
@@ -109,7 +126,7 @@ async function mockUpload(
       route,
       body.partNumbers.map((partNumber) => ({
         partNumber,
-        url: `https://storage.test/part-${String(partNumber)}`,
+        url: `${storageOrigin}/e2e-upload/part-${String(partNumber)}`,
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       })),
     )
