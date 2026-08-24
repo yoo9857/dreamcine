@@ -1,7 +1,12 @@
-import type { PlaybackResponse } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
-
+import { AppError, can, type PlaybackResponse } from '@aidream/core'
+import {
+  findPlaybackEpisode,
+  findWatchProgress,
+  hasBlockBetween,
+} from '@aidream/db'
+import { cdnUrl, masterUrl } from '@aidream/storage/cdn'
 import type { RouteSession } from '@/src/auth/types'
+import { verifyAgeVerification } from '@/src/lib/age-verification'
 
 export interface GetPlaybackInput {
   readonly episodeId: string
@@ -10,8 +15,67 @@ export interface GetPlaybackInput {
   readonly now: Date
 }
 
-export function getPlayback(
-  _input: GetPlaybackInput,
+export async function getPlayback(
+  input: GetPlaybackInput,
 ): Promise<PlaybackResponse> {
-  throw new NotImplementedError('T07:getPlayback')
+  const episode = await findPlaybackEpisode(input.episodeId)
+  if (episode === null) throw new AppError('E_EPISODE_NOT_FOUND')
+  const actor =
+    input.session === null
+      ? null
+      : {
+          id: input.session.userId,
+          role: input.session.user.role,
+          status: input.session.user.status,
+          emailVerified: input.session.user.emailVerified,
+        }
+  if (
+    episode.status !== 'PUBLISHED' &&
+    (actor === null ||
+      !can(actor, 'episode.hide', { ownerId: episode.ownerId }))
+  ) {
+    throw new AppError('E_EPISODE_NOT_PUBLISHED')
+  }
+  if (
+    input.session !== null &&
+    (await hasBlockBetween(input.session.userId, episode.ownerId))
+  ) {
+    throw new AppError('E_SOCIAL_BLOCKED')
+  }
+  if (episode.ageRating !== 'ALL') {
+    const secret = process.env.AUTH_SECRET
+    if (
+      secret === undefined ||
+      !verifyAgeVerification({
+        cookieHeader: input.cookieHeader,
+        episodeId: episode.id,
+        ageRating: episode.ageRating,
+        now: input.now,
+        secret,
+      })
+    )
+      throw new AppError('E_PERM_AGE_RESTRICTED')
+  }
+  const asset = episode.asset
+  if (asset?.status !== 'READY' || asset.durationSec === null)
+    throw new AppError('E_ASSET_NOT_READY')
+  const progress =
+    input.session === null
+      ? null
+      : await findWatchProgress(input.session.userId, episode.id)
+  const startAtSec =
+    progress !== null &&
+    !progress.completed &&
+    progress.positionSec > 0 &&
+    asset.durationSec - progress.positionSec > 30
+      ? progress.positionSec
+      : 0
+  return {
+    episodeId: episode.id,
+    masterUrl: masterUrl(asset.id),
+    ...(asset.posterKey === null ? {} : { posterUrl: cdnUrl(asset.posterKey) }),
+    durationSec: asset.durationSec,
+    startAtSec,
+    renditions: [...asset.renditions],
+  }
 }

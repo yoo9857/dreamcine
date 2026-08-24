@@ -1,11 +1,21 @@
 import { z } from 'zod'
 
+import { AgeRating } from '../enums.js'
+
 export const AgeConfirmSchema = z.object({
   confirmed: z.literal(true),
   birthYear: z.number().int().min(1900).optional(),
 })
 
 export type AgeConfirmInput = z.infer<typeof AgeConfirmSchema>
+
+export const AgeVerificationClaimSchema = z.object({
+  episodeId: z.string(),
+  ageRating: z.enum(AgeRating),
+  expiresAt: z.number().int().positive(),
+})
+
+export type AgeVerificationClaim = z.infer<typeof AgeVerificationClaimSchema>
 
 export const SaveProgressSchema = z.object({
   positionSec: z.number().int().min(0),

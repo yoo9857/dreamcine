@@ -422,6 +422,55 @@
           "status": { "type": "string", "enum": ["PENDING"] }
         }
       },
+      "AgeConfirmRequest": {
+        "type": "object",
+        "required": ["confirmed"],
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": { "type": "boolean", "const": true },
+          "birthYear": { "type": "integer", "minimum": 1900 }
+        }
+      },
+      "SaveProgressRequest": {
+        "type": "object",
+        "required": ["positionSec"],
+        "additionalProperties": false,
+        "properties": {
+          "positionSec": { "type": "integer", "minimum": 0 },
+          "completed": { "type": "boolean" }
+        }
+      },
+      "PlaybackResponse": {
+        "type": "object",
+        "required": [
+          "episodeId",
+          "masterUrl",
+          "durationSec",
+          "startAtSec",
+          "renditions"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "episodeId": { "type": "string" },
+          "masterUrl": { "type": "string", "format": "uri" },
+          "posterUrl": { "type": "string", "format": "uri" },
+          "durationSec": { "type": "integer", "minimum": 1 },
+          "startAtSec": { "type": "integer", "minimum": 0 },
+          "renditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "width", "height"],
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" },
+                "width": { "type": "integer", "minimum": 1 },
+                "height": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      },
       "Health": {
         "type": "object",
         "required": ["status"],
@@ -1182,6 +1231,208 @@
                 "schema": {
                   "$ref": "#/components/schemas/Health"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes/{id}/playback": {
+      "get": {
+        "tags": ["episodes"],
+        "summary": "Issue playback information",
+        "security": [{ "sessionCookie": [] }, {}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Playback information",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlaybackResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Age restricted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Episode unavailable",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Asset not ready",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes/{id}/age-confirm": {
+      "post": {
+        "tags": ["episodes"],
+        "summary": "Confirm the episode age gate",
+        "security": [{ "sessionCookie": [] }, {}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgeConfirmRequest" }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Signed HttpOnly age cookie issued",
+            "headers": { "Set-Cookie": { "schema": { "type": "string" } } }
+          },
+          "400": {
+            "description": "Invalid confirmation",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Age requirement not met",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Episode not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "headers": {
+              "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes/{id}/progress": {
+      "post": {
+        "tags": ["episodes"],
+        "summary": "Save watch progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SaveProgressRequest" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Progress saved" },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Episode not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Update interval too short",
+            "headers": {
+              "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes/{id}/views": {
+      "post": {
+        "tags": ["episodes"],
+        "summary": "Count one cumulative 30-second view",
+        "security": [{ "sessionCookie": [] }, {}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "View accepted or deduplicated" },
+          "404": {
+            "description": "Episode not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "headers": {
+              "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
           }

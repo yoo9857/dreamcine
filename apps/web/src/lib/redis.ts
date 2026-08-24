@@ -12,6 +12,13 @@ export interface RedisGateway {
   ttl(key: string): Promise<number>
   ping(): Promise<void>
   get(key: string): Promise<string | null>
+  setIfAbsent(key: string, value: string, ttlSec: number): Promise<boolean>
+}
+
+export function isSetNxSuccess(reply: unknown): boolean {
+  if (reply === 'OK') return true
+  if (reply === null) return false
+  throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
 }
 
 export interface RedisTarget {
@@ -289,6 +296,23 @@ class RedisClient implements RedisGateway {
     const reply = await this.#connection.command(['GET', key])
     if (reply === null || typeof reply === 'string') return reply
     throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
+  }
+
+  async setIfAbsent(
+    key: string,
+    value: string,
+    ttlSec: number,
+  ): Promise<boolean> {
+    return isSetNxSuccess(
+      await this.#connection.command([
+        'SET',
+        key,
+        value,
+        'NX',
+        'EX',
+        String(ttlSec),
+      ]),
+    )
   }
 
   close(): void {

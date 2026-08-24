@@ -107,10 +107,12 @@ export {
 } from './schemas/upload.schema.js'
 export {
   AgeConfirmSchema,
+  AgeVerificationClaimSchema,
   PlaybackRenditionSchema,
   PlaybackResponseSchema,
   SaveProgressSchema,
   type AgeConfirmInput,
+  type AgeVerificationClaim,
   type PlaybackResponse,
   type SaveProgressInput,
 } from './schemas/playback.schema.js'

@@ -1,5 +1,6 @@
 import type { AgeRating, AssetStatus, EpisodeStatus } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
+import { db } from '../client.js'
+import { executeDb } from '../errors.js'
 
 export interface PlaybackRenditionRecord {
   readonly name: string
@@ -37,27 +38,86 @@ export interface SaveWatchProgressData {
 }
 
 export function findPlaybackEpisode(
-  _episodeId: string,
+  episodeId: string,
 ): Promise<PlaybackEpisodeRecord | null> {
-  throw new NotImplementedError('T07:findPlaybackEpisode')
+  return executeDb(async () => {
+    const row = await db.episode.findFirst({
+      where: { id: episodeId, deletedAt: null },
+      select: {
+        id: true,
+        status: true,
+        ageRating: true,
+        series: { select: { ownerId: true } },
+        asset: {
+          select: {
+            id: true,
+            status: true,
+            durationSec: true,
+            posterKey: true,
+            renditions: {
+              select: { name: true, width: true, height: true },
+              orderBy: [{ height: 'asc' }, { bitrateKbps: 'asc' }],
+            },
+          },
+        },
+      },
+    })
+    if (row === null) return null
+    return {
+      id: row.id,
+      ownerId: row.series.ownerId,
+      status: row.status,
+      ageRating: row.ageRating,
+      asset: row.asset,
+    }
+  })
 }
 
 export function hasBlockBetween(
-  _firstUserId: string,
-  _secondUserId: string,
+  firstUserId: string,
+  secondUserId: string,
 ): Promise<boolean> {
-  throw new NotImplementedError('T07:hasBlockBetween')
+  return executeDb(async () => {
+    const block = await db.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: firstUserId, blockedId: secondUserId },
+          { blockerId: secondUserId, blockedId: firstUserId },
+        ],
+      },
+      select: { blockerId: true },
+    })
+    return block !== null
+  })
 }
 
 export function findWatchProgress(
-  _userId: string,
-  _episodeId: string,
+  userId: string,
+  episodeId: string,
 ): Promise<WatchProgressRecord | null> {
-  throw new NotImplementedError('T07:findWatchProgress')
+  return executeDb(() =>
+    db.watchProgress.findUnique({
+      where: { userId_episodeId: { userId, episodeId } },
+    }),
+  )
 }
 
 export function upsertWatchProgress(
-  _input: SaveWatchProgressData,
+  input: SaveWatchProgressData,
 ): Promise<void> {
-  throw new NotImplementedError('T07:upsertWatchProgress')
+  return executeDb(async () => {
+    await db.watchProgress.upsert({
+      where: {
+        userId_episodeId: {
+          userId: input.userId,
+          episodeId: input.episodeId,
+        },
+      },
+      create: input,
+      update: {
+        positionSec: input.positionSec,
+        completed: input.completed,
+      },
+    })
+  })
 }

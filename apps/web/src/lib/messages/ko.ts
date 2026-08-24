@@ -32,6 +32,14 @@ export interface Messages {
     readonly next: string
     readonly previous: string
   }
+  readonly player: {
+    readonly play: string
+    readonly pause: string
+    readonly ageGateTitle: string
+    readonly ageGateSubmit: string
+    readonly assetPreparing: string
+    readonly loadFailed: string
+  }
   readonly theme: {
     readonly label: string
     readonly dark: string
@@ -84,6 +92,14 @@ const KO: Messages = {
     confirm: '확인',
     next: '다음',
     previous: '이전',
+  },
+  player: {
+    play: '재생',
+    pause: '일시정지',
+    ageGateTitle: '연령 확인이 필요합니다',
+    ageGateSubmit: '확인하고 재생',
+    assetPreparing: '영상을 변환하고 있습니다',
+    loadFailed: '동영상을 불러오지 못했습니다. 다시 시도해 주세요.',
   },
   theme: {
     label: '화면 테마',

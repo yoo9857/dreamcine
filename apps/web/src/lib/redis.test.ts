@@ -1,7 +1,7 @@
 import { AppError } from '@aidream/core'
 import { describe, expect, it } from 'vitest'
 
-import { parseRedisUrl } from './redis'
+import { isSetNxSuccess, parseRedisUrl } from './redis'
 
 describe('parseRedisUrl', () => {
   it('호스트와 포트를 읽는다', () => {
@@ -52,5 +52,16 @@ describe('parseRedisUrl', () => {
 
   it('URL 로 파싱조차 안 되면 E_QUEUE_UNAVAILABLE 이다', () => {
     expect(() => parseRedisUrl('not a url')).toThrow(AppError)
+  })
+})
+
+describe('SET NX EX reply', () => {
+  it('OK는 신규 키, null은 기존 키다', () => {
+    expect(isSetNxSuccess('OK')).toBe(true)
+    expect(isSetNxSuccess(null)).toBe(false)
+  })
+
+  it('예상 밖 응답은 큐 오류로 거부한다', () => {
+    expect(() => isSetNxSuccess(1)).toThrow(AppError)
   })
 })
