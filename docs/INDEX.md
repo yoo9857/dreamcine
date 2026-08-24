@@ -134,7 +134,7 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 | T03 | AUTH | ✅ | ✅ | ✅ | — |
 | T04 | STORAGE_S3 | ✅ | ✅ | ✅ | — |
 | T05 | UPLOAD | ✅ | ✅ | ⬜ | — |
-| T06 | TRANSCODE_WORKER | ✅ | ✅ | ⬜ | 22 |
+| T06 | TRANSCODE_WORKER | ✅ | ✅ | ✅ | — |
 | T07 | PLAYER_HLS | ⬜ | ⬜ | ⬜ | — |
 | T08 | SERIES_EPISODE | ⬜ | ⬜ | ⬜ | — |
 | T09 | FEED_RANKING | ⬜ | ⬜ | ⬜ | — |
