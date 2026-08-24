@@ -1,10 +1,38 @@
 import { Readable } from 'node:stream'
 
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 
 import { BUCKET } from './buckets.js'
 import { IMMUTABLE_1Y } from './cache-presets.js'
-import { putObject } from './put-object.js'
+import { objectAcl, putObject } from './put-object.js'
+
+const ORIGINAL_PUBLIC_ACL = process.env.S3_PUBLIC_OBJECT_ACL
+
+afterAll(() => {
+  if (ORIGINAL_PUBLIC_ACL === undefined) {
+    Reflect.deleteProperty(process.env, 'S3_PUBLIC_OBJECT_ACL')
+  } else {
+    process.env.S3_PUBLIC_OBJECT_ACL = ORIGINAL_PUBLIC_ACL
+  }
+})
+
+describe('putObject — 객체 ACL', () => {
+  it('원본에는 공개 ACL을 절대 붙이지 않는다', () => {
+    process.env.S3_PUBLIC_OBJECT_ACL = 'public-read'
+    expect(objectAcl(BUCKET.ORIGINALS)).toBeUndefined()
+  })
+
+  it('설정 시 HLS와 썸네일만 public-read로 저장한다', () => {
+    process.env.S3_PUBLIC_OBJECT_ACL = 'public-read'
+    expect(objectAcl(BUCKET.HLS)).toBe('public-read')
+    expect(objectAcl(BUCKET.THUMBS)).toBe('public-read')
+  })
+
+  it('로컬 MinIO에서는 bucket policy에 맡긴다', () => {
+    process.env.S3_PUBLIC_OBJECT_ACL = 'none'
+    expect(objectAcl(BUCKET.HLS)).toBeUndefined()
+  })
+})
 
 describe('putObject — 길이 없는 스트림', () => {
   it('스트림에 contentLength 가 없으면 호출 전에 거부한다', async () => {

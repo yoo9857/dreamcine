@@ -1,4 +1,4 @@
-import { AppError } from '@aidream/core'
+import { AppError, ServerEnvSchema } from '@aidream/core'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import type { Readable } from 'node:stream'
 
@@ -25,6 +25,21 @@ export interface PutObjectInput {
   readonly contentLength?: number
 }
 
+/**
+ * 원본은 항상 비공개다. HLS·썸네일은 Akamai처럼 객체 ACL을 따로 요구하는
+ * 저장소에서만 public-read를 붙인다. 로컬 MinIO는 bucket policy를 사용한다.
+ */
+export function objectAcl(bucket: BucketKind): 'public-read' | undefined {
+  if (bucket === 'originals') {
+    return undefined
+  }
+  return ServerEnvSchema.shape.S3_PUBLIC_OBJECT_ACL.parse(
+    process.env.S3_PUBLIC_OBJECT_ACL,
+  ) === 'public-read'
+    ? 'public-read'
+    : undefined
+}
+
 export async function putObject(
   input: PutObjectInput,
 ): Promise<{ etag: string }> {
@@ -47,6 +62,7 @@ export async function putObject(
         Body: input.body,
         ContentType: input.contentType,
         CacheControl: input.cacheControl,
+        ACL: objectAcl(input.bucket),
         ...(input.contentLength === undefined
           ? {}
           : { ContentLength: input.contentLength }),

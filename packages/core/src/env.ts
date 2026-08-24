@@ -19,6 +19,7 @@ export const ServerEnvSchema = z.object({
   S3_BUCKET_ORIGINALS: z.string().min(1),
   S3_BUCKET_HLS: z.string().min(1),
   S3_BUCKET_THUMBS: z.string().min(1),
+  S3_PUBLIC_OBJECT_ACL: z.enum(['none', 'public-read']).default('none'),
 
   CDN_BASE_URL: z.string().url(),
 
