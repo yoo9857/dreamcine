@@ -42,6 +42,11 @@ export {
   type ResourceRef,
 } from './rules/permission.js'
 export {
+  checkAgeGate,
+  type AgeGateInput,
+  type AgeGateResult,
+} from './rules/age-gate.js'
+export {
   BioSchema,
   DisplayNameSchema,
   EmailSchema,
@@ -100,3 +105,12 @@ export {
   type SignPartsInput,
   type UploadSessionState,
 } from './schemas/upload.schema.js'
+export {
+  AgeConfirmSchema,
+  PlaybackRenditionSchema,
+  PlaybackResponseSchema,
+  SaveProgressSchema,
+  type AgeConfirmInput,
+  type PlaybackResponse,
+  type SaveProgressInput,
+} from './schemas/playback.schema.js'
