@@ -1,9 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { avatarUrl, cdnOrigin, cdnUrl, masterUrl, thumbUrl } from './cdn.js'
+import {
+  avatarUrl,
+  cdnOrigin,
+  cdnUrl,
+  masterUrl,
+  objectStorageOrigin,
+  thumbUrl,
+} from './cdn.js'
 
 const ASSET = 'ast_ghi789'
-const VARIABLES = ['CDN_BASE_URL', 'NEXT_PUBLIC_CDN_BASE_URL'] as const
+const VARIABLES = [
+  'CDN_BASE_URL',
+  'NEXT_PUBLIC_CDN_BASE_URL',
+  'S3_ENDPOINT',
+] as const
 const saved = new Map<string, string | undefined>()
 
 beforeEach(() => {
@@ -11,6 +22,7 @@ beforeEach(() => {
     saved.set(name, process.env[name])
   }
   process.env.CDN_BASE_URL = 'https://cdn.example.com'
+  process.env.S3_ENDPOINT = 'https://jp-osa-1.linodeobjects.com'
   // 테스트마다 명시적으로 정한다. 남아 있으면 우선순위 때문에 결과가 바뀐다.
   Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_CDN_BASE_URL')
 })
@@ -183,5 +195,25 @@ describe('cdnOrigin', () => {
 
     expect(cdnOrigin()).toBe('https://public.example.com')
     expect(cdnUrl('hls/a')).toBe('https://public.example.com/hls/a')
+  })
+})
+
+describe('objectStorageOrigin', () => {
+  it('CDN과 다른 S3 출처를 돌려준다', () => {
+    expect(objectStorageOrigin()).toBe('https://jp-osa-1.linodeobjects.com')
+  })
+
+  it('경로와 기본 포트를 제거한다', () => {
+    process.env.S3_ENDPOINT = 'https://object.example.com:443/s3'
+
+    expect(objectStorageOrigin()).toBe('https://object.example.com')
+  })
+
+  it('설정이 없거나 잘못되면 null이다', () => {
+    Reflect.deleteProperty(process.env, 'S3_ENDPOINT')
+    expect(objectStorageOrigin()).toBeNull()
+
+    process.env.S3_ENDPOINT = 'not-a-url'
+    expect(objectStorageOrigin()).toBeNull()
   })
 })

@@ -1,4 +1,4 @@
-import { cdnOrigin } from '@aidream/storage/cdn'
+import { cdnOrigin, objectStorageOrigin } from '@aidream/storage/cdn'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { SESSION_COOKIE_NAMES } from '@/src/auth/types'
@@ -25,7 +25,7 @@ function createNonce(): string {
  * `script-src` 에 `unsafe-inline`/`unsafe-eval` 을 넣지 않는다 — hls.js 는
  * 그것을 필요로 하지 않는다. `media-src` 에서 CDN 을 빼면 영상이 재생되지 않는다.
  */
-function contentSecurityPolicy(nonce: string): string {
+export function contentSecurityPolicy(nonce: string): string {
   /*
     CDN 출처는 `packages/storage` 의 단일 지점에서 가져온다. 여기서 env 를
     직접 읽으면 도메인을 갈아탈 때 고칠 곳이 둘이 된다. (06_MEDIA_PIPELINE §5)
@@ -34,15 +34,23 @@ function contentSecurityPolicy(nonce: string): string {
     세그먼트 요청이 조용히 막히는 경우가 생긴다.
   */
   const cdn = cdnOrigin()
-  const withCdn = (base: string): string =>
-    cdn === null ? base : `${base} ${cdn}`
+  const storage = objectStorageOrigin()
+  const withSources = (
+    base: string,
+    sources: readonly (string | null)[],
+  ): string => {
+    const additions = [...new Set(sources)].filter(
+      (source): source is string => source !== null,
+    )
+    return additions.length === 0 ? base : `${base} ${additions.join(' ')}`
+  }
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'`,
     "style-src 'self' 'unsafe-inline'",
-    withCdn("img-src 'self' data: blob:"),
-    withCdn("media-src 'self' blob:"),
-    withCdn("connect-src 'self'"),
+    withSources("img-src 'self' data: blob:", [cdn]),
+    withSources("media-src 'self' blob:", [cdn]),
+    withSources("connect-src 'self'", [cdn, storage]),
     "font-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

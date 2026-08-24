@@ -41,6 +41,10 @@ function baseUrl(): string {
  */
 export function cdnOrigin(): string | null {
   const raw = rawBase()
+  return safeOrigin(raw)
+}
+
+function safeOrigin(raw: string | undefined): string | null {
   if (raw === undefined || raw === '') {
     return null
   }
@@ -49,6 +53,17 @@ export function cdnOrigin(): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * 브라우저가 서명 URL로 직접 PUT하는 Object Storage 출처.
+ *
+ * 운영에서는 CDN과 S3가 서로 다른 호스트다. 이 출처가 CSP `connect-src`에서
+ * 빠지면 CI(MinIO에서는 두 출처가 같음)는 통과하지만 실제 업로드만 차단된다.
+ * 미들웨어가 Edge 런타임이므로 AWS SDK를 끌어오지 않는 이 모듈에 둔다.
+ */
+export function objectStorageOrigin(): string | null {
+  return safeOrigin(process.env.S3_ENDPOINT)
 }
 
 /**

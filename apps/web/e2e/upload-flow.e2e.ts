@@ -8,13 +8,13 @@ import {
   findUserByEmail,
   setUserEmailVerified,
 } from '@aidream/db'
-import { cdnOrigin } from '@aidream/storage/cdn'
+import { objectStorageOrigin } from '@aidream/storage/cdn'
 import type { BrowserContext, Page, Route } from '@playwright/test'
 
 import { expect, test } from './fixtures'
 
 const appUrl = process.env.APP_URL ?? 'http://127.0.0.1:3000'
-const storageOrigin = cdnOrigin() ?? 'http://127.0.0.1:9000'
+const storageOrigin = objectStorageOrigin() ?? 'http://127.0.0.1:9000'
 const CREATOR_EMAIL = 'upload-e2e@example.com'
 
 async function creatorSession(context: BrowserContext): Promise<string> {
