@@ -31,6 +31,10 @@ export const RecoverStuckJobSchema = z.object({
   olderThanMinutes: z.number().int().positive(),
 })
 
+export const DbPurgeJobSchema = z.object({
+  dryRun: z.boolean(),
+})
+
 /**
  * 큐 이름 → 페이로드 스키마. 이 표가 발행 함수의 타입 안전성을 만든다.
  *
@@ -42,6 +46,7 @@ export const JOB_SCHEMAS = {
   [QUEUE.VIDEO_THUMBNAIL]: ThumbnailJobSchema,
   [QUEUE.STORAGE_CLEANUP]: StorageCleanupJobSchema,
   [QUEUE.RECOVER_STUCK]: RecoverStuckJobSchema,
+  [QUEUE.DB_PURGE]: DbPurgeJobSchema,
 } as const
 
 export type DefinedQueue = keyof typeof JOB_SCHEMAS

@@ -1,0 +1,19 @@
+{
+  "name": "@aidream/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@aidream/core": "workspace:*",
+    "@aidream/db": "workspace:*",
+    "@aidream/media": "workspace:*",
+    "@aidream/queue": "workspace:*",
+    "@aidream/storage": "workspace:*",
+    "bullmq": "5.81.3",
+    "pino": "10.3.1",
+    "zod": "3.25.76"
+  }
+}

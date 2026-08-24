@@ -145,6 +145,33 @@ importers:
         specifier: 19.2.4
         version: 19.2.4(@types/react@19.2.18)
 
+  apps/worker:
+    dependencies:
+      '@aidream/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@aidream/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@aidream/media':
+        specifier: workspace:*
+        version: link:../../packages/media
+      '@aidream/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
+      '@aidream/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      bullmq:
+        specifier: 5.81.3
+        version: 5.81.3
+      pino:
+        specifier: 10.3.1
+        version: 10.3.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/api-client: {}
 
   packages/config: {}
@@ -168,7 +195,11 @@ importers:
         specifier: 12.1.0
         version: 12.1.0
 
-  packages/media: {}
+  packages/media:
+    dependencies:
+      '@aidream/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/queue:
     dependencies:

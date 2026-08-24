@@ -32,6 +32,8 @@ export default defineConfig({
         'apps/web/src/**/*.ts',
         'packages/queue/src/**/*.ts',
         'packages/storage/src/**/*.ts',
+        'packages/media/src/**/*.ts',
+        'apps/worker/src/**/*.ts',
         'scripts/**/*.ts',
       ],
       exclude: [
@@ -83,6 +85,18 @@ export default defineConfig({
         },
         // 10_NFR.md §8 — packages/storage 70% (MinIO 통합)
         'packages/storage/src/**/*.ts': {
+          branches: 70,
+          functions: 70,
+          lines: 70,
+          statements: 70,
+        },
+        'packages/media/src/**/*.ts': {
+          branches: 85,
+          functions: 85,
+          lines: 85,
+          statements: 85,
+        },
+        'apps/worker/src/**/*.ts': {
           branches: 70,
           functions: 70,
           lines: 70,

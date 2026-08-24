@@ -8,6 +8,7 @@
 export { QUEUE, QUEUE_NAMES, type QueueName } from './queues.js'
 export {
   JOB_SCHEMAS,
+  DbPurgeJobSchema,
   RecoverStuckJobSchema,
   StorageCleanupJobSchema,
   ThumbnailJobSchema,

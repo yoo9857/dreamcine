@@ -81,6 +81,10 @@ export {
   type TerminalUploadStatus,
 } from './state/upload-state.js'
 export {
+  canTransitionAsset,
+  type AssetTransitionContext,
+} from './state/asset-state.js'
+export {
   CompleteUploadResultSchema,
   CompleteUploadSchema,
   CompletedPartSchema,
