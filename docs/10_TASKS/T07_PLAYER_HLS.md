@@ -1,7 +1,7 @@
 # T07 — 플레이어: hls.js · 이어보기 · 조회수
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인   — 2026-08-24 / 산출물 36개 확정 / ISS-012·ISS-013 승인 반영
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -15,9 +15,10 @@
 ## 2. 참조 스펙
 
 - `../00_SPEC/06_MEDIA_PIPELINE.md` §5 재생
-- `../00_SPEC/05_API_CONTRACT.md` §5 (`playback`, `progress`)
+- `../00_SPEC/05_API_CONTRACT.md` §5 (`playback`, `age-confirm`, `progress`, `views`)
 - `../00_SPEC/08_UIUX_SPEC.md` §5 플레이어 요구사항, §3 상태
-- `../00_SPEC/07_AUTH_SECURITY.md` §4 (비공개 콘텐츠 처리), §6 CSP
+- `../00_SPEC/07_AUTH_SECURITY.md` §4 (비공개·연령제한 콘텐츠), §6 CSP, §7 CSRF
+- `../00_SPEC/09_ERROR_CATALOG.md` (EPISODE·ASSET·PLAYER 절)
 - `../00_SPEC/10_NFR.md` §1 (TTFF), §9 브라우저, §10 접근성
 
 ## 3. 산출물 파일
@@ -25,11 +26,25 @@
 | 경로 | 책임 | 단계 |
 |---|---|---|
 | `packages/core/src/rules/age-gate.ts` | 연령등급 접근 판정 (순수) | S2→S3 |
+| `packages/core/src/schemas/playback.schema.ts` | 연령확인·진행률 요청과 재생 응답 zod 계약 | S2→S3 |
+| `packages/core/src/index.ts` | T07 공개 타입·함수 export | S2→S3 |
+| `packages/core/tests/age-gate.test.ts` | 등급 × 인증 × 확인 × 연령 전조합 | S3 |
+| `packages/db/src/repositories/playback.repo.ts` | 재생 조회·차단 확인·이어보기 upsert | S2→S3 |
+| `packages/db/src/index.ts` | playback repository export | S2→S3 |
+| `packages/db/tests/playback.integration.test.ts` | 재생 조회·이어보기 DB 통합 | S3 |
+| `apps/web/src/lib/redis.ts` | 조회수용 원자적 `SET NX EX` 명령 확장 | S3 |
+| `apps/web/src/lib/redis.test.ts` | `SET NX EX` 응답·실패 검증 | S3 |
+| `apps/web/src/lib/age-verification.ts` | 연령확인 쿠키 서명·검증·직렬화 | S2→S3 |
+| `apps/web/src/lib/age-verification.test.ts` | 변조·만료·경로/등급 불일치 거부 | S3 |
 | `apps/web/src/services/episode/get-playback.ts` | 재생정보 발급 유스케이스 | S2→S3 |
+| `apps/web/src/services/episode/confirm-age.ts` | 생년/확인 판정 후 쿠키 발급 | S2→S3 |
 | `apps/web/src/services/episode/save-progress.ts` | 이어보기 저장 | S2→S3 |
-| `apps/web/src/services/episode/count-view.ts` | 조회수 (중복 방지) | S2→S3 |
+| `apps/web/src/services/episode/count-view.ts` | 서버 식별자 HMAC + 조회수 중복 방지 | S2→S3 |
+| `apps/web/src/services/episode/player-server.integration.test.ts` | 재생·연령·진행률·조회수 통합 | S3 |
 | `apps/web/app/api/episodes/[id]/playback/route.ts` | GET | S3 |
+| `apps/web/app/api/episodes/[id]/age-confirm/route.ts` | POST (인증 선택) | S3 |
 | `apps/web/app/api/episodes/[id]/progress/route.ts` | POST | S3 |
+| `apps/web/app/api/episodes/[id]/views/route.ts` | POST (인증 선택) | S3 |
 | `apps/web/src/components/player/HlsPlayer.tsx` | ★ 재생 엔진 컴포넌트 | S2→S3 |
 | `apps/web/src/components/player/PlayerControls.tsx` | 컨트롤 UI (순수 표현) | S2→S3 |
 | `apps/web/src/components/player/QualityMenu.tsx` | 화질 선택 | S3 |
@@ -38,8 +53,14 @@
 | `apps/web/src/components/AgeGate.tsx` | 연령 확인 인터스티셜 | S3 |
 | `apps/web/src/hooks/use-player.ts` | 플레이어 상태 관리 | S2→S3 |
 | `apps/web/src/hooks/use-watch-progress.ts` | 진행률 전송 (스로틀 + beacon) | S2→S3 |
+| `apps/web/src/components/player/player.test.tsx` | HLS 분기·복구·컨트롤·AgeGate 컴포넌트 테스트 | S3 |
+| `apps/web/src/hooks/use-watch-progress.test.tsx` | 15초·일시정지·beacon·30초 조회수 호출 | S3 |
 | `apps/web/app/(main)/watch/[episodeId]/page.tsx` | 재생 화면 | S3 |
+| `apps/web/src/lib/messages/ko.ts` | 플레이어·연령확인 한국어 문구 | S3 |
 | `apps/web/e2e/playback.e2e.ts` | US-03, US-04 | S3 |
+| `apps/web/package.json` | 승인된 `hls.js` 직접 의존성 고정 | S3 |
+| `pnpm-lock.yaml` | 재생 의존성 잠금 | S3 |
+| `openapi.json` | T07 재생·연령확인·진행률·조회수 REST 계약 | S3 |
 
 ## 4. S2 Skeleton
 
@@ -48,6 +69,7 @@
 export interface AgeGateInput {
   rating: AgeRating
   viewer: { isAuthenticated: boolean; birthYear?: number } | null
+  confirmed: boolean
   currentYear: number
 }
 export type AgeGateResult =
@@ -102,8 +124,9 @@ export interface PlayerState {
 |---|---|---|
 | 1 | `T07:checkAgeGate` | 등급별 판정. `A19` 는 인증 + 생년 확인, `A15`/`A12` 는 확인 클릭 |
 | 2 | `T07:getPlayback` | 아래 순서 |
-| 3 | `T07:saveProgress` | upsert. 15초 미만 간격 호출은 429 |
-| 4 | `T07:countView` | Redis 중복 방지 키 + 버퍼 증분 |
+| 3 | `T07:confirmAge` | 판정 성공 시 에피소드별 1시간 서명 HttpOnly 쿠키 발급 |
+| 4 | `T07:saveProgress` | upsert. 15초 미만 간격 호출은 429 |
+| 5 | `T07:countView` | Redis 중복 방지 키 + 버퍼 증분 |
 
 #### `getPlayback` 순서
 
@@ -113,7 +136,7 @@ export interface PlayerState {
      소유자/모더레이터면 통과 (미리보기)
      아니면                                 → E_EPISODE_NOT_PUBLISHED (404, 403 아님)
 3. 차단 관계 확인                            → E_SOCIAL_BLOCKED
-4. checkAgeGate()                          → E_PERM_AGE_RESTRICTED
+4. 연령확인 쿠키 검증 + checkAgeGate()       → E_PERM_AGE_RESTRICTED
 5. asset.status !== 'READY'                → E_ASSET_NOT_READY
 6. WatchProgress 조회 → startAtSec 결정
      조건: 로그인 && position > 0 && duration - position > 30
@@ -138,18 +161,29 @@ export interface PlayerState {
 호출 조건: 클라이언트가 **누적 30초 시청** 후 1회만 호출.
 (재생 시작만으로 카운트하면 스크롤 자동재생이 조회수를 오염시킨다)
 
+식별자는 서버가 만든다. 로그인 시 세션 `userId`, 미로그인 시 `AUTH_SECRET`을
+도메인 분리한 HMAC-SHA256으로 IP를 해시한다. 원본 IP나 클라이언트 제공 식별자를
+Redis 키·응답·로그에 남기지 않는다.
+
+#### 연령확인 쿠키
+
+`POST age-confirm`은 에피소드 등급을 서버에서 다시 읽고 `checkAgeGate()`를 실행한다.
+성공 시 `episodeId`·현재 `ageRating`·만료시각만 담은 1시간 쿠키를 서명한다. 생년 입력은
+판정 즉시 폐기하며 저장하거나 로그에 남기지 않는다. playback은 서명·만료·episodeId·
+현재 등급이 모두 일치할 때만 쿠키를 인정한다. 등급 변경 시 기존 쿠키는 자동 무효다.
+
 ### 클라이언트 측
 
 | # | 마커 | 내용 |
 |---|---|---|
-| 5 | `T07:usePlayer` | 상태 관리 + 미디어 이벤트 바인딩 |
-| 6 | `T07:HlsPlayer` | Safari 분기 + hls.js 초기화 + 에러 복구 |
-| 7 | `T07:PlayerControls` | 컨트롤 UI + 키보드 |
-| 8 | `T07:QualityMenu` | 레벨 목록 + 자동/수동 |
-| 9 | `T07:SeekPreview` | VTT 파싱 + 스프라이트 좌표 |
-| 10 | `T07:useWatchProgress` | 스로틀 15초 + `sendBeacon` |
-| 11 | `T07:NextEpisodeCard` | 종료 10초 전 노출 |
-| 12 | `T07:AgeGate` | 확인 인터스티셜 |
+| 6 | `T07:usePlayer` | 상태 관리 + 미디어 이벤트 바인딩 |
+| 7 | `T07:HlsPlayer` | Safari 분기 + hls.js 초기화 + 에러 복구 |
+| 8 | `T07:PlayerControls` | 컨트롤 UI + 키보드 |
+| 9 | `T07:QualityMenu` | 레벨 목록 + 자동/수동 |
+| 10 | `T07:SeekPreview` | VTT 파싱 + 스프라이트 좌표 |
+| 11 | `T07:useWatchProgress` | 스로틀 15초 + `sendBeacon` + 30초 조회수 호출 |
+| 12 | `T07:NextEpisodeCard` | 종료 10초 전 노출 |
+| 13 | `T07:AgeGate` | 확인 인터스티셜 |
 
 ### hls.js 초기화 규칙
 
@@ -254,6 +288,9 @@ fatal && MEDIA_ERROR       → hls.recoverMediaError()  (최대 2회)
 | `saveProgress` 15초 미만 재호출 → 429 | 통합 |
 | `countView` — 같은 사용자 같은 날 2회 → 1 증가 | 통합 ★ |
 | `countView` — 날짜 변경 후 → 다시 증가 | 통합 |
+| 비로그인 조회수 식별자는 원본 IP가 아닌 HMAC 해시 | 단위 |
+| 연령확인 쿠키 변조·만료·다른 에피소드/등급 → 거부 | 단위 ★ |
+| `A19` 생년 입력은 DB·쿠키·로그에 남지 않음 | 통합 ★ |
 | `usePlayer` 상태 전이 | 컴포넌트 |
 | Safari 판정 시 hls.js 미사용 | 컴포넌트 (`canPlayType` 모킹) |
 | hls.js 네트워크 fatal → 3회 재시도 후 포기 | 컴포넌트 |

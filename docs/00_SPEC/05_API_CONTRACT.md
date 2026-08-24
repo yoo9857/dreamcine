@@ -134,7 +134,9 @@ Response: 200 {
 | DELETE | `/api/episodes/:id` | 소유자 | REMOVED 전이 |
 | POST | `/api/episodes/:id/publish` | 소유자 | 상태 전이 |
 | GET | `/api/episodes/:id/playback` | — | 재생 정보 발급 |
+| POST | `/api/episodes/:id/age-confirm` | 선택 | 연령 확인 증명 쿠키 발급 |
 | POST | `/api/episodes/:id/progress` | 필수 | 이어보기 좌표 저장 |
+| POST | `/api/episodes/:id/views` | 선택 | 누적 30초 시청 조회수 집계 |
 
 ```ts
 // POST /api/episodes
@@ -173,10 +175,32 @@ Errors: E_EPISODE_NOT_FOUND, E_EPISODE_NOT_PUBLISHED, E_ASSET_NOT_READY,
 ```
 
 ```ts
+// POST /api/episodes/:id/age-confirm
+Request:  { confirmed: true, birthYear?: number(int, 1900..현재연도) }
+Response: 204 (본문 없음) + 서명된 HttpOnly 연령확인 쿠키 (1시간)
+규칙:
+- ALL 은 확인 없이 playback 가능하다.
+- A12/A15 는 confirmed=true 를 요구한다.
+- A19 는 인증과 birthYear 를 모두 요구하고, 현재연도-birthYear >= 19 여야 한다.
+- 쿠키는 episodeId·ageRating·만료시각을 AUTH_SECRET 으로 서명하고
+  Path=/api/episodes/{episodeId}/playback, HttpOnly, Secure(프로덕션), SameSite=Lax 로 발급한다.
+Errors: E_EPISODE_NOT_FOUND, E_AUTH_REQUIRED, E_PERM_AGE_RESTRICTED
+```
+
+```ts
 // POST /api/episodes/:id/progress
 Request:  { positionSec: number(int, >=0), completed?: boolean }
 Response: 204 (본문 없음)
 규칙: 클라이언트는 15초 간격 또는 일시정지/이탈 시에만 호출. 그보다 잦으면 429.
+```
+
+```ts
+// POST /api/episodes/:id/views
+Request:  본문 없음
+Response: 204 (본문 없음)
+규칙: 클라이언트는 실제 재생 누적 30초 후 세션당 1회 호출한다.
+      서버는 인증 시 userId, 미인증 시 서버가 HMAC 처리한 ipHash 를 사용한다.
+      클라이언트가 보낸 사용자·IP 식별자는 받지 않는다.
 ```
 
 ## 6. 피드 · 검색 (T09)
@@ -284,7 +308,9 @@ Response 503: { status: 'degraded', checks: { db: 'ok', redis: 'fail', storage: 
 | 업로드 총량 | 50GB / 1일 | userId |
 | `POST /api/episodes/*/comments` | 30회 / 10분 | userId |
 | `POST /api/reports` | 20회 / 1일 | userId |
+| `POST /api/episodes/*/age-confirm` | 10회 / 10분 | userId 또는 IP |
 | `POST /api/episodes/*/progress` | 10회 / 1분 | userId+episodeId |
+| `POST /api/episodes/*/views` | 10회 / 1분 | userId 또는 IP |
 | 기타 인증 API | 300회 / 1분 | userId |
 | 기타 공개 API | 100회 / 1분 | IP |
 
