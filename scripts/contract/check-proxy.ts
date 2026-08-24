@@ -25,6 +25,9 @@ const REQUIRED_HEADER_UP = 'header_up X-Forwarded-For {remote_host}'
 const REQUIRED_DIRECTIVE =
   /^[ \t]*header_up[ \t]+X-Forwarded-For[ \t]+\{remote_host\}[ \t]*$/mu
 
+/** 앱의 요청별 nonce CSP를 프록시가 고정 CSP로 덮어쓰면 화면 전체가 실행되지 않는다. */
+const DEFAULT_CSP_DIRECTIVE = /^[ \t]*\?Content-Security-Policy[ \t]+/mu
+
 interface Block {
   readonly startLine: number
   readonly body: string
@@ -96,6 +99,12 @@ export async function checkProxy(
         '  첫 값이 되어 IP 레이트리밋이 우회됩니다. (OBS-006)',
       ].join('\n'),
     )
+
+  if (!DEFAULT_CSP_DIRECTIVE.test(source)) {
+    problems.push(
+      `${CADDYFILE_PATH}: Content-Security-Policy must use the ? default prefix so the app nonce is preserved.`,
+    )
+  }
 
   return { ok: problems.length === 0, problems }
 }

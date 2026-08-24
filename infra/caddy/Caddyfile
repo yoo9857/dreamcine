@@ -5,7 +5,7 @@
 
 (security_headers) {
 	header {
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CDN_BASE_URL}; media-src 'self' blob: {$CDN_BASE_URL}; connect-src 'self' {$CDN_BASE_URL} {$S3_ENDPOINT}; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CDN_BASE_URL}; media-src 'self' blob: {$CDN_BASE_URL}; connect-src 'self' {$CDN_BASE_URL} {$S3_ENDPOINT}; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"

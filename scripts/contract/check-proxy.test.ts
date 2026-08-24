@@ -27,6 +27,9 @@ async function createRoot(content?: string): Promise<string> {
 }
 
 const GOOD = `example.com {
+\theader {
+\t\t?Content-Security-Policy "default-src 'self'"
+\t}
 \thandle {
 \t\treverse_proxy web:3000 {
 \t\t\theader_up X-Forwarded-For {remote_host}
@@ -42,6 +45,16 @@ describe('checkProxy', () => {
     const root = await createRoot(GOOD)
 
     await expect(checkProxy(root)).resolves.toEqual({ ok: true, problems: [] })
+  })
+
+  it('고정 CSP로 앱의 nonce를 덮어쓰면 실패한다', async () => {
+    const root = await createRoot(
+      GOOD.replace('?Content-Security-Policy', 'Content-Security-Policy'),
+    )
+
+    const result = await checkProxy(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems.join('\n')).toContain('nonce')
   })
 
   it('XFF 덮어쓰기가 없으면 신고한다', async () => {
