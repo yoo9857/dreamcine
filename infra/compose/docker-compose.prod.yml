@@ -11,6 +11,7 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
       ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
       CDN_BASE_URL: ${CDN_BASE_URL:?CDN_BASE_URL is required}
+      S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT is required}
       BOOTSTRAP_MODE: ${BOOTSTRAP_MODE:-false}
     ports:
       - '80:80'
