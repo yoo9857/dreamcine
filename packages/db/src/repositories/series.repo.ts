@@ -1,5 +1,5 @@
-import type { AgeRating, Page, Series } from '@aidream/core'
-import { AppError } from '@aidream/core'
+import type { AgeRating, Episode, Page, Series } from '@aidream/core'
+import { AppError, NotImplementedError } from '@aidream/core'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
 import { executeDb } from '../errors.js'
@@ -29,6 +29,43 @@ export interface ListSeriesByOwnerOptions {
   limit: number
   cursor?: string
   includeDeleted?: false
+}
+
+export interface ListPublicSeriesOptions {
+  readonly limit: number
+  readonly cursor?: string
+}
+
+export interface SeriesDetailRecord {
+  readonly series: Series
+  readonly episodes: readonly Episode[]
+}
+
+export interface SoftDeleteSeriesResult {
+  readonly series: Series
+  readonly assetIds: readonly string[]
+}
+
+export function countSeriesByOwner(_ownerId: string): Promise<number> {
+  throw new NotImplementedError('T08:countSeriesByOwner')
+}
+
+export function listPublicSeries(
+  _options: ListPublicSeriesOptions,
+): Promise<Page<Series>> {
+  throw new NotImplementedError('T08:listPublicSeries')
+}
+
+export function findPublicSeriesDetail(
+  _id: string,
+): Promise<SeriesDetailRecord | null> {
+  throw new NotImplementedError('T08:findPublicSeriesDetail')
+}
+
+export function softDeleteSeriesCascade(
+  _id: string,
+): Promise<SoftDeleteSeriesResult> {
+  throw new NotImplementedError('T08:softDeleteSeriesCascade')
 }
 
 function dateCursor(cursor: string): { createdAt: Date; id: string } {

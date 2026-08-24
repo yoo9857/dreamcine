@@ -9,6 +9,9 @@ export { QUEUE, QUEUE_NAMES, type QueueName } from './queues.js'
 export {
   JOB_SCHEMAS,
   DbPurgeJobSchema,
+  EpisodeMediaDeleteJobSchema,
+  NotificationFanoutJobSchema,
+  PublishScheduledJobSchema,
   RecoverStuckJobSchema,
   StorageCleanupJobSchema,
   ThumbnailJobSchema,

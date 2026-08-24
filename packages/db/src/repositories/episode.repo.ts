@@ -1,5 +1,10 @@
 import type { AgeRating, Episode, EpisodeStatus, Page } from '@aidream/core'
-import { AppError } from '@aidream/core'
+import {
+  AppError,
+  NotImplementedError,
+  type AssetStatus,
+  type TransitionPatch,
+} from '@aidream/core'
 import { Prisma } from '@prisma/client'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
@@ -32,6 +37,51 @@ export interface ListEpisodesOptions {
   includeDeleted?: false
   limit: number
   cursor?: string
+}
+
+export interface CreateEpisodeWithTagsData {
+  readonly seriesId: string
+  readonly seasonNumber: number
+  readonly number: number
+  readonly title: string
+  readonly description?: string | null
+  readonly assetId: string
+  readonly ageRating: AgeRating
+  readonly aiDisclosure: string
+  readonly tags: readonly string[]
+}
+
+export interface EpisodeTransitionRecord {
+  readonly episode: Episode
+  readonly ownerId: string
+  readonly assetStatus: AssetStatus | null
+}
+
+export function createEpisodeWithTags(
+  _input: CreateEpisodeWithTagsData,
+): Promise<Episode> {
+  throw new NotImplementedError('T08:createEpisodeWithTags')
+}
+
+export function findEpisodeForTransition(
+  _id: string,
+): Promise<EpisodeTransitionRecord | null> {
+  throw new NotImplementedError('T08:findEpisodeForTransition')
+}
+
+export function transitionEpisode(
+  _id: string,
+  _next: EpisodeStatus,
+  _patch: TransitionPatch,
+): Promise<Episode> {
+  throw new NotImplementedError('T08:transitionEpisode')
+}
+
+export function listScheduledEpisodesDue(
+  _now: Date,
+  _limit: number,
+): Promise<readonly EpisodeTransitionRecord[]> {
+  throw new NotImplementedError('T08:listScheduledEpisodesDue')
 }
 
 function dateCursor(cursor: string): { createdAt: Date; id: string } {

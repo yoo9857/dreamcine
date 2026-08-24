@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ERROR_CODES } from '@aidream/core'
 
 import { QUEUE, type QueueName } from './queues.js'
 
@@ -35,6 +36,24 @@ export const DbPurgeJobSchema = z.object({
   dryRun: z.boolean(),
 })
 
+export const PublishScheduledJobSchema = z.object({})
+
+export const EpisodeMediaDeleteJobSchema = z.object({
+  assetId: z.string().min(1),
+})
+
+export const NotificationFanoutJobSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('NEW_EPISODE'),
+    episodeId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal('PUBLISH_FAILED'),
+    episodeId: z.string().min(1),
+    errorCode: z.enum(ERROR_CODES),
+  }),
+])
+
 /**
  * 큐 이름 → 페이로드 스키마. 이 표가 발행 함수의 타입 안전성을 만든다.
  *
@@ -47,6 +66,9 @@ export const JOB_SCHEMAS = {
   [QUEUE.STORAGE_CLEANUP]: StorageCleanupJobSchema,
   [QUEUE.RECOVER_STUCK]: RecoverStuckJobSchema,
   [QUEUE.DB_PURGE]: DbPurgeJobSchema,
+  [QUEUE.EPISODE_PUBLISH]: PublishScheduledJobSchema,
+  [QUEUE.EPISODE_MEDIA_DELETE]: EpisodeMediaDeleteJobSchema,
+  [QUEUE.NOTIFY_FANOUT]: NotificationFanoutJobSchema,
 } as const
 
 export type DefinedQueue = keyof typeof JOB_SCHEMAS

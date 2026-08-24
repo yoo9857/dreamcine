@@ -8,6 +8,7 @@ export const QUEUE = {
   VIDEO_TRANSCODE: 'video.transcode',
   VIDEO_THUMBNAIL: 'video.thumbnail',
   EPISODE_PUBLISH: 'episode.publishScheduled',
+  EPISODE_MEDIA_DELETE: 'episode.mediaDelete',
   FEED_RANK: 'feed.rankRecompute',
   COUNTER_FLUSH: 'counter.flush',
   COUNTER_RECONCILE: 'counter.reconcile',

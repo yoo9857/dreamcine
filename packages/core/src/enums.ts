@@ -54,6 +54,7 @@ export const NotifType = [
   'NEW_LIKE',
   'TRANSCODE_DONE',
   'TRANSCODE_FAILED',
+  'PUBLISH_FAILED',
   'MODERATION',
 ] as const
 

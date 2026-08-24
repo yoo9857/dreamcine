@@ -116,3 +116,34 @@ export {
   type PlaybackResponse,
   type SaveProgressInput,
 } from './schemas/playback.schema.js'
+export {
+  CreateSeriesSchema,
+  SeriesListQuerySchema,
+  SeriesResponseSchema,
+  UpdateSeriesSchema,
+  type CreateSeriesInput,
+  type SeriesListQuery,
+  type SeriesResponse,
+  type UpdateSeriesInput,
+} from './schemas/series.schema.js'
+export {
+  CreateEpisodeSchema,
+  EpisodeResponseSchema,
+  PublishEpisodeResponseSchema,
+  PublishEpisodeSchema,
+  UpdateEpisodeSchema,
+  type CreateEpisodeInput,
+  type EpisodeResponse,
+  type PublishEpisodeInput,
+  type PublishEpisodeResponse,
+  type UpdateEpisodeInput,
+} from './schemas/episode.schema.js'
+export {
+  checkEpisodeTransition,
+  type TransitionActor,
+  type TransitionContext,
+  type TransitionPatch,
+  type TransitionVerdict,
+} from './state/episode-state.js'
+export { ensureUniqueSlug, toSlug } from './rules/slug.js'
+export { normalizeTag } from './rules/tag.js'

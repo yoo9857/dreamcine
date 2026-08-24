@@ -4,6 +4,7 @@ import type {
   Rendition,
   VideoAsset,
 } from '@aidream/core'
+import { NotImplementedError } from '@aidream/core'
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
@@ -62,6 +63,18 @@ export interface FailAssetData {
   readonly userId: string | null
   readonly errorCode: ErrorCode
   readonly retryable: boolean
+}
+
+export interface AssetOwnershipRecord {
+  readonly asset: VideoAsset
+  readonly ownerId: string
+  readonly episodeId: string | null
+}
+
+export function findAssetOwnership(
+  _assetId: string,
+): Promise<AssetOwnershipRecord | null> {
+  throw new NotImplementedError('T08:findAssetOwnership')
 }
 
 export function findAssetById(id: string): Promise<VideoAsset | null> {
