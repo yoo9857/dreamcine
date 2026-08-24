@@ -62,6 +62,54 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [ISS-016] 예약공개 실패를 전달할 알림 타입이 없음
+- 발견 단계: T08/S1
+- 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §2,
+  `10_TASKS/T08_SERIES_EPISODE.md` §5·§6,
+  `10_TASKS/T10_SOCIAL_GRAPH.md` §4
+- 문제: 예약공개 시 자산 실패나 AI 표기 누락을 발견하면 에피소드를 `DRAFT`로
+  되돌리고 크리에이터에게 실패 이유를 알리도록 요구한다. 그러나 `NotifType`과
+  `NotifyInput`에는 신작·팔로우·댓글·좋아요·트랜스코드·심사 알림만 있고 예약공개
+  실패를 표현할 타입과 payload가 없다. `TRANSCODE_FAILED`는 AI 표기 누락을 표현할 수
+  없고, `MODERATION`으로 보내면 사용자 화면과 의미가 거짓이 된다.
+- 재현/근거: `NotifType`은 `NEW_EPISODE`, `NEW_FOLLOWER`, `NEW_COMMENT`, `NEW_LIKE`,
+  `TRANSCODE_DONE`, `TRANSCODE_FAILED`, `MODERATION`으로 닫혀 있다. 예약공개 잡의 실패
+  원인은 `E_EPISODE_ASSET_NOT_READY` 또는 `E_EPISODE_AI_DISCLOSURE_REQUIRED` 등
+  에피소드 공개 오류인데 이를 담을 알림 계약이 없다.
+- 제안:
+  1. 권장: `NotifType`에 `PUBLISH_FAILED`를 추가하고 payload를
+     `{ episodeId, errorCode }`로 고정한다. T08 워커가 소유자에게 직접 생성할 수 있도록
+     T10의 `NotifyInput` 계약에도 같은 타입을 추가한다.
+  2. 대안: 별도 알림 없이 스튜디오의 에피소드 상태와 구조적 로그로만 노출한다. 다만
+     "크리에이터에게 이유 알림" 요구를 삭제해야 한다.
+- 영향: 도메인 enum, Prisma enum 마이그레이션, core 엔티티·알림 zod,
+  T08 예약공개 잡, T10 알림 렌더링과 테스트.
+- 상태: OPEN (사람 판단 대기)
+
+## [ISS-015] scheduler 실행 주체와 실패 복귀 전이를 상태기계가 표현하지 못함
+- 발견 단계: T08/S1
+- 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §3,
+  `10_TASKS/T08_SERIES_EPISODE.md` §4·§5·§8
+- 문제: 모든 상태 변경은 `checkEpisodeTransition`을 통과해야 하지만 상태기계 입력은
+  `actorRole: UserRole`과 `isOwner`만 받아 scheduler를 표현할 수 없다. 더구나 예약공개
+  검증 실패 시 `SCHEDULED → DRAFT`로 되돌리라는 요구가 있으나 Episode 전이표에는 이
+  전이가 없다. 워커가 상태를 직접 쓰면 "상태 변경 코드가 상태기계 밖에 없음" 완료
+  조건을 위반하고, 가짜 사용자 역할을 넣으면 권한 판정이 거짓이 된다.
+- 재현/근거: 허용 전이표는 `DRAFT → SCHEDULED/PUBLISHED`,
+  `SCHEDULED → PUBLISHED`, `PUBLISHED ↔ HIDDEN`, `* → REMOVED`뿐이다. 반면 예약공개
+  잡은 실패 분기에서 명시적으로 `status = DRAFT`를 요구한다. `TransitionContext`에는
+  scheduler/system 실행을 나타내는 필드가 없다.
+- 제안:
+  1. 권장: 실행 주체를
+     `{ kind: 'USER'; role: UserRole; isOwner: boolean } | { kind: 'SCHEDULER' }`로
+     구분하고, `SCHEDULED → DRAFT`를 scheduler 전용 실패 복귀 전이로 추가한다.
+     scheduler의 `SCHEDULED → PUBLISHED`도 이 주체로만 허용한다.
+  2. 대안: 검증 실패 시 `SCHEDULED`를 유지해 다음 주기에 재시도하고 별도 실패 횟수
+     또는 종착 조건을 둔다. 현재의 `DRAFT` 복귀 요구를 수정해야 한다.
+- 영향: Episode 상태 전이표, `TransitionContext`, 25개 전이 전수 테스트,
+  `publish-episode.ts`, 예약공개 잡과 통합 테스트.
+- 상태: OPEN (사람 판단 대기)
+
 ## [ISS-014] 재공개 상태 전이가 기존 publishedAt을 보존할 수 없음
 - 발견 단계: T08/S1
 - 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §3,
@@ -84,7 +132,9 @@
      DB가 기존 값을 유지하게 한다. 다만 "patch가 최종 값을 명시한다"는 계약은 약해진다.
 - 영향: `episode-state.ts` 시그니처와 전수 단위 테스트, `publish-episode.ts`,
   예약공개 잡이 구성하는 상태기계 입력, T08 작업지시서의 S2 예시.
-- 상태: OPEN (사람 판단 대기)
+- 결정: 권장안 채택. `TransitionContext.publishedAt`을 추가하고 상태기계가 최초
+  공개에는 `now`, 재공개에는 기존 입력값을 반환한다. (2026-08-25, 사용자 승인)
+- 상태: RESOLVED
 
 ## [ISS-013] 연령 확인 결과를 재생 API가 검증할 계약과 데이터가 없음
 - 발견 단계: T07/S1

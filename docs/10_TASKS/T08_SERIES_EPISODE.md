@@ -60,6 +60,7 @@ export interface TransitionContext {
   assetStatus: AssetStatus | null
   aiDisclosure: string | null
   publishAt: Date | null
+  publishedAt: Date | null
   now: Date
   actorRole: UserRole
   isOwner: boolean
@@ -76,6 +77,8 @@ export function checkEpisodeTransition(ctx: TransitionContext): TransitionVerdic
 
 **이 함수가 반환하는 `patch` 를 그대로 DB 에 쓴다.** 서비스 계층이
 `publishedAt` 을 스스로 계산하지 않는다 — 계산 로직이 두 곳에 있으면 반드시 어긋난다.
+최초 공개는 `publishedAt: now`, 재공개(`HIDDEN → PUBLISHED`)는 입력으로 받은 기존
+`publishedAt` 을 그대로 반환한다.
 
 ```ts
 // packages/core/src/rules/slug.ts
