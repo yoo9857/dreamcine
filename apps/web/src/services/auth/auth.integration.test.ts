@@ -17,6 +17,7 @@ const originalEnv = {
   SMTP_URL: process.env.SMTP_URL,
   MAIL_FROM: process.env.MAIL_FROM,
   CDN_BASE_URL: process.env.CDN_BASE_URL,
+  NEXT_PUBLIC_CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL,
 }
 
 let container: StartedPostgreSqlContainer
@@ -92,7 +93,8 @@ beforeAll(async () => {
   process.env.AUTH_SECRET =
     'integration-secret-that-is-at-least-thirty-two-bytes'
   process.env.APP_URL = 'http://127.0.0.1:3000'
-  process.env.CDN_BASE_URL = 'http://127.0.0.1:9000/aidream-hls'
+  process.env.CDN_BASE_URL = 'http://127.0.0.1:9002'
+  process.env.NEXT_PUBLIC_CDN_BASE_URL = 'http://127.0.0.1:9002'
   // SMTP_URL 이 없으면 메일은 네트워크로 나가지 않는다. 토큰은 DB 에서 읽는다.
   delete process.env.SMTP_URL
   delete process.env.MAIL_FROM
@@ -429,7 +431,7 @@ describe('profile', () => {
     expect(updated).toMatchObject({
       displayName: '새 이름',
       bio: '소개글',
-      avatarUrl: 'http://127.0.0.1:9000/aidream-hls/avatars/user.webp',
+      avatarUrl: 'http://127.0.0.1:9002/avatars/user.webp',
     })
   })
 
