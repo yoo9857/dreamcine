@@ -5,11 +5,11 @@
   "type": "module",
   "exports": {
     ".": {
-      "production": "./dist/index.js",
+      "worker": "./dist/index.js",
       "default": "./src/index.ts"
     },
     "./cdn": {
-      "production": "./dist/cdn.js",
+      "worker": "./dist/cdn.js",
       "default": "./src/cdn.ts"
     }
   },

@@ -41,4 +41,4 @@ COPY --from=deps --chown=node:node /app/apps/worker/node_modules ./node_modules
 USER node
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD node -e "process.kill(1,0)"
-CMD ["node", "--conditions=production", "dist/index.js"]
+CMD ["node", "--conditions=worker", "dist/index.js"]

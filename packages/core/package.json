@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": {
-      "production": "./dist/index.js",
+      "worker": "./dist/index.js",
       "default": "./src/index.ts"
     }
   },
