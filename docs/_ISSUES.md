@@ -62,6 +62,52 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [ISS-013] 연령 확인 결과를 재생 API가 검증할 계약과 데이터가 없음
+- 발견 단계: T07/S1
+- 스펙 위치: `00_SPEC/05_API_CONTRACT.md` §5, `00_SPEC/04_DOMAIN_MODEL.md` §2,
+  `00_SPEC/08_UIUX_SPEC.md` §1·§6, `10_TASKS/T07_PLAYER_HLS.md` §4·§5
+- 문제: T07은 `getPlayback`이 HLS URL을 발급하기 전에 `checkAgeGate()`를 실행하고,
+  `A19`는 인증과 생년 확인, `A12`/`A15`는 확인 클릭을 요구한다. 그러나 공개 계약의
+  `GET /api/episodes/:id/playback`에는 연령 확인 결과를 전달할 요청 필드가 없고,
+  `User` 모델과 세션에도 `birthYear`가 없다. `AgeGate` 인터스티셜의 확인 결과를 서버가
+  신뢰할 수 있게 전달하거나 재사용하는 API·쿠키 계약도 없다. 따라서 서버는 `A19`
+  연령을 계산할 수 없고, `A12`/`A15` 확인 전후도 구분할 수 없다.
+- 재현/근거: `AgeGateInput.viewer.birthYear`는 T07 작업 문서에만 존재한다.
+  `prisma/schema.prisma`의 `User`, `apps/web/src/auth/types.ts`의 `SessionUser`,
+  `05_API_CONTRACT.md`의 가입·프로필·playback 계약 어디에도 생년 또는 연령 확인 증명이
+  없다. 클라이언트 상태만 보고 URL을 발급하면 새 요청으로 우회할 수 있어 서버 측
+  `checkAgeGate()` 요구를 만족하지 못한다.
+- 제안:
+  1. 권장: 연령 확인 전용 POST 계약을 추가해 생년/확인 입력을 검증하고 짧은 수명의
+     서명된 HttpOnly 확인 쿠키를 발급한다. playback GET은 이 쿠키와 인증 세션을 함께
+     검증한다. 생년을 DB에 영구 저장하지 않아 개인정보 범위를 최소화한다.
+  2. 대안: `User`에 생년 필드를 추가하고 가입/프로필/세션 계약까지 확장한다.
+     `A12`/`A15` 확인 클릭은 별도의 서버 검증 가능한 상태 계약이 여전히 필요하다.
+- 영향: Prisma 모델·마이그레이션 또는 확인 쿠키, 인증/세션, playback 계약과 스키마,
+  `AgeGate`, CSP/CSRF 처리, 연령 판정 단위·통합·E2E 테스트.
+- 상태: OPEN (사람 판단 대기)
+
+## [ISS-012] 30초 조회수 집계를 호출할 공개 API가 없음
+- 발견 단계: T07/S1
+- 스펙 위치: `00_SPEC/06_MEDIA_PIPELINE.md` §5,
+  `00_SPEC/05_API_CONTRACT.md` §5·§10, `10_TASKS/T07_PLAYER_HLS.md` §3·§5
+- 문제: 미디어 계약은 로그인 사용자와 비로그인 IP 모두 누적 30초 시청 후 조회수를
+  한 번 집계하도록 요구한다. T07도 `countView` 서비스와 `userId ?? ipHash` 키를
+  명시하지만, 산출물과 REST 계약에는 이를 호출할 라우트가 없다. 유일한 쓰기 경로인
+  `POST /api/episodes/:id/progress`는 인증 필수이고 요청도 `positionSec`·`completed`뿐이라
+  비로그인 시청자는 사용할 수 없다. playback GET에서 집계하면 30초 조건을 증명하지
+  못한다.
+- 재현/근거: `05_API_CONTRACT.md`의 에피소드 API 표에는 playback GET과 progress POST만
+  있고 조회수 엔드포인트가 없다. T07 산출물 표에도 `count-view.ts` 서비스는 있으나
+  대응하는 `route.ts`가 없다. 클라이언트가 서버 서비스 함수를 직접 호출할 수는 없다.
+- 제안: 인증 선택인 `POST /api/episodes/:id/views`(빈 본문, 204)를 계약과 산출물에
+  추가한다. 서버가 세션의 `userId` 또는 요청 메타데이터에서 만든 비가역 `ipHash`를
+  선택하고, `countView`가 Redis `SET ... NX EX 86400` 성공 시에만 버퍼를 증가시킨다.
+  클라이언트가 보낸 사용자/IP 식별자는 받지 않는다.
+- 영향: API 계약·zod/OpenAPI, T07 산출물 목록, 라우트와 서비스 통합 테스트,
+  공개 API 레이트리밋·프록시 IP 신뢰 정책.
+- 상태: OPEN (사람 판단 대기)
+
 ## [ISS-011] 업로드 재개 응답에 완료 파트 ETag가 없어 멀티파트 완료가 불가능함
 - 발견 단계: T05/S3
 - 스펙 위치: `00_SPEC/05_API_CONTRACT.md` §3, `10_TASKS/T05_UPLOAD.md` §5·§7
