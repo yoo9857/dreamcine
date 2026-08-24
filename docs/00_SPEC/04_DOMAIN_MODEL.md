@@ -48,7 +48,7 @@ enum AgeRating     { ALL A12 A15 A19 }
 enum ReportStatus  { OPEN REVIEWING ACTIONED REJECTED }
 enum ReportReason  { SEXUAL VIOLENCE HATE SPAM COPYRIGHT MINOR_SAFETY OTHER }
 enum ReportTarget  { EPISODE SERIES COMMENT USER }
-enum NotifType     { NEW_EPISODE NEW_FOLLOWER NEW_COMMENT NEW_LIKE TRANSCODE_DONE TRANSCODE_FAILED MODERATION }
+enum NotifType     { NEW_EPISODE NEW_FOLLOWER NEW_COMMENT NEW_LIKE TRANSCODE_DONE TRANSCODE_FAILED PUBLISH_FAILED MODERATION }
 
 // ───────────────────────────── 사용자
 
@@ -456,8 +456,9 @@ model Report {
 
 ```
 DRAFT ──▶ SCHEDULED ──▶ PUBLISHED ──▶ HIDDEN ──▶ PUBLISHED
-  │            │            │            │
-  │            └────────────┴────────────┴──▶ REMOVED (되돌릴 수 없음)
+  │  ▲        │            │            │
+  │  └────────┘            └────────────┴──▶ REMOVED (되돌릴 수 없음)
+  │    scheduler 검증 실패 시에만 복귀
   └──▶ PUBLISHED  (즉시 공개)
 ```
 
@@ -466,6 +467,7 @@ DRAFT ──▶ SCHEDULED ──▶ PUBLISHED ──▶ HIDDEN ──▶ PUBLISH
 | `* → PUBLISHED` | `asset.status === 'READY'` **그리고** `aiDisclosure` 비어있지 않음 |
 | `DRAFT → SCHEDULED` | `publishAt` 이 현재보다 미래 |
 | `SCHEDULED → PUBLISHED` | scheduler 또는 소유자 수동 |
+| `SCHEDULED → DRAFT` | scheduler가 공개 직전 조건 검증에 실패한 경우만 |
 | `PUBLISHED → HIDDEN` | 소유자 또는 MODERATOR |
 | `* → REMOVED` | 소유자 또는 ADMIN. **불가역.** |
 | `REMOVED → *` | **전면 금지** |

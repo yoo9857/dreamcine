@@ -1,7 +1,7 @@
 # T08 — 시리즈 · 에피소드 · 공개예약
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인   — 2026-08-25 / 산출물 60개 확정 / ISS-014·015·016 승인 반영
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -50,10 +50,69 @@
 | `apps/web/src/components/studio/AiDisclosureField.tsx` | AI 표기 입력 | S3 |
 | `apps/web/src/components/SeriesCard.tsx` | 시리즈 카드 | S3 |
 
+### S1 추가 산출물
+
+기존 저장소의 서비스/리포지토리/큐 경계를 대조해, 라우트가 DB를 직접 호출하지 않고
+예약공개·미디어 삭제가 실제 워커까지 연결되도록 아래 파일을 범위에 포함한다.
+
+| 경로 | 책임 | 단계 |
+|---|---|---|
+| `packages/core/src/enums.ts` | 승인된 `PUBLISH_FAILED` 알림 enum | S2 |
+| `packages/core/src/index.ts` | T08 스키마·상태기계·규칙 export | S2 |
+| `packages/core/src/state/episode-state.test.ts` | 상태 × 조건 × 실행주체 전수 테스트 | S3 |
+| `packages/core/src/rules/series-rules.test.ts` | 슬러그·고유화·태그 경계값 | S3 |
+| `packages/core/src/schemas/series-episode.schema.test.ts` | REST 입력·출력 zod 계약 | S3 |
+| `prisma/schema.prisma` | `PUBLISH_FAILED` enum 반영 | S2 |
+| `prisma/migrations/20260825090000_t08_publish_failed_notification/migration.sql` | 알림 enum 마이그레이션 | S2 |
+| `packages/db/src/repositories/series.repo.ts` | 시리즈 조회·한도·생성·수정·연쇄삭제 | S2→S3 |
+| `packages/db/src/repositories/episode.repo.ts` | 시즌·에피소드·태그·상태 전이 트랜잭션 | S2→S3 |
+| `packages/db/src/repositories/asset.repo.ts` | 자산 소유자·연결 여부 조회 | S3 |
+| `packages/db/src/index.ts` | T08 repository export | S2 |
+| `packages/db/tests/series-episode.integration.test.ts` | 시리즈·에피소드·상태·연쇄삭제 DB 통합 | S3 |
+| `packages/queue/src/queues.ts` | 에피소드 미디어 삭제 큐 상수 | S2 |
+| `packages/queue/src/jobs.ts` | 예약공개·알림·미디어 삭제 payload zod | S2→S3 |
+| `packages/queue/src/index.ts` | T08 큐 스키마 export | S2 |
+| `packages/queue/src/jobs.test.ts` | T08 잡 payload 검증 | S3 |
+| `apps/worker/src/index.ts` | 예약공개·미디어 삭제 consumer 등록 | S3 |
+| `apps/worker/src/scheduler.ts` | 1분 예약공개 등록 + 30초 리더 락/10초 갱신 | S3 |
+| `apps/worker/src/scheduler.test.ts` | 이중 scheduler 중 단일 리더 검증 | S3 |
+| `apps/worker/src/jobs/delete-episode-media.ts` | 삭제된 에피소드 HLS 제거 | S2→S3 |
+| `apps/worker/src/jobs/episode-jobs.test.ts` | 예약공개·미디어 삭제·알림 멱등 통합 | S3 |
+| `apps/web/src/services/series/list-series.ts` | 공개 시리즈 커서 목록 | S3 |
+| `apps/web/src/services/series/get-series.ts` | 시리즈 상세 + 공개 에피소드 목록 | S3 |
+| `apps/web/src/services/episode/get-episode.ts` | 공개/소유자 에피소드 상세 | S3 |
+| `apps/web/src/services/episode/delete-episode.ts` | 상태기계를 통한 REMOVED 전이 | S3 |
+| `apps/web/src/services/series/series-episode.integration.test.ts` | 서비스 권한·한도·상태·큐 통합 | S3 |
+| `apps/web/app/(main)/series/[seriesId]/loading.tsx` | 시리즈 상세 로딩 상태 | S3 |
+| `apps/web/app/(main)/series/[seriesId]/error.tsx` | 시리즈 상세 오류·재시도 상태 | S3 |
+| `apps/web/app/(studio)/studio/loading.tsx` | 스튜디오 목록 로딩 상태 | S3 |
+| `apps/web/app/(studio)/studio/error.tsx` | 스튜디오 목록 오류·재시도 상태 | S3 |
+| `apps/web/app/(studio)/studio/series/[seriesId]/loading.tsx` | 에피소드 관리 로딩 상태 | S3 |
+| `apps/web/app/(studio)/studio/series/[seriesId]/error.tsx` | 에피소드 관리 오류·재시도 상태 | S3 |
+| `apps/web/src/components/studio/studio-components.test.tsx` | T08 화면 상태·AI 필수·액션 컴포넌트 | S3 |
+| `apps/web/src/lib/messages/ko.ts` | 시리즈·에피소드·예약공개 한국어 문구 | S3 |
+| `apps/web/e2e/series-episode.e2e.ts` | US-02, US-08 | S3 |
+| `openapi.json` | T08 시리즈·에피소드 REST 계약 | S3 |
+
+### S1 경계 결정
+
+- T08은 `EPISODE_PUBLISH`, `NOTIFY_FANOUT`, 에피소드 미디어 삭제 잡의 payload와
+  발행까지 소유한다. 신작 팬아웃의 실제 소비·알림 목록 UI는 T10이 확장한다.
+- 삭제 서비스는 에피소드별 `assetId`를 미디어 삭제 큐에 멱등 `jobId`로 발행한다.
+  워커는 HLS만 즉시 지우며 원본과 DB 자산의 보존·물리 삭제는 기존 정리 정책을 따른다.
+- 예약공개 잡은 처리 결과(공개/초안복귀/실패 건수)를 구조화해 반환한다. 공통 잡
+  메트릭 수집은 T11의 `withJob`이 이 결과를 계측하도록 연결한다.
+- 공개/소유자 조회, 커서 목록, 삭제 라우트도 서비스 계층을 거친다. 라우트에서
+  repository를 직접 호출하지 않는다.
+
 ## 4. S2 Skeleton
 
 ```ts
 // packages/core/src/state/episode-state.ts — 이 프로젝트에서 가장 중요한 순수 함수
+export type TransitionActor =
+  | { kind: 'USER'; role: UserRole; isOwner: boolean }
+  | { kind: 'SCHEDULER' }
+
 export interface TransitionContext {
   current: EpisodeStatus
   next: EpisodeStatus
@@ -62,8 +121,7 @@ export interface TransitionContext {
   publishAt: Date | null
   publishedAt: Date | null
   now: Date
-  actorRole: UserRole
-  isOwner: boolean
+  actor: TransitionActor
 }
 
 export type TransitionVerdict =
@@ -149,7 +207,9 @@ export function ensureUniqueSlug(base: string, taken: (s: string) => Promise<boo
 2. 각 에피소드에 대해:
      checkEpisodeTransition({ current:'SCHEDULED', next:'PUBLISHED', ... })
      ok  → 전이 + 알림 팬아웃 발행
-     실패 → status 를 DRAFT 로 되돌리고 크리에이터에게 이유 알림
+     실패 → checkEpisodeTransition({ current:'SCHEDULED', next:'DRAFT',
+                                     actor:{ kind:'SCHEDULER' }, ... })
+            를 통과해 DRAFT 로 되돌리고 크리에이터에게 PUBLISH_FAILED 알림
             (예: 자산이 그 사이 FAILED 가 된 경우)
 3. 처리 건수를 메트릭으로 기록
 4. 100건을 모두 처리했으면 즉시 다시 실행 (밀린 물량 소화)
@@ -205,6 +265,8 @@ export function ensureUniqueSlug(base: string, taken: (s: string) => Promise<boo
   × AI표기 2종 (있음 / 없음)
   × 역할 3종 (소유자 / 모더레이터 / 타인)
 전부 테스트한다. 표로 정의하고 반복 실행한다.
+별도로 scheduler 주체의 `SCHEDULED → PUBLISHED/DRAFT` 허용과 나머지 전이 거부를
+전수 테스트한다.
 ```
 
 | 케이스 | 방식 |

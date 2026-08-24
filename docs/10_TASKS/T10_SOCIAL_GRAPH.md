@@ -63,6 +63,7 @@ export type NotifyInput =
   | { type: 'NEW_EPISODE';      to: string; seriesId: string; episodeId: string }
   | { type: 'TRANSCODE_DONE';   to: string; assetId: string; episodeId?: string }
   | { type: 'TRANSCODE_FAILED'; to: string; assetId: string; errorCode: string }
+  | { type: 'PUBLISH_FAILED';   to: string; episodeId: string; errorCode: string }
   | { type: 'MODERATION';       to: string; targetType: string; targetId: string; action: string }
 
 export function notify(input: NotifyInput): Promise<void> {

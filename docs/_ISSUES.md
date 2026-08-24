@@ -84,7 +84,9 @@
      "크리에이터에게 이유 알림" 요구를 삭제해야 한다.
 - 영향: 도메인 enum, Prisma enum 마이그레이션, core 엔티티·알림 zod,
   T08 예약공개 잡, T10 알림 렌더링과 테스트.
-- 상태: OPEN (사람 판단 대기)
+- 결정: 권장안 채택. `PUBLISH_FAILED`와 `{ episodeId, errorCode }` payload를
+  도메인 및 T10 알림 계약에 추가한다. (2026-08-25, 사용자 승인)
+- 상태: RESOLVED
 
 ## [ISS-015] scheduler 실행 주체와 실패 복귀 전이를 상태기계가 표현하지 못함
 - 발견 단계: T08/S1
@@ -108,7 +110,10 @@
      또는 종착 조건을 둔다. 현재의 `DRAFT` 복귀 요구를 수정해야 한다.
 - 영향: Episode 상태 전이표, `TransitionContext`, 25개 전이 전수 테스트,
   `publish-episode.ts`, 예약공개 잡과 통합 테스트.
-- 상태: OPEN (사람 판단 대기)
+- 결정: 권장안 채택. 실행 주체를 사용자/scheduler 판별 유니온으로 바꾸고,
+  scheduler 전용 `SCHEDULED → DRAFT` 실패 복귀 전이를 추가한다.
+  (2026-08-25, 사용자 승인)
+- 상태: RESOLVED
 
 ## [ISS-014] 재공개 상태 전이가 기존 publishedAt을 보존할 수 없음
 - 발견 단계: T08/S1
