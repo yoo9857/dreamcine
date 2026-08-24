@@ -3,8 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-22 / 산출물 20 + 추가 6 확정 · 참조 스펙 6개 정독 · 발견 3건
 - [x] S2 Skeleton — 2026-08-22 / `pnpm gate:s2` PASS · 잔존 NIE 19개 · core 규칙·큐·서비스·업로드 엔진 시그니처 확정
-- [ ] S3 구현 — **진행 중.** 마커 5~9(서비스)·1~4(규칙·큐) 완료, 잔존 6.
-      남은 것: `use-upload.ts` 4개 마커 + 라우트 5개 + 업로드 UI + `/studio/upload` + E2E
+- [x] S3 구현 — 2026-08-24 / CI gate PASS · 잔존 NIE 0 · US-02/US-09 및 멱등 완료 검증
 
 ### S3 진행 중 발견
 
@@ -344,10 +343,10 @@ export const QUEUE = {
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T05:...')` = 0
-- [ ] `upload-flow.e2e.ts` (US-02, US-09) 통과
-- [ ] 멱등성 테스트 통과 (complete 2회 → 자산 1개, 잡 1개)
+- [x] `pnpm gate` 통과
+- [x] 잔존 `NotImplementedError('T05:...')` = 0
+- [x] `upload-flow.e2e.ts` (US-02, US-09) 통과
+- [x] 멱등성 테스트 통과 (complete 2회 → 자산 1개, 잡 1개)
 - [ ] 버킷 CORS 에 `ExposeHeaders: ETag` 확인 (실제 브라우저에서 ETag 읽힘)
 - [ ] **500MB 이상 실제 파일**로 수동 업로드 성공 (파트 다수 경로 검증)
 - [ ] 업로드 중 개발자도구에서 네트워크 차단 → 복구 → 재개 성공 (수동)
