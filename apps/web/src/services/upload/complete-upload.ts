@@ -21,6 +21,12 @@ import {
   requireS3UploadId,
 } from './session-access'
 
+export interface CompleteUploadOutcome {
+  readonly result: CompleteUploadResult
+  /** true면 이미 완료된 세션의 같은 자산을 반환한 멱등 재생이다. */
+  readonly replayed: boolean
+}
+
 /**
  * 멀티파트를 완료하고 자산을 만든 뒤 트랜스코드 잡을 발행한다.
  * (T05 §5 `completeUpload` 순서)
@@ -32,7 +38,7 @@ export async function completeUpload(
   session: RouteSession,
   uploadId: string,
   input: CompleteUploadInput,
-): Promise<CompleteUploadResult> {
+): Promise<CompleteUploadOutcome> {
   const upload = await loadOwnedSession(session, uploadId)
 
   // 2·3. 이미 끝났는가, 되돌릴 수 없는 상태인가.
@@ -52,15 +58,20 @@ export async function completeUpload(
   // 4. 만료
   assertNotExpired(upload)
 
-  // 5. 파트가 다 있는가 — 없는 번호를 detail 로 알려줘야 그것만 다시 올린다.
-  assertAllParts(input, upload.totalParts, uploadId)
+  /*
+    5. 재개 전에 Object Storage에서 동기화한 ETag와 이번 탭에서 올린 ETag를
+    병합한다. 브라우저는 새로고침 뒤 이전 PUT 응답 ETag를 복원할 수 없으므로
+    서버가 병합하지 않으면 "누락분만 재업로드"가 성립하지 않는다. (ISS-011)
+  */
+  const parts = mergeCompletedParts(upload.completedParts, input.parts)
+  assertAllParts(parts, upload.totalParts, uploadId)
 
   // 6. S3 완료
   const s3UploadId = requireS3UploadId(upload)
   const completed = await completeMultipartIdempotently(
     upload.objectKey,
     s3UploadId,
-    input,
+    parts,
     uploadId,
   )
   if (completed === 'already-completed') {
@@ -78,12 +89,15 @@ export async function completeUpload(
   // 8. 트랜스코드 발행 — jobId 를 assetId 로 고정해 중복을 막는다.
   await enqueueTranscode(asset.id)
 
-  return { assetId: asset.id, status: asset.status }
+  return {
+    result: { assetId: asset.id, status: asset.status },
+    replayed: false,
+  }
 }
 
 async function alreadyCompleted(
   uploadId: string,
-): Promise<CompleteUploadResult> {
+): Promise<CompleteUploadOutcome> {
   const asset = await findAssetByUploadId(uploadId)
   if (asset === null) {
     /*
@@ -96,15 +110,18 @@ async function alreadyCompleted(
       uploadId,
     })
   }
-  return { assetId: asset.id, status: asset.status }
+  return {
+    result: { assetId: asset.id, status: asset.status },
+    replayed: true,
+  }
 }
 
 function assertAllParts(
-  input: CompleteUploadInput,
+  parts: readonly CompleteUploadInput['parts'][number][],
   totalParts: number,
   uploadId: string,
 ): void {
-  const present = new Set(input.parts.map((part) => part.partNumber))
+  const present = new Set(parts.map((part) => part.partNumber))
   const missing: number[] = []
   for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
     if (!present.has(partNumber)) {
@@ -121,6 +138,37 @@ function assertAllParts(
   }
 }
 
+function mergeCompletedParts(
+  stored: unknown,
+  incoming: readonly CompleteUploadInput['parts'][number][],
+): CompleteUploadInput['parts'] {
+  const merged = new Map<number, string>()
+  if (Array.isArray(stored)) {
+    const entries: unknown[] = stored
+    for (const entry of entries) {
+      if (
+        typeof entry === 'object' &&
+        entry !== null &&
+        'partNumber' in entry &&
+        typeof entry.partNumber === 'number' &&
+        Number.isInteger(entry.partNumber) &&
+        'etag' in entry &&
+        typeof entry.etag === 'string' &&
+        entry.etag !== ''
+      ) {
+        merged.set(entry.partNumber, entry.etag)
+      }
+    }
+  }
+  for (const part of incoming) {
+    merged.set(part.partNumber, part.etag)
+  }
+  return [...merged.entries()].map(([partNumber, etag]) => ({
+    partNumber,
+    etag,
+  }))
+}
+
 /**
  * S3 완료. **410 을 곧이곧대로 믿지 않는다.**
  *
@@ -134,7 +182,7 @@ function assertAllParts(
 async function completeMultipartIdempotently(
   objectKey: string,
   s3UploadId: string,
-  input: CompleteUploadInput,
+  parts: readonly CompleteUploadInput['parts'][number][],
   uploadId: string,
 ): Promise<{ sizeBytes: number } | 'already-completed'> {
   try {
@@ -142,7 +190,7 @@ async function completeMultipartIdempotently(
       BUCKET.ORIGINALS,
       objectKey,
       s3UploadId,
-      input.parts,
+      parts,
     )
   } catch (error: unknown) {
     const expired =

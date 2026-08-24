@@ -58,7 +58,12 @@ export const CompletedPartSchema = z.object({
 
 /** 순서는 무관하다. 서버가 정렬한다. (05_API_CONTRACT.md §3) */
 export const CompleteUploadSchema = z.object({
-  parts: z.array(CompletedPartSchema).min(1),
+  /*
+    재개 시 모든 파트가 이미 Object Storage에 있을 수 있다. 이전 ETag는 서버가
+    UploadSession.completedParts에서 병합하므로 이번 탭에서 새로 올린 파트가
+    없다면 빈 배열도 유효하다. (ISS-011)
+  */
+  parts: z.array(CompletedPartSchema),
 })
 
 export type CompleteUploadInput = z.infer<typeof CompleteUploadSchema>

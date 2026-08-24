@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   findUploadSessionById: vi.fn(),
   createUploadSession: vi.fn(),
   updateUploadStatus: vi.fn(),
+  updateCompletedParts: vi.fn(),
   sumUploadBytesSince: vi.fn(),
   createAsset: vi.fn(),
   findAssetByUploadId: vi.fn(),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   signParts: vi.fn(),
   completeMultipart: vi.fn(),
   abortMultipart: vi.fn(),
+  listUploadedParts: vi.fn(),
   enqueue: vi.fn(),
 }))
 
@@ -21,6 +23,7 @@ vi.mock('@aidream/db', () => ({
   findUploadSessionById: mocks.findUploadSessionById,
   createUploadSession: mocks.createUploadSession,
   updateUploadStatus: mocks.updateUploadStatus,
+  updateCompletedParts: mocks.updateCompletedParts,
   sumUploadBytesSince: mocks.sumUploadBytesSince,
   createAsset: mocks.createAsset,
   findAssetByUploadId: mocks.findAssetByUploadId,
@@ -35,6 +38,7 @@ vi.mock('@aidream/storage', async () => {
     signParts: mocks.signParts,
     completeMultipart: mocks.completeMultipart,
     abortMultipart: mocks.abortMultipart,
+    listUploadedParts: mocks.listUploadedParts,
   }
 })
 
@@ -109,6 +113,8 @@ beforeEach(() => {
   ])
   mocks.createUploadSession.mockResolvedValue(uploadRow())
   mocks.updateUploadStatus.mockResolvedValue(uploadRow())
+  mocks.updateCompletedParts.mockResolvedValue(uploadRow())
+  mocks.listUploadedParts.mockResolvedValue([])
   mocks.enqueue.mockResolvedValue(undefined)
 })
 
@@ -254,11 +260,52 @@ describe('completeUpload — 멱등성', () => {
   it('정상 완료는 자산을 만들고 잡을 발행한다', async () => {
     const result = await completeUpload(routeSession(), 'upl_1', { parts })
 
-    expect(result).toEqual({ assetId: 'ast_1', status: 'PENDING' })
+    expect(result).toEqual({
+      result: { assetId: 'ast_1', status: 'PENDING' },
+      replayed: false,
+    })
     expect(mocks.enqueue).toHaveBeenCalledWith(
       'video.transcode',
       { assetId: 'ast_1' },
       { jobId: 'ast_1' },
+    )
+  })
+
+  it('재개 전 저장된 ETag와 새 ETag를 병합해 완료한다', async () => {
+    mocks.findUploadSessionById.mockResolvedValue(
+      uploadRow({
+        completedParts: parts.slice(0, 3),
+      }),
+    )
+
+    await completeUpload(routeSession(), 'upl_1', {
+      parts: [parts[3] ?? { partNumber: 4, etag: 'd' }],
+    })
+
+    expect(mocks.completeMultipart).toHaveBeenCalledWith(
+      'originals',
+      'originals/usr_1/upl_1/drama.mp4',
+      's3-upload-1',
+      parts,
+    )
+  })
+
+  it('모든 파트가 이전 탭에서 완료됐으면 빈 배열로 완료한다', async () => {
+    mocks.findUploadSessionById.mockResolvedValue(
+      uploadRow({ completedParts: parts }),
+    )
+
+    await expect(
+      completeUpload(routeSession(), 'upl_1', { parts: [] }),
+    ).resolves.toEqual({
+      result: { assetId: 'ast_1', status: 'PENDING' },
+      replayed: false,
+    })
+    expect(mocks.completeMultipart).toHaveBeenCalledWith(
+      'originals',
+      'originals/usr_1/upl_1/drama.mp4',
+      's3-upload-1',
+      parts,
     )
   })
 
@@ -275,7 +322,10 @@ describe('completeUpload — 멱등성', () => {
 
     const result = await completeUpload(routeSession(), 'upl_1', { parts })
 
-    expect(result.assetId).toBe('ast_1')
+    expect(result).toEqual({
+      result: { assetId: 'ast_1', status: 'READY' },
+      replayed: true,
+    })
     expect(mocks.completeMultipart).not.toHaveBeenCalled()
     expect(mocks.createAsset).not.toHaveBeenCalled()
     expect(mocks.enqueue).not.toHaveBeenCalled()
@@ -308,7 +358,10 @@ describe('completeUpload — 멱등성', () => {
 
     await expect(
       completeUpload(routeSession(), 'upl_1', { parts }),
-    ).resolves.toEqual({ assetId: 'ast_1', status: 'PENDING' })
+    ).resolves.toEqual({
+      result: { assetId: 'ast_1', status: 'PENDING' },
+      replayed: true,
+    })
   })
 
   it('410 인데 자산도 없으면 그대로 던진다', async () => {
@@ -329,7 +382,10 @@ describe('completeUpload — 멱등성', () => {
 
     await expect(
       completeUpload(routeSession(), 'upl_1', { parts }),
-    ).resolves.toEqual({ assetId: 'ast_1', status: 'PENDING' })
+    ).resolves.toEqual({
+      result: { assetId: 'ast_1', status: 'PENDING' },
+      replayed: false,
+    })
   })
 })
 
@@ -480,24 +536,26 @@ describe('abortUpload', () => {
 
 describe('getUploadSession — 재개', () => {
   it('완료된 파트 번호를 정렬해 돌려준다', async () => {
-    mocks.findUploadSessionById.mockResolvedValue(
-      uploadRow({
-        completedParts: [
-          { partNumber: 3, etag: 'c' },
-          { partNumber: 1, etag: 'a' },
-        ],
-      }),
-    )
+    mocks.findUploadSessionById.mockResolvedValue(uploadRow())
+    mocks.listUploadedParts.mockResolvedValue([
+      { partNumber: 1, etag: 'a' },
+      { partNumber: 3, etag: 'c' },
+    ])
 
     const state = await getUploadSession(routeSession(), 'upl_1')
 
     expect(state.completedParts).toEqual([1, 3])
     expect(state.totalParts).toBe(4)
+    expect(mocks.updateCompletedParts).toHaveBeenCalledWith('upl_1', [
+      { partNumber: 1, etag: 'a' },
+      { partNumber: 3, etag: 'c' },
+    ])
   })
 
   it('중복 번호를 하나로 만든다', async () => {
     mocks.findUploadSessionById.mockResolvedValue(
       uploadRow({
+        status: 'UPLOADED',
         completedParts: [
           { partNumber: 1, etag: 'a' },
           { partNumber: 1, etag: 'a2' },
@@ -515,12 +573,24 @@ describe('getUploadSession — 재개', () => {
     // 완료 시점의 InvalidPart 로만 드러난다.
     for (const broken of [null, 'nope', 42, [{ nope: 1 }], [1, 2]]) {
       mocks.findUploadSessionById.mockResolvedValue(
-        uploadRow({ completedParts: broken as never }),
+        uploadRow({ status: 'UPLOADED', completedParts: broken as never }),
       )
 
       expect(
         (await getUploadSession(routeSession(), 'upl_1')).completedParts,
       ).toEqual([])
     }
+  })
+
+  it('Object Storage 조회 실패를 빈 목록으로 숨기지 않는다', async () => {
+    mocks.findUploadSessionById.mockResolvedValue(uploadRow())
+    mocks.listUploadedParts.mockRejectedValue(
+      new AppError('E_STORAGE_UNAVAILABLE'),
+    )
+
+    await expect(
+      getUploadSession(routeSession(), 'upl_1'),
+    ).rejects.toMatchObject({ code: 'E_STORAGE_UNAVAILABLE' })
+    expect(mocks.updateCompletedParts).not.toHaveBeenCalled()
   })
 })

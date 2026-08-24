@@ -3,7 +3,7 @@
   "info": {
     "title": "AIDREAM API",
     "version": "0.0.0",
-    "description": "05_API_CONTRACT.md 의 REST 계약. 이 문서는 T03 범위(인증 · 내 프로필 · 시스템)만 포함하며 태스크가 진행될 때마다 확장된다. 모든 응답은 no-store 이며 X-Request-Id 헤더를 가진다."
+    "description": "05_API_CONTRACT.md 의 REST 계약. 현재 T03 인증·프로필·시스템과 T05 멀티파트 업로드 범위를 포함한다. 모든 응답은 no-store 이며 X-Request-Id 헤더를 가진다."
   },
   "servers": [
     {
@@ -18,6 +18,10 @@
     {
       "name": "me",
       "description": "내 프로필"
+    },
+    {
+      "name": "uploads",
+      "description": "멀티파트 업로드 · 재개"
     },
     {
       "name": "system",
@@ -292,6 +296,130 @@
             "type": "string",
             "format": "date-time"
           }
+        }
+      },
+      "CreateUploadRequest": {
+        "type": "object",
+        "required": ["fileName", "fileSize", "mimeType"],
+        "additionalProperties": false,
+        "properties": {
+          "fileName": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "fileSize": { "type": "integer", "minimum": 1 },
+          "mimeType": {
+            "type": "string",
+            "enum": [
+              "video/mp4",
+              "video/quicktime",
+              "video/x-matroska",
+              "video/webm"
+            ]
+          },
+          "checksum": { "type": "string", "maxLength": 128 }
+        }
+      },
+      "SignedPart": {
+        "type": "object",
+        "required": ["partNumber", "url", "expiresAt"],
+        "additionalProperties": false,
+        "properties": {
+          "partNumber": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "url": { "type": "string", "format": "uri" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateUploadResponse": {
+        "type": "object",
+        "required": [
+          "uploadId",
+          "partSize",
+          "totalParts",
+          "parts",
+          "expiresAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "uploadId": { "type": "string" },
+          "partSize": { "type": "integer", "minimum": 1 },
+          "totalParts": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "parts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SignedPart" }
+          },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UploadSessionState": {
+        "type": "object",
+        "required": [
+          "uploadId",
+          "status",
+          "fileName",
+          "fileSize",
+          "partSize",
+          "totalParts",
+          "completedParts",
+          "expiresAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "uploadId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["CREATED", "UPLOADING", "UPLOADED", "FAILED", "ABORTED"]
+          },
+          "fileName": { "type": "string" },
+          "fileSize": { "type": "integer", "minimum": 1 },
+          "partSize": { "type": "integer", "minimum": 1 },
+          "totalParts": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "completedParts": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1, "maximum": 10000 }
+          },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SignPartsRequest": {
+        "type": "object",
+        "required": ["partNumbers"],
+        "additionalProperties": false,
+        "properties": {
+          "partNumbers": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1, "maximum": 10000 }
+          }
+        }
+      },
+      "CompleteUploadRequest": {
+        "type": "object",
+        "required": ["parts"],
+        "additionalProperties": false,
+        "properties": {
+          "parts": {
+            "type": "array",
+            "description": "이번 브라우저 탭에서 새로 완료한 파트. 재개 전 파트는 서버가 병합한다.",
+            "items": {
+              "type": "object",
+              "required": ["partNumber", "etag"],
+              "additionalProperties": false,
+              "properties": {
+                "partNumber": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10000
+                },
+                "etag": { "type": "string", "minLength": 1, "maxLength": 256 }
+              }
+            }
+          }
+        }
+      },
+      "CompleteUploadResponse": {
+        "type": "object",
+        "required": ["assetId", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "assetId": { "type": "string" },
+          "status": { "type": "string", "enum": ["PENDING"] }
         }
       },
       "Health": {
@@ -784,6 +912,252 @@
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads": {
+      "post": {
+        "tags": ["uploads"],
+        "summary": "업로드 세션 생성과 첫 파트 URL 발급",
+        "description": "티어별 시간당 한도를 userId 기준으로 적용한다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUploadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "세션 생성",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUploadResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "E_AUTH_REQUIRED / E_AUTH_SESSION_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "E_PERM_DENIED / E_AUTH_EMAIL_NOT_VERIFIED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "E_UPLOAD_TOO_LARGE / E_UPLOAD_QUOTA_EXCEEDED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "E_VALIDATION / E_UPLOAD_UNSUPPORTED_TYPE",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "E_RATE_LIMITED",
+            "headers": {
+              "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "E_STORAGE_UNAVAILABLE / E_DB_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "tags": ["uploads"],
+        "summary": "재개용 업로드 상태 조회",
+        "responses": {
+          "200": {
+            "description": "Object Storage와 동기화된 완료 파트 번호",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UploadSessionState" }
+              }
+            }
+          },
+          "404": {
+            "description": "E_UPLOAD_SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads/{id}/parts": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "post": {
+        "tags": ["uploads"],
+        "summary": "파트 URL 추가·재발급",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignPartsRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "서명 URL 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/SignedPart" }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E_UPLOAD_INVALID_PART",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "410": {
+            "description": "E_UPLOAD_SESSION_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads/{id}/complete": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "post": {
+        "tags": ["uploads"],
+        "summary": "멀티파트 완료와 트랜스코드 발행",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompleteUploadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "멱등 재요청 — 기존 자산",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteUploadResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "완료 접수",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteUploadResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E_UPLOAD_PART_MISSING / E_UPLOAD_ABORTED / E_UPLOAD_ALREADY_COMPLETED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "410": {
+            "description": "E_UPLOAD_SESSION_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads/{id}/abort": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "post": {
+        "tags": ["uploads"],
+        "summary": "멀티파트 업로드 중단과 정리",
+        "responses": {
+          "204": { "description": "중단 완료 또는 이미 종료됨" },
+          "404": {
+            "description": "E_UPLOAD_SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
           }

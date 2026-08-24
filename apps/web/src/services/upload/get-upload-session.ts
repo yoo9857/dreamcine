@@ -1,8 +1,10 @@
 import type { UploadSessionState } from '@aidream/core'
+import { updateCompletedParts } from '@aidream/db'
+import { BUCKET, listUploadedParts } from '@aidream/storage'
 
 import type { RouteSession } from '@/src/auth/types'
 
-import { loadOwnedSession } from './session-access'
+import { loadOwnedSession, requireS3UploadId } from './session-access'
 
 /**
  * 재개용 상태 조회.
@@ -17,6 +19,18 @@ export async function getUploadSession(
 ): Promise<UploadSessionState> {
   const upload = await loadOwnedSession(session, uploadId)
 
+  const storedParts =
+    upload.status === 'CREATED' || upload.status === 'UPLOADING'
+      ? await listUploadedParts(
+          BUCKET.ORIGINALS,
+          upload.objectKey,
+          requireS3UploadId(upload),
+        )
+      : null
+  if (storedParts !== null) {
+    await updateCompletedParts(upload.id, [...storedParts])
+  }
+
   return {
     uploadId: upload.id,
     status: upload.status,
@@ -24,7 +38,10 @@ export async function getUploadSession(
     fileSize: Number(upload.fileSize),
     partSize: upload.partSize,
     totalParts: upload.totalParts,
-    completedParts: completedPartNumbers(upload.completedParts),
+    completedParts:
+      storedParts === null
+        ? completedPartNumbers(upload.completedParts)
+        : storedParts.map((part) => part.partNumber),
     expiresAt: upload.expiresAt.toISOString(),
   }
 }

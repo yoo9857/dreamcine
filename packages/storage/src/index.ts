@@ -37,6 +37,7 @@ export {
   abortMultipart,
   completeMultipart,
   createMultipart,
+  listUploadedParts,
   listStaleMultipartUploads,
   signParts,
   type CompletedPart,

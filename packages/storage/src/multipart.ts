@@ -5,6 +5,7 @@ import {
   CreateMultipartUploadCommand,
   HeadObjectCommand,
   ListMultipartUploadsCommand,
+  ListPartsCommand,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -37,6 +38,52 @@ export interface StaleUpload {
   readonly key: string
   readonly uploadId: string
   readonly initiated: Date
+}
+
+/**
+ * 진행 중 멀티파트에 실제로 저장된 파트를 읽는다.
+ *
+ * 브라우저는 새로고침 뒤 File/ETag 목록을 복원할 수 없으므로 재개 상태의
+ * SSOT는 Object Storage다. S3 ListParts는 한 페이지가 최대 1,000개라
+ * 10,000파트 상한까지 페이지네이션을 반드시 따라간다.
+ */
+export async function listUploadedParts(
+  bucket: BucketKind,
+  key: string,
+  uploadId: string,
+): Promise<readonly CompletedPart[]> {
+  const bucketId = bucketName(bucket)
+  const parts: CompletedPart[] = []
+  let partNumberMarker: string | undefined
+
+  do {
+    const page = await withS3(() =>
+      s3().send(
+        new ListPartsCommand({
+          Bucket: bucketId,
+          Key: key,
+          UploadId: uploadId,
+          ...(partNumberMarker === undefined
+            ? {}
+            : { PartNumberMarker: partNumberMarker }),
+        }),
+      ),
+    )
+
+    for (const part of page.Parts ?? []) {
+      if (
+        part.PartNumber !== undefined &&
+        part.ETag !== undefined &&
+        part.ETag !== ''
+      ) {
+        parts.push({ partNumber: part.PartNumber, etag: part.ETag })
+      }
+    }
+    partNumberMarker =
+      page.IsTruncated === true ? page.NextPartNumberMarker : undefined
+  } while (partNumberMarker !== undefined)
+
+  return sortParts(parts)
 }
 
 /** 한 번에 서명하는 파트 수 상한. 그 이상은 추가 발급으로 나눈다. (06 §2) */

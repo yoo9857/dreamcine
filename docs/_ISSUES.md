@@ -62,6 +62,30 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [ISS-011] 업로드 재개 응답에 완료 파트 ETag가 없어 멀티파트 완료가 불가능함
+- 발견 단계: T05/S3
+- 스펙 위치: `00_SPEC/05_API_CONTRACT.md` §3, `10_TASKS/T05_UPLOAD.md` §5·§7
+- 문제: `GET /api/uploads/:id`의 재개 응답은 `completedParts: number[]`만 반환하지만,
+  `POST /api/uploads/:id/complete`는 모든 파트의 `{ partNumber, etag }`를 요구한다.
+  브라우저는 새로고침 뒤 File 객체와 이전 PUT 응답 ETag를 복원할 수 없다. 따라서
+  완료 파트 번호를 보고 누락분만 업로드하더라도 마지막 CompleteMultipartUpload에
+  이전 파트 ETag를 보낼 수 없다. 현재 계약으로는 "누락분만 재업로드"와 "모든
+  ETag로 완료"를 동시에 만족할 수 없다.
+- 재현/근거: `UploadSession.completedParts`에는 ETag를 저장할 수 있고 S3 ListParts도
+  ETag를 반환하지만, `UploadSessionStateSchema`가 응답에서 번호만 노출한다.
+  `CompleteUploadSchema`는 파트 배열을 1개 이상 요구하며 서비스도 요청 목록만 S3에
+  전달한다.
+- 제안:
+  1. 권장: 완료 서비스가 DB에 동기화된 기존 ETag와 이번 요청 ETag를 서버에서 병합하고,
+     `parts: []`도 허용한다. 재개 조회 응답은 번호만 유지해 ETag를 외부에 노출하지 않는다.
+  2. 대안: 재개 응답을 `{ partNumber, etag }[]`로 확장해 클라이언트가 전체 목록을
+     다시 보내게 한다.
+- 영향: `CompleteUploadSchema`, `completeUpload`, 업로드 엔진 테스트, OpenAPI 계약.
+- 결정: 권장안 채택. 상태 조회가 S3 ListParts 결과를 DB에 동기화하고, 완료 서비스가
+  저장된 ETag와 이번 요청 ETag를 병합한다. 모든 파트가 이전 탭에서 끝난 경우를 위해
+  `parts: []`도 허용한다. ETag는 클라이언트 응답에 노출하지 않는다. (2026-08-24)
+- 상태: RESOLVED
+
 ## [DEP-003] jsdom
 - 요청 단계: T14/S1
 - 용도: `packages/ui` 프리미티브 21개의 컴포넌트 테스트 실행 환경.

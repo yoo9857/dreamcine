@@ -14,6 +14,7 @@ import {
   completeMultipart,
   createMultipart,
   listStaleMultipartUploads,
+  listUploadedParts,
   signParts,
   type CompletedPart,
 } from './multipart.js'
@@ -110,6 +111,17 @@ afterAll(async () => {
 })
 
 describe.skipIf(skip)('멀티파트 왕복', () => {
+  it('재개를 위해 실제 업로드된 파트 번호와 ETag를 읽는다', async () => {
+    const key = `${ORIGINALS_PREFIX}resume-list.mp4`
+    const staged = await uploadTwoParts(key)
+
+    await expect(
+      listUploadedParts(BUCKET.ORIGINALS, key, staged.uploadId),
+    ).resolves.toEqual(staged.parts)
+
+    await abortMultipart(BUCKET.ORIGINALS, key, staged.uploadId)
+  }, 120_000)
+
   it('create → sign → PUT → complete 가 원본과 같은 바이트를 만든다', async () => {
     const key = `${ORIGINALS_PREFIX}roundtrip.mp4`
     const staged = await uploadTwoParts(key)
