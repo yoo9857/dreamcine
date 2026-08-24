@@ -76,7 +76,7 @@ compose() {
   if [[ "${DEPLOY_WORKER}" == '1' ]]; then
     profile=(--profile media)
   fi
-  WEB_IMAGE="${WEB_IMAGE}" WORKER_IMAGE="${WORKER_IMAGE}" \
+  env WEB_IMAGE="${WEB_IMAGE}" WORKER_IMAGE="${WORKER_IMAGE}" \
     docker compose -f "${COMPOSE_FILE}" "${profile[@]}" "$@"
 }
 
@@ -181,7 +181,7 @@ rollback() {
     return 1
   fi
   log "롤백 → ${previous}"
-  WEB_IMAGE="${previous}" WORKER_IMAGE="${WORKER_IMAGE}" \
+  env WEB_IMAGE="${previous}" WORKER_IMAGE="${WORKER_IMAGE}" \
     docker compose -f "${COMPOSE_FILE}" up -d --no-deps --wait web
   printf 'ROLLED BACK: %s\n' "${previous}" >&2
 }
