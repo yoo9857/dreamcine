@@ -64,6 +64,7 @@ const EPISODE = {
 beforeEach(() => {
   process.env.AUTH_SECRET = AUTH_SECRET
   process.env.CDN_BASE_URL = 'https://cdn.example.com'
+  process.env.NEXT_PUBLIC_CDN_BASE_URL = 'https://cdn.example.com'
   mocks.findEpisode.mockReset().mockResolvedValue(EPISODE)
   mocks.findProgress.mockReset().mockResolvedValue(null)
   mocks.hasBlock.mockReset().mockResolvedValue(false)
