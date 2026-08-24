@@ -5,7 +5,6 @@
 
 (security_headers) {
 	header {
-		?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CDN_BASE_URL}; media-src 'self' blob: {$CDN_BASE_URL}; connect-src 'self' {$CDN_BASE_URL} {$S3_ENDPOINT}; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
@@ -15,6 +14,10 @@
 		-Server
 		-Via
 	}
+}
+
+(fallback_csp) {
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CDN_BASE_URL}; media-src 'self' blob: {$CDN_BASE_URL}; connect-src 'self' {$CDN_BASE_URL} {$S3_ENDPOINT}; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 }
 
 http://{$DOMAIN} {
@@ -51,6 +54,7 @@ www.{$DOMAIN} {
 		not path /api/*
 	}
 	handle @bootstrap {
+		import fallback_csp
 		root * /srv/bootstrap
 		try_files {path} /index.html
 		header Cache-Control "no-store"
@@ -74,6 +78,7 @@ www.{$DOMAIN} {
 
 	handle_errors {
 		import security_headers
+		import fallback_csp
 		respond "Service temporarily unavailable" {http.error.status_code}
 	}
 

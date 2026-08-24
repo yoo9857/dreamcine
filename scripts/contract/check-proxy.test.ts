@@ -27,9 +27,6 @@ async function createRoot(content?: string): Promise<string> {
 }
 
 const GOOD = `example.com {
-\theader {
-\t\t?Content-Security-Policy "default-src 'self'"
-\t}
 \thandle {
 \t\treverse_proxy web:3000 {
 \t\t\theader_up X-Forwarded-For {remote_host}
@@ -47,9 +44,9 @@ describe('checkProxy', () => {
     await expect(checkProxy(root)).resolves.toEqual({ ok: true, problems: [] })
   })
 
-  it('고정 CSP로 앱의 nonce를 덮어쓰면 실패한다', async () => {
+  it('공통 헤더에서 CSP를 덮어쓰면 실패한다', async () => {
     const root = await createRoot(
-      GOOD.replace('?Content-Security-Policy', 'Content-Security-Policy'),
+      `(security_headers) {\n\theader {\n\t\tContent-Security-Policy "default-src 'self'"\n\t}\n}\n${GOOD}`,
     )
 
     const result = await checkProxy(root)

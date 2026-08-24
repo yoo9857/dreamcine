@@ -25,12 +25,30 @@ const REQUIRED_HEADER_UP = 'header_up X-Forwarded-For {remote_host}'
 const REQUIRED_DIRECTIVE =
   /^[ \t]*header_up[ \t]+X-Forwarded-For[ \t]+\{remote_host\}[ \t]*$/mu
 
-/** 앱의 요청별 nonce CSP를 프록시가 고정 CSP로 덮어쓰면 화면 전체가 실행되지 않는다. */
-const DEFAULT_CSP_DIRECTIVE = /^[ \t]*\?Content-Security-Policy[ \t]+/mu
+const CSP_DIRECTIVE = /^[ \t]*\??Content-Security-Policy[ \t]+/mu
 
 interface Block {
   readonly startLine: number
   readonly body: string
+}
+
+function namedSnippet(source: string, name: string): string | null {
+  const lines = source.split(/\r?\n/u)
+  const start = lines.findIndex((line) =>
+    new RegExp(`^\\s*\\(${name}\\)\\s*\\{\\s*$`, 'u').test(line),
+  )
+  if (start < 0) return null
+
+  let depth = 0
+  const body: string[] = []
+  for (let cursor = start; cursor < lines.length; cursor += 1) {
+    const current = lines[cursor] ?? ''
+    body.push(current)
+    depth += (current.match(/\{/gu) ?? []).length
+    depth -= (current.match(/\}/gu) ?? []).length
+    if (depth === 0) break
+  }
+  return body.join('\n')
 }
 
 /**
@@ -100,9 +118,13 @@ export async function checkProxy(
       ].join('\n'),
     )
 
-  if (!DEFAULT_CSP_DIRECTIVE.test(source)) {
+  const sharedSecurityHeaders = namedSnippet(source, 'security_headers')
+  if (
+    sharedSecurityHeaders !== null &&
+    CSP_DIRECTIVE.test(sharedSecurityHeaders)
+  ) {
     problems.push(
-      `${CADDYFILE_PATH}: Content-Security-Policy must use the ? default prefix so the app nonce is preserved.`,
+      `${CADDYFILE_PATH}: shared security_headers must not overwrite the app nonce CSP.`,
     )
   }
 
