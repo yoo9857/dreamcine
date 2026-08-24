@@ -77,7 +77,8 @@ compose() {
     profile=(--profile media)
   fi
   env WEB_IMAGE="${WEB_IMAGE}" WORKER_IMAGE="${WORKER_IMAGE}" \
-    docker compose -f "${COMPOSE_FILE}" "${profile[@]}" "$@"
+    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" \
+    "${profile[@]}" "$@"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -182,7 +183,8 @@ rollback() {
   fi
   log "롤백 → ${previous}"
   env WEB_IMAGE="${previous}" WORKER_IMAGE="${WORKER_IMAGE}" \
-    docker compose -f "${COMPOSE_FILE}" up -d --no-deps --wait web
+    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" \
+    up -d --no-deps --wait web
   printf 'ROLLED BACK: %s\n' "${previous}" >&2
 }
 
