@@ -3,6 +3,18 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-08-24 T07/S3 최신 인수인계
+
+- 현재 브랜치/원격: `main`, 최신 구현 커밋 `80893c9`까지 `origin/main` 푸시 완료.
+- T07 구현: HLS/Safari 재생, 오류 복구, 키보드 컨트롤, 화질 선택, 이어보기, 30초 조회수, 연령 확인 쿠키, 4개 API 라우트, 시청 페이지, OpenAPI, US-03·US-04 E2E 완료.
+- 잔존 센티넬: `pnpm sss:remaining` 결과 `TOTAL=0`.
+- GitHub Actions Gate 실행 `32703707486`: Node 22 프로덕션 빌드, L1/L2/L3, E2E 20건 모두 PASS. 웹·워커 이미지는 GHCR 빌드/push 성공.
+- 첫 실행 `32703249014`는 테스트가 CI의 `NEXT_PUBLIC_CDN_BASE_URL`을 격리하지 않아 실패했고, 구현 문제가 아닌 테스트 환경값을 `80893c9`에서 수정했다.
+- 로컬 Windows는 Docker 런타임이 없어 Testcontainers 통합 스위트를 실행할 수 없고, Next standalone 파일 복사는 symlink `EPERM`이 난다. 동일 항목은 Linux CI에서 모두 통과했다.
+- 운영 배포 workflow는 수동이며 이번 세션에는 실행하지 않았다. 배포가 필요하면 승인 후 `deploy.yml`에 SHA `80893c997fc154fae47f8ff957386b6475334941`, `deploy_worker=true`로 실행하고 외부 health를 확인한다. 비밀번호·토큰·S3 키는 문서나 채팅에 적지 않는다.
+- T07의 자동화 구현은 끝났지만 실제 Chrome/Safari/Firefox/iOS Safari 수동 재생, Safari에서 hls.js 미로드, TTFF/CSP 콘솔 확인은 운영 전 수동 QA 항목으로 남아 있다.
+- 다음 개발 세션은 `T08 SERIES_EPISODE / S1 Spec 확인`만 진행한다. 시작 전 `HARNESS.md`, `docs/INDEX.md`, `docs/10_TASKS/T08_SERIES_EPISODE.md`를 읽고 한 세션 한 단계 규칙을 지킨다.
+
 ---
 
 ## 1. 지금 어디까지 왔나
