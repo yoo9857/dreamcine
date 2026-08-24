@@ -94,6 +94,16 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      # T06 은 실제 ffmpeg/ffprobe 프로세스를 띄워 HLS·썸네일 산출물을
+      # 검증한다. GitHub ubuntu-24.04 이미지에는 바이너리가 기본 제공되지
+      # 않으므로 통합 테스트 전에 명시적으로 설치한다.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+          ffmpeg -version
+          ffprobe -version
+
       # E2E 는 프로덕션 빌드를 대상으로 한다(dev 서버는 React Refresh 때문에
       # CSP 의 unsafe-eval 을 요구한다). 빌드를 Playwright webServer 안에서
       # 돌리면 실패가 "webServer timeout" 으로만 보이므로 스텝을 분리한다.
