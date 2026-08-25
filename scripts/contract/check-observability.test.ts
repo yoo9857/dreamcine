@@ -18,11 +18,38 @@ describe('observability contract', () => {
     await cp(join(process.cwd(), 'infra'), join(root, 'infra'), {
       recursive: true,
     })
+    await cp(join(process.cwd(), '.github'), join(root, '.github'), {
+      recursive: true,
+    })
     const path = join(root, 'infra', 'monitoring', 'alerts.yml')
     const source = await readFile(path, 'utf8')
     await writeFile(path, source.replace(/runbook:/u, 'missing-runbook:'))
     const result = await checkObservabilityContract(root)
     expect(result.ok).toBe(false)
     expect(result.problems.join(' ')).toContain('runbook')
+  })
+
+  it('rejects a workflow that passes promtool to the prometheus entrypoint', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'aidream-observability-'))
+    await cp(join(process.cwd(), 'infra'), join(root, 'infra'), {
+      recursive: true,
+    })
+    await cp(join(process.cwd(), '.github'), join(root, '.github'), {
+      recursive: true,
+    })
+    const path = join(root, '.github', 'workflows', 'gate.yml')
+    const source = await readFile(path, 'utf8')
+    await writeFile(
+      path,
+      source
+        .replace('            --entrypoint promtool \\\n', '')
+        .replace(
+          '            check rules /etc/aidream/alerts.yml',
+          '            promtool check rules /etc/aidream/alerts.yml',
+        ),
+    )
+    const result = await checkObservabilityContract(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems.join(' ')).toContain('promtool')
   })
 })

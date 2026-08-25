@@ -63,6 +63,19 @@ export async function checkObservabilityContract(
     if (!alerts.includes(`alert: ${alert}`))
       problems.push(`필수 NFR 알럿 누락: ${alert}`)
   }
+
+  const gateWorkflow = await readFile(
+    resolve(root, '.github', 'workflows', 'gate.yml'),
+    'utf8',
+  )
+  if (
+    !gateWorkflow.includes('--entrypoint promtool') ||
+    !gateWorkflow.includes('check rules /etc/aidream/alerts.yml')
+  ) {
+    problems.push(
+      'CI가 Prometheus 이미지에서 promtool 엔트리포인트를 실행하지 않습니다',
+    )
+  }
   return { ok: problems.length === 0, problems }
 }
 
