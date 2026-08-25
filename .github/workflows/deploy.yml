@@ -79,6 +79,7 @@ jobs:
           USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           SHA: ${{ inputs.sha }}
+          PROCEDURE_SHA: ${{ github.sha }}
           DEPLOY_WORKER: ${{ inputs.deploy_worker && '1' || '0' }}
           REGISTRY: ghcr.io/${{ github.repository }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,10 +95,11 @@ jobs:
           # (O01 §1 — 재현성 + 서버 자원 보호)
           echo '${GHCR_TOKEN}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
 
-          # deploy.sh 자체는 저장소에서 온다. 스크립트가 바뀌면 배포 절차도
-          # 바뀌므로 배포 대상 커밋의 것을 쓴다.
-          git fetch --quiet origin '${SHA}'
-          git checkout --quiet '${SHA}' -- scripts/ops/deploy.sh infra/compose infra/caddy
+          # 앱 이미지는 입력 SHA를 쓰되 배포 절차는 워크플로가 실행된 커밋의 것을
+          # 쓴다. 이전 앱 SHA를 재배포할 때도 최신 안전장치와 복구 절차를 유지한다.
+          git fetch --quiet origin '${SHA}' '${PROCEDURE_SHA}'
+          git checkout --quiet '${PROCEDURE_SHA}' -- scripts/ops/deploy.sh
+          git checkout --quiet '${SHA}' -- infra/compose infra/caddy
 
           scripts/ops/deploy.sh '${SHA}'
           REMOTE

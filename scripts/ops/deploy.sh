@@ -101,11 +101,18 @@ preflight() {
   docker manifest inspect "${WEB_IMAGE}" >/dev/null 2>&1 ||
     fail "웹 이미지를 찾을 수 없습니다: ${WEB_IMAGE} (CI 가 초록이었습니까?)"
 
+  local needs_pull=0
+  docker image inspect "${WEB_IMAGE}" >/dev/null 2>&1 || needs_pull=1
+  if [[ "${DEPLOY_WORKER}" == '1' ]]; then
+    docker image inspect "${WORKER_IMAGE}" >/dev/null 2>&1 || needs_pull=1
+  fi
+
   local free_kb
   free_kb="$(df -Pk "${REPO_ROOT}" | awk 'NR==2 {print $4}')"
-  # 이미지 두 개를 받을 여유가 없으면 pull 중간에 죽는다.
-  if ((free_kb < 3 * 1024 * 1024)); then
-    fail "디스크 여유가 3GiB 미만입니다 (${free_kb}KiB)"
+  # 새 이미지 레이어를 받아야 할 때만 pull 여유를 요구한다. 대상 이미지가 이미
+  # 로컬에 있으면 레지스트리 확인만 수행하므로 저용량 상태의 안전한 재배포를 막지 않는다.
+  if ((needs_pull == 1 && free_kb < 3 * 1024 * 1024)); then
+    fail "새 이미지를 받을 디스크 여유가 3GiB 미만입니다 (${free_kb}KiB)"
   fi
 
   printf 'PASS: %s\n' "${WEB_IMAGE}"
