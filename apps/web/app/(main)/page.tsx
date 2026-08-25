@@ -1,12 +1,12 @@
 import { Suspense, type ReactNode } from 'react'
 
-import { getServerSession } from '@/src/auth/server-session'
 import { FeedList, FeedSkeleton } from '@/src/components/feed/FeedList'
 import { getFeed } from '@/src/services/feed/get-feed'
 
 async function PopularFeed(): Promise<ReactNode> {
-  const session = await getServerSession()
-  const page = await getFeed({ type: 'popular', limit: 20 }, session)
+  // 홈 카드는 로그인별 좋아요 상태를 표시하지 않는다. 공개 캐시 경로를 사용해
+  // 세션·개인화 DB 조회가 첫 콘텐츠 스트리밍을 지연시키지 않게 한다.
+  const page = await getFeed({ type: 'popular', limit: 20 }, null)
   return (
     <FeedList
       type="popular"
