@@ -1,6 +1,6 @@
 import { Socket } from 'node:net'
 
-import { AppError } from '@aidream/core'
+import { AppError, NotImplementedError } from '@aidream/core'
 
 /**
  * 레이트리밋과 readiness 가 필요한 최소 명령만 노출하는 관문.
@@ -14,6 +14,8 @@ export interface RedisGateway {
   get(key: string): Promise<string | null>
   set(key: string, value: string, ttlSec: number): Promise<void>
   setIfAbsent(key: string, value: string, ttlSec: number): Promise<boolean>
+  getdel(key: string): Promise<string | null>
+  incrby(key: string, by: number): Promise<number>
 }
 
 export function isSetNxSuccess(reply: unknown): boolean {
@@ -326,6 +328,14 @@ class RedisClient implements RedisGateway {
         String(ttlSec),
       ]),
     )
+  }
+
+  getdel(_key: string): Promise<string | null> {
+    throw new NotImplementedError('T10:redisGetdel')
+  }
+
+  incrby(_key: string, _by: number): Promise<number> {
+    throw new NotImplementedError('T10:redisIncrby')
   }
 
   close(): void {

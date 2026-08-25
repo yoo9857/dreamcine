@@ -50,6 +50,7 @@ export const NotificationFanoutJobSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('NEW_EPISODE'),
     episodeId: z.string().min(1),
+    cursor: z.string().min(1).optional(),
   }),
   z.object({
     type: z.literal('PUBLISH_FAILED'),
@@ -57,6 +58,11 @@ export const NotificationFanoutJobSchema = z.discriminatedUnion('type', [
     errorCode: z.enum(ERROR_CODES),
   }),
 ])
+
+export const CounterFlushJobSchema = z.object({})
+export const CounterReconcileJobSchema = z.object({
+  changedSinceDays: z.number().int().positive().default(7),
+})
 
 /**
  * 큐 이름 → 페이로드 스키마. 이 표가 발행 함수의 타입 안전성을 만든다.
@@ -74,6 +80,8 @@ export const JOB_SCHEMAS = {
   [QUEUE.EPISODE_MEDIA_DELETE]: EpisodeMediaDeleteJobSchema,
   [QUEUE.FEED_RANK]: RankRecomputeJobSchema,
   [QUEUE.NOTIFY_FANOUT]: NotificationFanoutJobSchema,
+  [QUEUE.COUNTER_FLUSH]: CounterFlushJobSchema,
+  [QUEUE.COUNTER_RECONCILE]: CounterReconcileJobSchema,
 } as const
 
 export type DefinedQueue = keyof typeof JOB_SCHEMAS

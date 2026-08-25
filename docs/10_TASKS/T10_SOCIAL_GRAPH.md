@@ -2,7 +2,7 @@
 
 ## 진행 상태
 - [x] S1 Spec 확인   — 2026-08-25 / 산출물 61개 확정 / 기존 T02 소셜 repository 재사용
-- [ ] S2 Skeleton
+- [x] S2 Skeleton    — 2026-08-25 / gate:s2 PASS / 센티넬 27개
 - [ ] S3 구현
 
 ---

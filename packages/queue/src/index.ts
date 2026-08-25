@@ -8,6 +8,8 @@
 export { QUEUE, QUEUE_NAMES, type QueueName } from './queues.js'
 export {
   JOB_SCHEMAS,
+  CounterFlushJobSchema,
+  CounterReconcileJobSchema,
   DbPurgeJobSchema,
   EpisodeMediaDeleteJobSchema,
   NotificationFanoutJobSchema,

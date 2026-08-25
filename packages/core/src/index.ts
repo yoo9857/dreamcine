@@ -20,6 +20,7 @@ export type {
   FeedItem,
   Notification,
   Page,
+  PublicUserSummary,
   Rendition,
   Report,
   Season,
@@ -29,9 +30,33 @@ export type {
   TrendingTag,
   UploadSession,
   User,
+  UserProfile,
   UserSearchResult,
   VideoAsset,
 } from './entities.js'
+export { sanitizeUserText } from './rules/sanitize-text.js'
+export {
+  CommentBodySchema,
+  CommentListQuerySchema,
+  CommentPageSchema,
+  CommentResponseSchema,
+  CommentThreadItemSchema,
+  CreateCommentSchema,
+  UpdateCommentSchema,
+  type CommentListQuery,
+  type CommentResponse,
+  type CommentThreadItem,
+  type CreateCommentInput,
+  type UpdateCommentInput,
+} from './schemas/comment.schema.js'
+export {
+  MarkNotificationsReadSchema,
+  NotificationListQuerySchema,
+  NotificationPayloadSchema,
+  type MarkNotificationsReadInput,
+  type NotificationListQuery,
+  type NotificationPayload,
+} from './schemas/notification.schema.js'
 export { rankScore, type RankInput } from './rules/rank-score.js'
 export {
   PaginationSchema,

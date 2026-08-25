@@ -152,6 +152,20 @@ export interface Notification {
   createdAt: Date
 }
 
+export interface PublicUserSummary {
+  handle: string
+  displayName: string
+  avatarUrl: string | null
+}
+
+export interface UserProfile extends PublicUserSummary {
+  bio: string | null
+  followerCount: number
+  seriesCount: number
+  isFollowing: boolean
+  isBlocked: boolean
+}
+
 export interface Report {
   id: string
   reporterId: string
