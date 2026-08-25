@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { NotImplementedError } from '../errors/not-implemented.js'
 import { LIMITS } from '../limits.js'
 
 export const PaginationSchema = z.object({
@@ -11,6 +10,5 @@ export const PaginationSchema = z.object({
 export type PaginationInput = z.infer<typeof PaginationSchema>
 
 export function parsePagination(input: unknown): PaginationInput {
-  void input
-  throw new NotImplementedError('T09:paginationSchema')
+  return PaginationSchema.parse(input)
 }

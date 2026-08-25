@@ -1,7 +1,7 @@
 import { AppError } from '@aidream/core'
 import { describe, expect, it } from 'vitest'
 
-import { isSetNxSuccess, parseRedisUrl } from './redis'
+import { assertSetSuccess, isSetNxSuccess, parseRedisUrl } from './redis'
 
 describe('parseRedisUrl', () => {
   it('호스트와 포트를 읽는다', () => {
@@ -64,4 +64,21 @@ describe('SET NX EX reply', () => {
   it('예상 밖 응답은 큐 오류로 거부한다', () => {
     expect(() => isSetNxSuccess(1)).toThrow(AppError)
   })
+})
+
+describe('SET EX reply', () => {
+  it('OK 응답만 성공으로 인정한다', () => {
+    expect(() => {
+      assertSetSuccess('OK')
+    }).not.toThrow()
+  })
+
+  it.each([null, 1, 'QUEUED'])(
+    '예상 밖 응답 %s를 큐 오류로 거부한다',
+    (reply) => {
+      expect(() => {
+        assertSetSuccess(reply)
+      }).toThrow(AppError)
+    },
+  )
 })

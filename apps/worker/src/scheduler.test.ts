@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { startScheduler, type SchedulerDependencies } from './scheduler.js'
+import {
+  registerFeedRankSchedules,
+  startScheduler,
+  type SchedulerDependencies,
+} from './scheduler.js'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -66,5 +70,18 @@ describe('startScheduler', () => {
     expect(deps.register).toHaveBeenCalledOnce()
     await handle.close()
     expect(deps.release).toHaveBeenCalledOnce()
+  })
+})
+
+describe('registerFeedRankSchedules', () => {
+  it('최근 점수는 10분, 만료 점수는 하루 주기로 고유 등록한다', async () => {
+    const register = vi.fn().mockResolvedValue(undefined)
+
+    await registerFeedRankSchedules({ register })
+
+    expect(register.mock.calls).toEqual([
+      ['feed-rank-recent-every-ten-minutes', 600_000, { scope: 'recent' }],
+      ['feed-rank-expired-daily', 86_400_000, { scope: 'expired' }],
+    ])
   })
 })

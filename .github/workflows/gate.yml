@@ -173,6 +173,16 @@ jobs:
             exit 1
           fi
 
+      - name: Lighthouse mobile budgets
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! pnpm perf:lighthouse 2>&1 | tee lighthouse.log; then
+            MSG=$(tail -c 1200 lighthouse.log | tr -s '[:space:]' ' ')
+            echo "::error title=Lighthouse mobile budgets::${MSG}"
+            exit 1
+          fi
+
       - name: Collect dependency logs on failure
         if: failure()
         run: |
@@ -209,6 +219,7 @@ jobs:
             gate-l1.log
             gate-l2.log
             gate-l3.log
+            lighthouse.log
           retention-days: 7
           if-no-files-found: ignore
 

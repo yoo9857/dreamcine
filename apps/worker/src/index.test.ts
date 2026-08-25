@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   pause: vi.fn().mockResolvedValue(undefined),
   purge: vi.fn().mockResolvedValue(2),
   publishScheduled: vi.fn().mockResolvedValue({ published: 1 }),
+  rankRecompute: vi
+    .fn()
+    .mockResolvedValue({ examined: 1, updated: 1, hasMore: false }),
   recover: vi.fn().mockResolvedValue(3),
   schedulerClose: vi.fn().mockResolvedValue(undefined),
   startScheduler: vi.fn(),
@@ -57,6 +60,9 @@ vi.mock('./jobs/delete-episode-media.js', () => ({
 vi.mock('./jobs/publish-scheduled.js', () => ({
   publishScheduled: mocks.publishScheduled,
 }))
+vi.mock('./jobs/rank-recompute.js', () => ({
+  rankRecompute: mocks.rankRecompute,
+}))
 vi.mock('./jobs/recover-stuck.js', () => ({ recoverStuck: mocks.recover }))
 vi.mock('./jobs/transcode.js', () => ({
   processTranscodeJob: mocks.transcode,
@@ -75,6 +81,7 @@ beforeEach(() => {
   mocks.deleteEpisodeMedia.mockClear()
   mocks.purge.mockClear()
   mocks.publishScheduled.mockClear()
+  mocks.rankRecompute.mockClear()
   mocks.recover.mockClear()
   mocks.transcode.mockClear()
 })
@@ -98,6 +105,7 @@ describe('bootstrapWorker', () => {
       'db.purge',
       'episode.publishScheduled',
       'episode.mediaDelete',
+      'feed.rankRecompute',
     ])
     expect(mocks.workers[0]?.options).toMatchObject({
       concurrency: 2,
@@ -105,7 +113,7 @@ describe('bootstrapWorker', () => {
     })
     expect(
       mocks.workers.slice(1).map(({ options }) => options.concurrency),
-    ).toEqual([1, 1, 1, 1, 1])
+    ).toEqual([1, 1, 1, 1, 1, 1])
   })
 
   it('각 잡을 검증해 해당 처리기로 전달한다', async () => {
@@ -117,6 +125,7 @@ describe('bootstrapWorker', () => {
     await mocks.workers[3]?.processor({ data: { dryRun: true } })
     await mocks.workers[4]?.processor({ data: {} })
     await mocks.workers[5]?.processor({ data: { assetId: 'asset_2' } })
+    await mocks.workers[6]?.processor({ data: { scope: 'recent' } })
 
     const transcodeInput = mocks.transcode.mock.calls[0]?.[0] as {
       assetId: string
@@ -145,6 +154,11 @@ describe('bootstrapWorker', () => {
     expect(mocks.deleteEpisodeMedia).toHaveBeenCalledWith({
       assetId: 'asset_2',
     })
+    const rankInput = mocks.rankRecompute.mock.calls[0]?.[0] as
+      | { scope: string; now: Date }
+      | undefined
+    expect(rankInput?.scope).toBe('recent')
+    expect(rankInput?.now).toBeInstanceOf(Date)
   })
 
   it('종료는 수신 중단 후 실행 중 잡을 취소하고 워커를 한 번만 닫는다', async () => {
@@ -153,8 +167,8 @@ describe('bootstrapWorker', () => {
     await runtime.close()
     await runtime.close()
 
-    expect(mocks.pause).toHaveBeenCalledTimes(6)
-    expect(mocks.close).toHaveBeenCalledTimes(6)
+    expect(mocks.pause).toHaveBeenCalledTimes(7)
+    expect(mocks.close).toHaveBeenCalledTimes(7)
     expect(mocks.close).toHaveBeenCalledWith(true)
 
     await transcodeWorker?.processor({ data: { assetId: 'asset_1' } })

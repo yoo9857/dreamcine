@@ -34,6 +34,10 @@
     {
       "name": "episodes",
       "description": "에피소드 생성 · 조회 · 상태 전이"
+    },
+    {
+      "name": "feed",
+      "description": "피드 · 검색 · 태그"
     }
   ],
   "components": {
@@ -644,6 +648,105 @@
           "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
+      "FeedItem": {
+        "type": "object",
+        "required": [
+          "episodeId",
+          "title",
+          "thumbUrl",
+          "durationSec",
+          "ageRating",
+          "viewCount",
+          "likeCount",
+          "publishedAt",
+          "series",
+          "creator",
+          "isLiked"
+        ],
+        "properties": {
+          "episodeId": { "type": "string" },
+          "title": { "type": "string" },
+          "thumbUrl": { "type": ["string", "null"], "format": "uri" },
+          "durationSec": { "type": ["integer", "null"], "minimum": 0 },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" },
+          "viewCount": { "type": "string", "pattern": "^[0-9]+$" },
+          "likeCount": { "type": "integer", "minimum": 0 },
+          "publishedAt": { "type": "string", "format": "date-time" },
+          "series": {
+            "type": "object",
+            "required": ["id", "title", "slug"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "slug": { "type": "string" }
+            }
+          },
+          "creator": {
+            "type": "object",
+            "required": ["handle", "displayName", "avatarUrl"],
+            "properties": {
+              "handle": { "type": "string" },
+              "displayName": { "type": "string" },
+              "avatarUrl": { "type": ["string", "null"], "format": "uri" }
+            }
+          },
+          "isLiked": { "type": "boolean" }
+        }
+      },
+      "FeedPage": {
+        "type": "object",
+        "required": ["items", "nextCursor"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/FeedItem" }
+          },
+          "nextCursor": { "type": ["string", "null"] }
+        }
+      },
+      "SearchResult": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "id", "title", "slug", "posterUrl", "creator"],
+            "properties": {
+              "type": { "const": "series" },
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "slug": { "type": "string" },
+              "posterUrl": { "type": ["string", "null"], "format": "uri" },
+              "creator": {
+                "$ref": "#/components/schemas/FeedItem/properties/creator"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "episode"],
+            "properties": {
+              "type": { "const": "episode" },
+              "episode": { "$ref": "#/components/schemas/FeedItem" }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "handle",
+              "displayName",
+              "avatarUrl",
+              "followerCount"
+            ],
+            "properties": {
+              "type": { "const": "user" },
+              "handle": { "type": "string" },
+              "displayName": { "type": "string" },
+              "avatarUrl": { "type": ["string", "null"], "format": "uri" },
+              "followerCount": { "type": "integer", "minimum": 0 }
+            }
+          }
+        ]
+      },
       "Health": {
         "type": "object",
         "required": ["status"],
@@ -688,6 +791,206 @@
     }
   },
   "paths": {
+    "/feed": {
+      "get": {
+        "tags": ["feed"],
+        "summary": "인기·최신·팔로잉 피드",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["popular", "latest", "following"],
+              "default": "popular"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "피드 페이지",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FeedPage" }
+              }
+            }
+          },
+          "400": {
+            "description": "E_FEED_INVALID_CURSOR",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "E_AUTH_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "E_VALIDATION",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": ["feed"],
+        "summary": "시리즈·에피소드·사용자 검색",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "minLength": 2, "maxLength": 50 }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["series", "episode", "user"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "검색 결과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items", "nextCursor"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SearchResult" }
+                    },
+                    "nextCursor": { "type": ["string", "null"] }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "E_FEED_INVALID_CURSOR",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "E_VALIDATION",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{tag}/episodes": {
+      "get": {
+        "tags": ["feed"],
+        "summary": "태그 피드",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "태그 피드 페이지",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FeedPage" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/trending": {
+      "get": {
+        "tags": ["feed"],
+        "summary": "인기 태그 20개",
+        "responses": {
+          "200": {
+            "description": "인기 태그",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "maxItems": 20,
+                      "items": {
+                        "type": "object",
+                        "required": ["name", "useCount"],
+                        "properties": {
+                          "name": { "type": "string" },
+                          "useCount": { "type": "integer", "minimum": 0 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/signup": {
       "post": {
         "tags": ["auth"],

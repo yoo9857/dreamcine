@@ -12,6 +12,27 @@ export interface FeedOptions {
   viewerId?: string
 }
 
+/** DB-only feed shape. Services turn stored keys into public CDN URLs. */
+export interface FeedRow extends Episode {
+  readonly creatorId: string
+  readonly seriesTitle: string
+  readonly seriesSlug: string
+  readonly creatorHandle: string
+  readonly creatorDisplayName: string
+  readonly creatorAvatarKey: string | null
+  readonly durationSec: number | null
+}
+
+type PrismaFeedRow = PrismaEpisode & {
+  creatorId: string
+  seriesTitle: string
+  seriesSlug: string
+  creatorHandle: string
+  creatorDisplayName: string
+  creatorAvatarKey: string | null
+  durationSec: number | null
+}
+
 const episodeColumns = Prisma.raw(`
   e.id,
   e.series_id AS "seriesId",
@@ -32,7 +53,14 @@ const episodeColumns = Prisma.raw(`
   e.rank_score AS "rankScore",
   e.created_at AS "createdAt",
   e.updated_at AS "updatedAt",
-  e.deleted_at AS "deletedAt"
+  e.deleted_at AS "deletedAt",
+  s.owner_id AS "creatorId",
+  s.title AS "seriesTitle",
+  s.slug AS "seriesSlug",
+  creator.handle AS "creatorHandle",
+  creator.display_name AS "creatorDisplayName",
+  creator.avatar_key AS "creatorAvatarKey",
+  asset.duration_sec AS "durationSec"
 `)
 
 function blockedFilter(viewerId?: string): Prisma.Sql {
@@ -65,15 +93,24 @@ function numericCursor(cursor: string): { key: number; id: string } {
 }
 
 function toPage(
-  rows: PrismaEpisode[],
+  rows: PrismaFeedRow[],
   limit: number,
-  key: (row: PrismaEpisode) => string | number,
-): Page<Episode> {
+  key: (row: PrismaFeedRow) => string | number,
+): Page<FeedRow> {
   const hasNext = rows.length > limit
   const pageRows = hasNext ? rows.slice(0, limit) : rows
   const last = pageRows.at(-1)
   return {
-    items: pageRows.map(mapEpisode),
+    items: pageRows.map((row) => ({
+      ...mapEpisode(row),
+      creatorId: row.creatorId,
+      seriesTitle: row.seriesTitle,
+      seriesSlug: row.seriesSlug,
+      creatorHandle: row.creatorHandle,
+      creatorDisplayName: row.creatorDisplayName,
+      creatorAvatarKey: row.creatorAvatarKey,
+      durationSec: row.durationSec,
+    })),
     nextCursor:
       hasNext && last !== undefined
         ? encodeCursor({ k: key(last), id: last.id })
@@ -81,17 +118,22 @@ function toPage(
   }
 }
 
-export function listPopularFeed(options: FeedOptions): Promise<Page<Episode>> {
+export function listPopularFeed(options: FeedOptions): Promise<Page<FeedRow>> {
   return executeDb(async () => {
     const cursor =
       options.cursor === undefined ? null : numericCursor(options.cursor)
-    const rows = await db.$queryRaw<PrismaEpisode[]>(Prisma.sql`
+    const rows = await db.$queryRaw<PrismaFeedRow[]>(Prisma.sql`
       SELECT ${episodeColumns}
       FROM episode e
       INNER JOIN series s ON s.id = e.series_id
+      INNER JOIN "user" creator ON creator.id = s.owner_id
+      LEFT JOIN video_asset asset ON asset.id = e.asset_id
       WHERE e.status = 'PUBLISHED'::"EpisodeStatus"
         AND e.deleted_at IS NULL
+        AND e.published_at IS NOT NULL
         AND s.deleted_at IS NULL
+        AND creator.deleted_at IS NULL
+        AND creator.status = 'ACTIVE'::"UserStatus"
         ${blockedFilter(options.viewerId)}
         ${
           cursor === null
@@ -105,18 +147,22 @@ export function listPopularFeed(options: FeedOptions): Promise<Page<Episode>> {
   })
 }
 
-export function listLatestFeed(options: FeedOptions): Promise<Page<Episode>> {
+export function listLatestFeed(options: FeedOptions): Promise<Page<FeedRow>> {
   return executeDb(async () => {
     const cursor =
       options.cursor === undefined ? null : dateCursor(options.cursor)
-    const rows = await db.$queryRaw<PrismaEpisode[]>(Prisma.sql`
+    const rows = await db.$queryRaw<PrismaFeedRow[]>(Prisma.sql`
       SELECT ${episodeColumns}
       FROM episode e
       INNER JOIN series s ON s.id = e.series_id
+      INNER JOIN "user" creator ON creator.id = s.owner_id
+      LEFT JOIN video_asset asset ON asset.id = e.asset_id
       WHERE e.status = 'PUBLISHED'::"EpisodeStatus"
         AND e.deleted_at IS NULL
         AND e.published_at IS NOT NULL
         AND s.deleted_at IS NULL
+        AND creator.deleted_at IS NULL
+        AND creator.status = 'ACTIVE'::"UserStatus"
         ${blockedFilter(options.viewerId)}
         ${
           cursor === null
@@ -140,18 +186,22 @@ export function listLatestFeed(options: FeedOptions): Promise<Page<Episode>> {
 export function listFollowingFeed(
   viewerId: string,
   options: Omit<FeedOptions, 'viewerId'>,
-): Promise<Page<Episode>> {
+): Promise<Page<FeedRow>> {
   return executeDb(async () => {
     const cursor =
       options.cursor === undefined ? null : dateCursor(options.cursor)
-    const rows = await db.$queryRaw<PrismaEpisode[]>(Prisma.sql`
+    const rows = await db.$queryRaw<PrismaFeedRow[]>(Prisma.sql`
       SELECT ${episodeColumns}
       FROM episode e
       INNER JOIN series s ON s.id = e.series_id
+      INNER JOIN "user" creator ON creator.id = s.owner_id
+      LEFT JOIN video_asset asset ON asset.id = e.asset_id
       WHERE e.status = 'PUBLISHED'::"EpisodeStatus"
         AND e.deleted_at IS NULL
         AND e.published_at IS NOT NULL
         AND s.deleted_at IS NULL
+        AND creator.deleted_at IS NULL
+        AND creator.status = 'ACTIVE'::"UserStatus"
         AND EXISTS (
           SELECT 1 FROM follow f
           WHERE f.follower_id = ${viewerId} AND f.following_id = s.owner_id
@@ -173,5 +223,35 @@ export function listFollowingFeed(
       }
       return row.publishedAt.toISOString()
     })
+  })
+}
+
+export function listLikedEpisodeIds(
+  viewerId: string,
+  episodeIds: readonly string[],
+): Promise<ReadonlySet<string>> {
+  if (episodeIds.length === 0) return Promise.resolve(new Set<string>())
+
+  return executeDb(async () => {
+    const rows = await db.like.findMany({
+      where: { userId: viewerId, episodeId: { in: [...episodeIds] } },
+      select: { episodeId: true },
+    })
+    return new Set(rows.map((row) => row.episodeId))
+  })
+}
+
+export function listBlockedCreatorIds(
+  viewerId: string,
+  creatorIds: readonly string[],
+): Promise<ReadonlySet<string>> {
+  if (creatorIds.length === 0) return Promise.resolve(new Set<string>())
+
+  return executeDb(async () => {
+    const rows = await db.block.findMany({
+      where: { blockerId: viewerId, blockedId: { in: [...creatorIds] } },
+      select: { blockedId: true },
+    })
+    return new Set(rows.map((row) => row.blockedId))
   })
 }

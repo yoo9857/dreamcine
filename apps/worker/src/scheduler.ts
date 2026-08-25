@@ -12,6 +12,29 @@ export interface SchedulerDependencies {
   readonly release: () => Promise<void>
 }
 
+export interface FeedRankScheduleRegistrar {
+  readonly register: (
+    id: string,
+    everyMs: number,
+    data: { readonly scope: 'recent' | 'expired' },
+  ) => Promise<void>
+}
+
+export async function registerFeedRankSchedules(
+  registrar: FeedRankScheduleRegistrar,
+): Promise<void> {
+  await registrar.register(
+    'feed-rank-recent-every-ten-minutes',
+    10 * 60 * 1000,
+    {
+      scope: 'recent',
+    },
+  )
+  await registrar.register('feed-rank-expired-daily', 24 * 60 * 60 * 1000, {
+    scope: 'expired',
+  })
+}
+
 export function startScheduler(
   signal?: AbortSignal,
   dependencies?: SchedulerDependencies,
@@ -143,6 +166,16 @@ function productionDependencies(): SchedulerDependencies {
         { every: 60 * 1000 },
         { name: QUEUE.EPISODE_PUBLISH, data: {} },
       )
+      const rankQueue = getQueue(QUEUE.FEED_RANK)
+      await registerFeedRankSchedules({
+        register: async (id, everyMs, data) => {
+          await rankQueue.upsertJobScheduler(
+            id,
+            { every: everyMs },
+            { name: QUEUE.FEED_RANK, data },
+          )
+        },
+      })
     },
     refresh: async () => {
       const client = await queue.client

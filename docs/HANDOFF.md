@@ -3,6 +3,21 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-08-25 T09/S3 배포 인수인계
+
+- T09 피드·랭킹·검색·태그 구현을 완료했다. 인기·최신·팔로잉 피드, 서명 커서,
+  차단·좋아요 일괄 처리, Redis 장애 우회, 검색·태그 API, 랭킹 worker/scheduler,
+  SSR 첫 페이지와 400px 선행 무한 스크롤, OpenAPI 및 회귀 테스트가 포함된다.
+- `NotImplementedError('T09:...')` 잔존 수는 0이며 OpenAPI·Prisma 등 계약 게이트는
+  통과했다. 표적 단위·서비스·워커·컴포넌트 테스트 37개도 통과했다.
+- 로컬 장비에는 Docker CLI가 없고 자원 고갈 요청이 있어 Testcontainers 전체 통합,
+  1,000건 p95 및 Lighthouse 최종 판정은 GitHub Actions/Linux에서 수행한다. 이 결과가
+  초록이 되기 전까지 `docs/INDEX.md`의 T09 S3 체크는 완료로 바꾸지 않는다.
+- 운영 마스터 계정 `devoh@signpost.kr`은 최고 권한인 `ADMIN`, 활성·이메일 인증 상태이며
+  실제 Auth.js 로그인을 확인했다. 비밀번호는 보안상 저장소 문서에 기록하지 않는다.
+- 다음 작업은 GitHub Actions 결과와 운영 `/api/health`, `/api/ready`, 마스터 로그인을
+  확인한 뒤 T09 S3를 닫고 T10으로 진행하는 것이다.
+
 ## 2026-08-25 T08/S3 최신 인수인계
 
 - T08 시리즈·에피소드·공개예약 구현을 완료했다. 상태기계, 슬러그·태그 규칙,

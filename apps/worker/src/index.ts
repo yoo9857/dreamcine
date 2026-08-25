@@ -4,6 +4,7 @@ import {
   EpisodeMediaDeleteJobSchema,
   PublishScheduledJobSchema,
   QUEUE,
+  RankRecomputeJobSchema,
   RecoverStuckJobSchema,
   StorageCleanupJobSchema,
   TranscodeJobSchema,
@@ -17,6 +18,7 @@ import { cleanupOrphans } from './jobs/cleanup-orphans.js'
 import { purgeDatabase } from './jobs/db-purge.js'
 import { deleteEpisodeMedia } from './jobs/delete-episode-media.js'
 import { publishScheduled } from './jobs/publish-scheduled.js'
+import { rankRecompute } from './jobs/rank-recompute.js'
 import { recoverStuck } from './jobs/recover-stuck.js'
 import { processTranscodeJob } from './jobs/transcode.js'
 import { startScheduler } from './scheduler.js'
@@ -89,6 +91,14 @@ function startWorkers(): Promise<WorkerRuntime> {
       QUEUE.EPISODE_MEDIA_DELETE,
       async (job: Job<unknown>) =>
         deleteEpisodeMedia(EpisodeMediaDeleteJobSchema.parse(job.data)),
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.FEED_RANK,
+      async (job: Job<unknown>) => {
+        const data = RankRecomputeJobSchema.parse(job.data)
+        return rankRecompute({ ...data, now: new Date() })
+      },
       { connection, concurrency: 1 },
     ),
   ]

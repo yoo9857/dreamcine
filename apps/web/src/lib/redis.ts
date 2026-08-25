@@ -1,6 +1,6 @@
 import { Socket } from 'node:net'
 
-import { AppError, NotImplementedError } from '@aidream/core'
+import { AppError } from '@aidream/core'
 
 /**
  * 레이트리밋과 readiness 가 필요한 최소 명령만 노출하는 관문.
@@ -20,6 +20,12 @@ export function isSetNxSuccess(reply: unknown): boolean {
   if (reply === 'OK') return true
   if (reply === null) return false
   throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
+}
+
+export function assertSetSuccess(reply: unknown): void {
+  if (reply !== 'OK') {
+    throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
+  }
 }
 
 export interface RedisTarget {
@@ -299,11 +305,10 @@ class RedisClient implements RedisGateway {
     throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
   }
 
-  set(key: string, value: string, ttlSec: number): Promise<void> {
-    void key
-    void value
-    void ttlSec
-    return Promise.reject(new NotImplementedError('T09:redisSet'))
+  async set(key: string, value: string, ttlSec: number): Promise<void> {
+    assertSetSuccess(
+      await this.#connection.command(['SET', key, value, 'EX', String(ttlSec)]),
+    )
   }
 
   async setIfAbsent(

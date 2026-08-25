@@ -1,5 +1,3 @@
-import { NotImplementedError } from '../errors/not-implemented.js'
-
 export interface RankInput {
   readonly viewCount: number
   readonly likeCount: number
@@ -9,6 +7,10 @@ export interface RankInput {
 }
 
 export function rankScore(input: RankInput): number {
-  void input
-  throw new NotImplementedError('T09:rankScore')
+  const engagement =
+    input.viewCount + input.likeCount * 8 + input.commentCount * 15
+  const ageHours =
+    (input.now.getTime() - input.publishedAt.getTime()) / 3_600_000
+
+  return engagement / Math.pow(ageHours + 2, 1.5)
 }

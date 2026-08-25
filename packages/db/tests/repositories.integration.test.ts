@@ -292,6 +292,15 @@ describe('database repository integration', () => {
 
     const first = await repo.listLatestFeed({ limit: 3 })
     expect(first.nextCursor).not.toBeNull()
+    expect(first.items[0]).toMatchObject({
+      creatorId: ownerId,
+      seriesTitle: 'Series feed',
+      seriesSlug: 'series-feed',
+      creatorHandle: 'user_feed-owner',
+      creatorDisplayName: 'User feed-owner',
+      creatorAvatarKey: null,
+      durationSec: null,
+    })
     await database.episode.create({
       data: {
         id: 'feed_episode_new',
@@ -339,6 +348,12 @@ describe('database repository integration', () => {
       items: [{ id: episode.id }],
     })
     await repo.likeEpisode(viewerId, episode.id)
+    await expect(
+      repo.listLikedEpisodeIds(viewerId, [episode.id]),
+    ).resolves.toEqual(new Set([episode.id]))
+    await expect(repo.listLikedEpisodeIds(viewerId, [])).resolves.toEqual(
+      new Set(),
+    )
     await repo.unlikeEpisode(viewerId, episode.id)
     await repo.unlikeEpisode(viewerId, episode.id)
 
@@ -361,6 +376,9 @@ describe('database repository integration', () => {
 
     await repo.blockUser(viewerId, creatorId)
     await expect(
+      repo.listBlockedCreatorIds(viewerId, [creatorId]),
+    ).resolves.toEqual(new Set([creatorId]))
+    await expect(
       repo.listLatestFeed({ viewerId, limit: 10 }),
     ).resolves.toMatchObject({ items: [] })
     await expect(
@@ -374,6 +392,68 @@ describe('database repository integration', () => {
     })
     expect(storedEpisode.likeCount).toBe(0)
     expect(storedEpisode.commentCount).toBe(0)
+  })
+
+  it('searches public catalog rows, escapes LIKE wildcards, and serves tag feeds', async () => {
+    const ownerId = await createFixtureUser('search-owner')
+    const seriesId = await createFixtureSeries(ownerId, 'search')
+    const episode = await repo.createEpisode({
+      seriesId,
+      number: 1,
+      title: 'AI 드라마 특별편',
+    })
+    await repo.updateEpisodeStatus(episode.id, 'PUBLISHED', {
+      publishedAt: new Date('2026-08-25T00:00:00.000Z'),
+    })
+    const tag = await database.tag.create({ data: { name: 'AI', useCount: 7 } })
+    await database.episodeTag.create({
+      data: { episodeId: episode.id, tagId: tag.id },
+    })
+
+    await expect(
+      repo.searchCatalog('episode', '드라마', { limit: 20 }),
+    ).resolves.toMatchObject({
+      items: [
+        { type: 'episode', episode: { id: episode.id, creatorId: ownerId } },
+      ],
+    })
+    await expect(
+      repo.searchCatalog('episode', '%_', { limit: 20 }),
+    ).resolves.toMatchObject({ items: [] })
+    await expect(repo.listTagFeed('ai', { limit: 20 })).resolves.toMatchObject({
+      items: [{ id: episode.id }],
+    })
+    await expect(repo.listTrendingTags()).resolves.toEqual([
+      { name: 'AI', useCount: 7 },
+    ])
+  })
+
+  it('scans and updates rank scores without duplicating the formula in SQL', async () => {
+    const ownerId = await createFixtureUser('rank-owner')
+    const seriesId = await createFixtureSeries(ownerId, 'rank')
+    const episode = await repo.createEpisode({
+      seriesId,
+      number: 1,
+      title: '랭킹',
+    })
+    const publishedAt = new Date('2026-08-24T00:00:00.000Z')
+    await repo.updateEpisodeStatus(episode.id, 'PUBLISHED', { publishedAt })
+
+    await expect(
+      repo.listRankCandidates(
+        'recent',
+        new Date('2026-08-25T00:00:00.000Z'),
+        1000,
+      ),
+    ).resolves.toMatchObject([{ id: episode.id, publishedAt }])
+    await expect(
+      repo.updateRankScores([{ id: episode.id, score: 12.5 }]),
+    ).resolves.toBe(1)
+    await expect(
+      database.episode.findUniqueOrThrow({ where: { id: episode.id } }),
+    ).resolves.toMatchObject({
+      rankScore: 12.5,
+    })
   })
 
   it('lists and marks notifications and processes the report review queue', async () => {
