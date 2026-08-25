@@ -14,6 +14,8 @@ import Link from 'next/link'
 import { useState, type ReactNode, type SyntheticEvent } from 'react'
 import { z } from 'zod'
 
+import { QueryProvider } from '@/src/components/QueryProvider'
+
 const SearchPageSchema = z.object({
   items: z.array(SearchResultSchema),
   nextCursor: z.string().nullable(),
@@ -23,6 +25,18 @@ export function SearchResults({
   initialQuery = '',
 }: {
   readonly initialQuery?: string
+}): ReactNode {
+  return (
+    <QueryProvider>
+      <SearchResultsContent initialQuery={initialQuery} />
+    </QueryProvider>
+  )
+}
+
+function SearchResultsContent({
+  initialQuery,
+}: {
+  readonly initialQuery: string
 }): ReactNode {
   const [input, setInput] = useState(initialQuery)
   const [query, setQuery] = useState(initialQuery)

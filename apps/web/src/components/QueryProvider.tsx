@@ -1,7 +1,7 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
+import React, { useState, type ReactNode } from 'react'
 
 /**
  * 서버 상태의 기본값을 **한 곳에서** 정한다. (03_TECH_STACK.md §3)
