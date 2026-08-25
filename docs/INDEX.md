@@ -140,7 +140,7 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 | T09 | FEED_RANKING | ✅ | ✅ | ⬜ | — |
 | T10 | SOCIAL_GRAPH | ✅ | ✅ | ⬜ | — |
 | T11 | OBSERVABILITY | ✅ | ✅ | ✅ | — |
-| T12 | MODERATION | ⬜ | ⬜ | ⬜ | — |
+| T12 | MODERATION | ✅ | ⬜ | ⬜ | — |
 | T13 | PWA_PHASE2 | ⬜ | ⬜ | ⬜ | — |
 | T14 | DESIGN_SYSTEM | ✅ | ✅ | ✅ | — |
 

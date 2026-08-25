@@ -1,7 +1,7 @@
 # T12 — 신고 · 심사 · 연령등급 · 저작권
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인 — 2026-08-25 / ISS-017 승인 / 산출물 33개 확정
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -24,21 +24,39 @@ UGC 영상 플랫폼에서 이것은 **선택 기능이 아니라 법적·운영
 
 | 경로 | 책임 | 단계 |
 |---|---|---|
+| `prisma/schema.prisma` | 신고 우선순위·자동숨김 상태 저장 | S2→S3 |
+| `prisma/migrations/20260825_t12_moderation_report_flags/migration.sql` | Report 필드·심사큐 인덱스 마이그레이션 | S2→S3 |
+| `packages/core/src/entities.ts` | Report 도메인 필드 확장 | S2→S3 |
+| `packages/core/src/index.ts` | 신고 스키마·자동조치 API 공개 | S2→S3 |
 | `packages/core/src/schemas/report.schema.ts` | 신고 zod | S2→S3 |
+| `packages/core/src/schemas/report.schema.test.ts` | 신고 입력·심사 액션 검증 | S3 |
 | `packages/core/src/rules/moderation.ts` | 자동 조치 판정 (순수) | S2→S3 |
+| `packages/core/src/rules/moderation.test.ts` | 자동 조치 규칙표 전수 검증 | S3 |
+| `packages/core/tests/permission.test.ts` | MODERATOR·ADMIN 권한 경계 | S3 |
+| `packages/db/src/mappers/report.mapper.ts` | Prisma Report 매핑 | S2→S3 |
+| `packages/db/src/repositories/report.repo.ts` | 신고 집계·심사큐·조건부 일괄 처리 | S2→S3 |
+| `packages/db/tests/moderation.integration.test.ts` | 저장·정렬·동시 처리 통합 검증 | S3 |
 | `apps/web/src/services/moderation/create-report.ts` | 신고 접수 | S2→S3 |
+| `apps/web/src/services/moderation/create-report.test.ts` | 접수·중복·자동숨김 검증 | S3 |
 | `apps/web/src/services/moderation/review-report.ts` | 심사 조치 | S2→S3 |
+| `apps/web/src/services/moderation/review-report.test.ts` | 조치·복원·권한·감사 검증 | S3 |
 | `apps/web/src/services/moderation/suspend-user.ts` | 계정 정지 | S2→S3 |
+| `apps/web/src/services/moderation/suspend-user.test.ts` | 세션·콘텐츠·업로드 즉시 정지 검증 | S3 |
+| `apps/web/src/services/moderation/list-report-queue.ts` | 대상 정보·누적 신고 심사큐 | S2→S3 |
+| `apps/web/src/services/moderation/manage-users.ts` | 관리자 사용자 검색·상태 변경 | S2→S3 |
 | `apps/web/app/api/reports/route.ts` | POST | S3 |
 | `apps/web/app/api/admin/reports/route.ts` | GET (심사큐) | S3 |
 | `apps/web/app/api/admin/reports/[id]/action/route.ts` | POST | S3 |
 | `apps/web/app/api/admin/users/route.ts` | GET | S3 |
 | `apps/web/app/api/admin/users/[id]/status/route.ts` | POST | S3 |
 | `apps/web/src/components/ReportDialog.tsx` | 신고 UI | S3 |
+| `apps/web/src/components/report-dialog.test.tsx` | 신고 UI 검증 | S3 |
 | `apps/web/app/(admin)/layout.tsx` | 권한 가드 | S3 |
 | `apps/web/app/(admin)/admin/reports/page.tsx` | 심사큐 화면 | S3 |
 | `apps/web/app/(admin)/admin/users/page.tsx` | 사용자 관리 | S3 |
 | `apps/web/e2e/moderation.e2e.ts` | US-07 | S3 |
+| `openapi.json` | 신고·관리자 API 계약 | S3 |
+| `docs/10_TASKS/T12_MODERATION.md` | 단계·검증 근거 기록 | S1→S3 |
 
 ## 4. S2 Skeleton
 
