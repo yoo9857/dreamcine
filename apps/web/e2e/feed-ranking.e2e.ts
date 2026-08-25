@@ -68,6 +68,7 @@ test('US-05 팔로우한 제작자의 피드를 무한스크롤로 탐색한다'
 
   const scrollBefore = await page.evaluate(() => window.scrollY)
   await page.locator('article a').last().click()
+  await expect(page).toHaveURL(/\/watch\//u)
   await expect
     .poll(async () => {
       const stored = await page.evaluate(() =>
