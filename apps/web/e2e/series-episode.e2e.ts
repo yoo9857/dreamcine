@@ -88,8 +88,17 @@ async function createSeriesAndEpisode(
   await page
     .getByLabel('AI 제작 표기')
     .fill('생성형 AI로 배경과 음향을 제작했습니다.')
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/episodes') &&
+      response.request().method() === 'POST',
+  )
   await page.getByRole('button', { name: '에피소드 추가' }).click()
-  await expect(page.getByText('첫 번째 꿈')).toBeVisible()
+  expect((await created).status()).toBe(201)
+  await page.reload()
+  await expect(
+    page.getByRole('row').filter({ hasText: '첫 번째 꿈' }),
+  ).toBeVisible()
 }
 
 async function publishDue(now: Date): Promise<number> {
@@ -124,8 +133,16 @@ test('US-02 크리에이터가 시리즈를 만들고 첫 에피소드를 공개
   const session = await creatorSession(context)
   try {
     await createSeriesAndEpisode(page, session.userId, `US-02 ${randomUUID()}`)
+    const published = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/publish') &&
+        response.request().method() === 'POST',
+    )
     await page.getByRole('button', { name: '공개' }).click()
-    await expect(page.getByText('공개')).toBeVisible()
+    expect((await published).status()).toBe(200)
+    await page.reload()
+    const row = page.getByRole('row').filter({ hasText: '첫 번째 꿈' })
+    await expect(row.getByText('공개', { exact: true })).toBeVisible()
   } finally {
     await deleteAuthSession(session.sessionToken)
   }
@@ -140,15 +157,23 @@ test('US-08 예약 에피소드가 예정 시각에 한 번만 공개된다', as
     await createSeriesAndEpisode(page, session.userId, `US-08 ${randomUUID()}`)
     const publishAt = new Date(Date.now() + 1_500)
     page.once('dialog', (dialog) => dialog.accept(publishAt.toISOString()))
+    const scheduled = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/publish') &&
+        response.request().method() === 'POST',
+    )
     await page.getByRole('button', { name: '예약' }).click()
-    await expect(page.getByText('예약')).toBeVisible()
+    expect((await scheduled).status()).toBe(200)
+    await page.reload()
+    const row = page.getByRole('row').filter({ hasText: '첫 번째 꿈' })
+    await expect(row.getByText('예약', { exact: true })).toBeVisible()
     await expect
       .poll(() => Date.now())
       .toBeGreaterThanOrEqual(publishAt.getTime())
 
     expect(await publishDue(new Date())).toBe(1)
     await page.reload()
-    await expect(page.getByText('공개')).toBeVisible()
+    await expect(row.getByText('공개', { exact: true })).toBeVisible()
 
     expect(await publishDue(new Date())).toBe(0)
   } finally {
