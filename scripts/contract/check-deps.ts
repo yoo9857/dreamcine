@@ -43,6 +43,7 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
   '@vitest/coverage-v8': /Vitest v8 provider/u,
   '@testcontainers/postgresql': /@testcontainers\/postgresql/u,
   '@playwright/test': /Playwright/u,
+  '@lhci/cli': /@lhci\/cli@0[.]15[.]1[\s\S]*?상태: APPROVED/u,
   '@testing-library/react': /@testing-library\/react/u,
   // 컴포넌트 테스트의 DOM 환경. @testing-library/react 는 DOM 없이 동작하지
   // 않으므로 승인된 선택의 필수 동반물이다. (DEP-003)
@@ -114,6 +115,22 @@ async function readRequired(path: string): Promise<string> {
   }
 }
 
+async function readOptional(path: string): Promise<string> {
+  try {
+    return await readFile(path, 'utf8')
+  } catch (error: unknown) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    ) {
+      return ''
+    }
+    throw error
+  }
+}
+
 async function listPackageJsonFiles(root: string): Promise<string[]> {
   const files = [join(root, 'package.json')]
 
@@ -157,7 +174,10 @@ export async function checkDeps(
     join(absoluteRoot, 'docs', 'HARNESS.md'),
   ]
   const contractSource = (
-    await Promise.all(contractPaths.map(readRequired))
+    await Promise.all([
+      ...contractPaths.map(readRequired),
+      readOptional(join(absoluteRoot, 'docs', '_ISSUES.md')),
+    ])
   ).join('\n')
   const manifests = await Promise.all(
     packageFiles.map(async (path) => {

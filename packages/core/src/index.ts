@@ -16,16 +16,40 @@ export {
 export type {
   Comment,
   Episode,
+  EpisodeSearchResult,
+  FeedItem,
   Notification,
   Page,
   Rendition,
   Report,
   Season,
   Series,
+  SeriesSearchResult,
+  SearchResult,
+  TrendingTag,
   UploadSession,
   User,
+  UserSearchResult,
   VideoAsset,
 } from './entities.js'
+export { rankScore, type RankInput } from './rules/rank-score.js'
+export {
+  PaginationSchema,
+  parsePagination,
+  type PaginationInput,
+} from './schemas/pagination.schema.js'
+export {
+  FeedItemSchema,
+  FeedPageSchema,
+  FeedQuerySchema,
+  SearchQuerySchema,
+  SearchResultSchema,
+  TagFeedQuerySchema,
+  TrendingTagsResponseSchema,
+  type FeedQuery,
+  type SearchQuery,
+  type TagFeedQuery,
+} from './schemas/feed.schema.js'
 export { LIMITS } from './limits.js'
 export {
   CAPACITY_TIERS,

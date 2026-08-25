@@ -40,6 +40,7 @@
     "tokens:write": "tsx scripts/contract/check-tokens.ts --write",
     "db:seed": "prisma db seed --schema prisma/schema.prisma",
     "perf:bundle": "tsx scripts/perf/check-bundle.ts",
+    "perf:lighthouse": "lhci autorun",
     "sss:remaining": "tsx scripts/sss/count-remaining.ts",
     "sss:status": "tsx scripts/sss/status.ts",
     "prepare": "husky"
@@ -48,12 +49,13 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@aidream/ui": "workspace:*",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
     "@eslint/js": "9.32.0",
+    "@lhci/cli": "0.15.1",
     "@playwright/test": "1.54.2",
     "@prisma/client": "6.19.3",
-    "@aidream/ui": "workspace:*",
     "@testing-library/react": "16.3.2",
     "@types/node": "22.17.2",
     "@vitest/coverage-v8": "2.1.9",

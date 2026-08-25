@@ -42,6 +42,10 @@ export const EpisodeMediaDeleteJobSchema = z.object({
   assetId: z.string().min(1),
 })
 
+export const RankRecomputeJobSchema = z.object({
+  scope: z.enum(['recent', 'expired']),
+})
+
 export const NotificationFanoutJobSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('NEW_EPISODE'),
@@ -68,6 +72,7 @@ export const JOB_SCHEMAS = {
   [QUEUE.DB_PURGE]: DbPurgeJobSchema,
   [QUEUE.EPISODE_PUBLISH]: PublishScheduledJobSchema,
   [QUEUE.EPISODE_MEDIA_DELETE]: EpisodeMediaDeleteJobSchema,
+  [QUEUE.FEED_RANK]: RankRecomputeJobSchema,
   [QUEUE.NOTIFY_FANOUT]: NotificationFanoutJobSchema,
 } as const
 

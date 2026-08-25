@@ -170,3 +170,57 @@ export interface Page<T> {
   items: T[]
   nextCursor: string | null
 }
+
+export interface FeedItem {
+  episodeId: string
+  title: string
+  thumbUrl: string | null
+  durationSec: number | null
+  ageRating: AgeRating
+  viewCount: string
+  likeCount: number
+  publishedAt: string
+  series: {
+    id: string
+    title: string
+    slug: string
+  }
+  creator: {
+    handle: string
+    displayName: string
+    avatarUrl: string | null
+  }
+  isLiked: boolean
+}
+
+export interface SeriesSearchResult {
+  type: 'series'
+  id: string
+  title: string
+  slug: string
+  posterUrl: string | null
+  creator: FeedItem['creator']
+}
+
+export interface EpisodeSearchResult {
+  type: 'episode'
+  episode: FeedItem
+}
+
+export interface UserSearchResult {
+  type: 'user'
+  handle: string
+  displayName: string
+  avatarUrl: string | null
+  followerCount: number
+}
+
+export type SearchResult =
+  | SeriesSearchResult
+  | EpisodeSearchResult
+  | UserSearchResult
+
+export interface TrendingTag {
+  name: string
+  useCount: number
+}

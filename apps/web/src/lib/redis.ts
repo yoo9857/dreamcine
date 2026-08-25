@@ -1,6 +1,6 @@
 import { Socket } from 'node:net'
 
-import { AppError } from '@aidream/core'
+import { AppError, NotImplementedError } from '@aidream/core'
 
 /**
  * 레이트리밋과 readiness 가 필요한 최소 명령만 노출하는 관문.
@@ -12,6 +12,7 @@ export interface RedisGateway {
   ttl(key: string): Promise<number>
   ping(): Promise<void>
   get(key: string): Promise<string | null>
+  set(key: string, value: string, ttlSec: number): Promise<void>
   setIfAbsent(key: string, value: string, ttlSec: number): Promise<boolean>
 }
 
@@ -296,6 +297,13 @@ class RedisClient implements RedisGateway {
     const reply = await this.#connection.command(['GET', key])
     if (reply === null || typeof reply === 'string') return reply
     throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
+  }
+
+  set(key: string, value: string, ttlSec: number): Promise<void> {
+    void key
+    void value
+    void ttlSec
+    return Promise.reject(new NotImplementedError('T09:redisSet'))
   }
 
   async setIfAbsent(

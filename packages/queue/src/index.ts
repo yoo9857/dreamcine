@@ -12,6 +12,7 @@ export {
   EpisodeMediaDeleteJobSchema,
   NotificationFanoutJobSchema,
   PublishScheduledJobSchema,
+  RankRecomputeJobSchema,
   RecoverStuckJobSchema,
   StorageCleanupJobSchema,
   ThumbnailJobSchema,
