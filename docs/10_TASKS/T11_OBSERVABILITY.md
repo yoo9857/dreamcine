@@ -1,7 +1,7 @@
 # T11 — 관측성: 로깅 · 메트릭 · 알럿 · 헬스체크
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인 — 2026-08-25 / 산출물 35개 확정 / 기존 T03 로거·레디니스 확장
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -43,6 +43,33 @@
 | `infra/monitoring/alertmanager.yml` | 알림 전달 (이메일/웹훅) | S3 |
 | `infra/monitoring/dashboards/*.json` | Grafana 대시보드 3개 | S3 |
 | `scripts/ops/log-query.sh` | 로그 검색 헬퍼 (jq 기반) | S3 |
+
+### S1 추가 산출물
+
+기존 산출물만으로는 메트릭 계약, 접근 통제, 잡 래퍼, 인프라 설정을 자동 검증할 수
+없으므로 아래 파일도 범위에 포함한다. 대시보드 3개는 각각 독립 JSON으로 관리한다.
+
+| 경로 | 책임 | 단계 |
+|---|---|---|
+| `packages/core/src/observability/metrics.test.ts` | 메트릭 이름·라벨·라우트 정규화 계약 | S3 |
+| `packages/core/src/index.ts` | 관측성 계약 export | S2 |
+| `packages/core/package.json` | `prom-client` 런타임 의존성 | S2 |
+| `apps/web/src/lib/logger.test.ts` | requestId 자동 바인딩·시크릿 redact | S3 |
+| `apps/web/src/lib/metrics-http.test.ts` | HTTP 성공·실패·수집 장애 격리 | S3 |
+| `apps/web/app/api/metrics/route.test.ts` | 내부망·토큰 접근 제어 | S3 |
+| `apps/web/src/services/system/ready.test.ts` | DB·Redis·S3·큐 병렬 레디니스 | S3 |
+| `apps/worker/src/lib/job-wrapper.test.ts` | 성공·실패·DLQ·메트릭 장애 격리 | S3 |
+| `apps/worker/src/lib/metrics-server.test.ts` | 포트·응답·종료 검증 | S3 |
+| `apps/worker/src/index.ts` | 모든 consumer를 `withJob`으로 등록 | S3 |
+| `apps/worker/package.json` | 메트릭 런타임 의존성 | S2 |
+| `infra/monitoring/dashboards/service-overview.json` | 서비스 개요 대시보드 | S3 |
+| `infra/monitoring/dashboards/media-pipeline.json` | 미디어 파이프라인 대시보드 | S3 |
+| `infra/monitoring/dashboards/infrastructure.json` | 인프라 대시보드 | S3 |
+| `infra/monitoring/logrotate/aidream` | 일간·30일·압축 로그 로테이션 | S3 |
+| `scripts/contract/check-observability.ts` | 알럿 runbook·대시보드·설정 계약 | S3 |
+| `scripts/contract/check-observability.test.ts` | 관측성 계약 스크립트 단위 테스트 | S3 |
+| `openapi.json` | `/metrics`와 확장 `/ready` 계약 | S3 |
+| `.env.example` | 메트릭 토큰·포트 환경변수 문서화 | S3 |
 
 ## 4. S2 Skeleton
 
