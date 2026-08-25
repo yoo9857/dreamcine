@@ -39,6 +39,8 @@ export default defineConfig({
       exclude: [
         '**/*.test.ts',
         '**/dist/**',
+        // 실운영 SSH·DB·브라우저를 연결하는 수동 E2E 실행기는 운영 결과로 검증한다.
+        'scripts/ops/**',
         'packages/core/src/index.ts',
         // 10_NFR.md §8 — 라우트는 E2E 로 대체, 컴포넌트는 선별
         'apps/web/app/**',
