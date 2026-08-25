@@ -3,6 +3,10 @@ import { ERROR_CODES } from '@aidream/core'
 
 import { QUEUE, type QueueName } from './queues.js'
 
+const TRACE_FIELDS = {
+  requestId: z.string().min(1).optional(),
+} as const
+
 /**
  * 잡 페이로드의 계약.
  *
@@ -15,52 +19,62 @@ import { QUEUE, type QueueName } from './queues.js'
  */
 
 export const TranscodeJobSchema = z.object({
+  ...TRACE_FIELDS,
   assetId: z.string().min(1),
 })
 
 export const ThumbnailJobSchema = z.object({
+  ...TRACE_FIELDS,
   assetId: z.string().min(1),
 })
 
 export const StorageCleanupJobSchema = z.object({
+  ...TRACE_FIELDS,
   /** 무엇을 정리하는 회차인지. 잡 로그에서 구분하기 위한 것. */
   scope: z.enum(['staleUploads', 'orphanAssets', 'failedOriginals']),
 })
 
 export const RecoverStuckJobSchema = z.object({
+  ...TRACE_FIELDS,
   /** 이 시간(분) 이상 PENDING 인 자산을 다시 발행한다. */
   olderThanMinutes: z.number().int().positive(),
 })
 
 export const DbPurgeJobSchema = z.object({
+  ...TRACE_FIELDS,
   dryRun: z.boolean(),
 })
 
-export const PublishScheduledJobSchema = z.object({})
+export const PublishScheduledJobSchema = z.object({ ...TRACE_FIELDS })
 
 export const EpisodeMediaDeleteJobSchema = z.object({
+  ...TRACE_FIELDS,
   assetId: z.string().min(1),
 })
 
 export const RankRecomputeJobSchema = z.object({
+  ...TRACE_FIELDS,
   scope: z.enum(['recent', 'expired']),
 })
 
 export const NotificationFanoutJobSchema = z.discriminatedUnion('type', [
   z.object({
+    ...TRACE_FIELDS,
     type: z.literal('NEW_EPISODE'),
     episodeId: z.string().min(1),
     cursor: z.string().min(1).optional(),
   }),
   z.object({
+    ...TRACE_FIELDS,
     type: z.literal('PUBLISH_FAILED'),
     episodeId: z.string().min(1),
     errorCode: z.enum(ERROR_CODES),
   }),
 ])
 
-export const CounterFlushJobSchema = z.object({})
+export const CounterFlushJobSchema = z.object({ ...TRACE_FIELDS })
 export const CounterReconcileJobSchema = z.object({
+  ...TRACE_FIELDS,
   changedSinceDays: z.number().int().positive().default(7),
 })
 

@@ -25,6 +25,7 @@ import {
 import { checkRateLimit } from './rate-limit'
 import { createRequestId } from './request-id'
 import { httpStatusFor } from './status-map'
+import { recordHttpRequest } from '../lib/metrics-http'
 
 export interface RouteContext<TSession> {
   req: Request
@@ -40,6 +41,7 @@ export interface RouteContext<TSession> {
 export interface RouteResult {
   status: number
   body?: unknown
+  rawBody?: string
   headers?: Record<string, string>
 }
 
@@ -222,6 +224,9 @@ function toResponse(result: RouteResult, requestId: string): Response {
   const headers = baseHeaders(requestId)
   for (const [name, value] of Object.entries(result.headers ?? {})) {
     headers.set(name, value)
+  }
+  if (result.rawBody !== undefined) {
+    return new Response(result.rawBody, { status: result.status, headers })
   }
   if (result.status === 204 || result.body === undefined) {
     return new Response(null, { status: result.status, headers })
@@ -433,6 +438,13 @@ export function withRoute<O extends RouteOptions>(
         }
         return failure.response
       } finally {
+        recordHttpRequest({
+          route: url.pathname,
+          method,
+          status,
+          durationMs: Date.now() - startedAt,
+          ...(failureCode === undefined ? {} : { errorCode: failureCode }),
+        })
         logger.info(
           {
             requestId,

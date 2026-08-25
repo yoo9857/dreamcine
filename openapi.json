@@ -833,7 +833,7 @@
           },
           "checks": {
             "type": "object",
-            "required": ["db", "redis", "storage"],
+            "required": ["db", "redis", "storage", "queue"],
             "additionalProperties": false,
             "properties": {
               "db": {
@@ -845,6 +845,10 @@
                 "enum": ["ok", "fail"]
               },
               "storage": {
+                "type": "string",
+                "enum": ["ok", "fail"]
+              },
+              "queue": {
                 "type": "string",
                 "enum": ["ok", "fail"]
               }
@@ -2700,6 +2704,37 @@
             }
           },
           "401": { "description": "인증 필요" }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": ["system"],
+        "summary": "Prometheus 메트릭 (내부망 또는 토큰)",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-Metrics-Token",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prometheus text exposition",
+            "content": {
+              "text/plain": { "schema": { "type": "string" } }
+            }
+          },
+          "403": {
+            "description": "외부 접근 거부",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
         }
       }
     },

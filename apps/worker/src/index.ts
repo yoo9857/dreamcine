@@ -12,7 +12,7 @@ import {
   StorageCleanupJobSchema,
   TranscodeJobSchema,
 } from '@aidream/queue'
-import { Worker, type Job } from 'bullmq'
+import { Worker } from 'bullmq'
 import { pathToFileURL } from 'node:url'
 import pino from 'pino'
 
@@ -27,6 +27,8 @@ import { publishScheduled } from './jobs/publish-scheduled.js'
 import { rankRecompute } from './jobs/rank-recompute.js'
 import { recoverStuck } from './jobs/recover-stuck.js'
 import { processTranscodeJob } from './jobs/transcode.js'
+import { withJob } from './lib/job-wrapper.js'
+import { startMetricsServer } from './lib/metrics-server.js'
 import { startScheduler } from './scheduler.js'
 
 export interface WorkerRuntime {
@@ -50,11 +52,12 @@ function startWorkers(): Promise<WorkerRuntime> {
   const workers = [
     new Worker(
       QUEUE.VIDEO_TRANSCODE,
-      async (job: Job<unknown>) =>
+      withJob(QUEUE.VIDEO_TRANSCODE, async (data: unknown) =>
         processTranscodeJob({
-          ...TranscodeJobSchema.parse(job.data),
+          ...TranscodeJobSchema.parse(data),
           signal: abortController.signal,
         }),
+      ),
       {
         connection,
         concurrency: config.capacity.workerConcurrency,
@@ -63,74 +66,75 @@ function startWorkers(): Promise<WorkerRuntime> {
     ),
     new Worker(
       QUEUE.STORAGE_CLEANUP,
-      async (job: Job<unknown>) => {
-        const data = StorageCleanupJobSchema.parse(job.data)
+      withJob(QUEUE.STORAGE_CLEANUP, async (input: unknown) => {
+        const data = StorageCleanupJobSchema.parse(input)
         return cleanupOrphans({ ...data, now: new Date() })
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.RECOVER_STUCK,
-      async (job: Job<unknown>) => {
-        const data = RecoverStuckJobSchema.parse(job.data)
+      withJob(QUEUE.RECOVER_STUCK, async (input: unknown) => {
+        const data = RecoverStuckJobSchema.parse(input)
         return recoverStuck(data.olderThanMinutes, new Date())
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.DB_PURGE,
-      async (job: Job<unknown>) => {
-        const data = DbPurgeJobSchema.parse(job.data)
+      withJob(QUEUE.DB_PURGE, async (input: unknown) => {
+        const data = DbPurgeJobSchema.parse(input)
         return purgeDatabase({ ...data, now: new Date() })
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.EPISODE_PUBLISH,
-      async (job: Job<unknown>) => {
-        PublishScheduledJobSchema.parse(job.data)
+      withJob(QUEUE.EPISODE_PUBLISH, async (data: unknown) => {
+        PublishScheduledJobSchema.parse(data)
         return publishScheduled({ now: new Date() })
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.EPISODE_MEDIA_DELETE,
-      async (job: Job<unknown>) =>
-        deleteEpisodeMedia(EpisodeMediaDeleteJobSchema.parse(job.data)),
+      withJob(QUEUE.EPISODE_MEDIA_DELETE, async (data: unknown) =>
+        deleteEpisodeMedia(EpisodeMediaDeleteJobSchema.parse(data)),
+      ),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.FEED_RANK,
-      async (job: Job<unknown>) => {
-        const data = RankRecomputeJobSchema.parse(job.data)
+      withJob(QUEUE.FEED_RANK, async (input: unknown) => {
+        const data = RankRecomputeJobSchema.parse(input)
         return rankRecompute({ ...data, now: new Date() })
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.COUNTER_FLUSH,
-      async (job: Job<unknown>) => {
-        CounterFlushJobSchema.parse(job.data)
+      withJob(QUEUE.COUNTER_FLUSH, async (data: unknown) => {
+        CounterFlushJobSchema.parse(data)
         return counterFlushJob()
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.COUNTER_RECONCILE,
-      async (job: Job<unknown>) => {
-        const data = CounterReconcileJobSchema.parse(job.data)
+      withJob(QUEUE.COUNTER_RECONCILE, async (input: unknown) => {
+        const data = CounterReconcileJobSchema.parse(input)
         const changedSince = new Date()
         changedSince.setUTCDate(
           changedSince.getUTCDate() - data.changedSinceDays,
         )
         return counterReconcileJob(changedSince)
-      },
+      }),
       { connection, concurrency: 1 },
     ),
     new Worker(
       QUEUE.NOTIFY_FANOUT,
-      async (job: Job<unknown>) => {
-        let data = NotificationFanoutJobSchema.parse(job.data)
+      withJob(QUEUE.NOTIFY_FANOUT, async (input: unknown) => {
+        let data = NotificationFanoutJobSchema.parse(input)
         let created = 0
         let keepGoing = true
         do {
@@ -143,7 +147,7 @@ function startWorkers(): Promise<WorkerRuntime> {
           keepGoing = data.type === 'NEW_EPISODE' && result.nextCursor !== null
         } while (keepGoing)
         return { created }
-      },
+      }),
       { connection, concurrency: 1 },
     ),
   ]
@@ -173,6 +177,10 @@ async function main(): Promise<void> {
     config.processRole === 'scheduler'
       ? await startScheduler()
       : await bootstrapWorker()
+  const metricsServer =
+    config.processRole === 'scheduler'
+      ? undefined
+      : await startMetricsServer(config.env.WORKER_METRICS_PORT)
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal, role: config.processRole }, 'shutdown started')
     const timeout = setTimeout(() => {
@@ -181,7 +189,7 @@ async function main(): Promise<void> {
     }, 30_000)
     timeout.unref()
     try {
-      await runtime.close()
+      await Promise.all([runtime.close(), metricsServer?.close()])
     } finally {
       clearTimeout(timeout)
     }

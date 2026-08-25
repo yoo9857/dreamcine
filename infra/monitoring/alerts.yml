@@ -1,0 +1,164 @@
+groups:
+  - name: aidream-service
+    rules:
+      - alert: HighErrorRateWarning
+        expr: sum(rate(aidream_http_requests_total{status="5xx"}[5m])) / clamp_min(sum(rate(aidream_http_requests_total[5m])), 1) > 0.01
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: '5xx 비율 1% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#고에러율'
+      - alert: HighErrorRateCritical
+        expr: sum(rate(aidream_http_requests_total{status="5xx"}[5m])) / clamp_min(sum(rate(aidream_http_requests_total[5m])), 1) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: '5xx 비율 5% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#고에러율'
+      - alert: FeedApiLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(aidream_http_request_duration_seconds_bucket{route="/api/feed"}[5m]))) > 0.3
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: '피드 API p95 300ms 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#고에러율'
+      - alert: TargetDown
+        expr: up{job=~"web|worker|node|postgres|redis"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: '관측 대상 응답 없음'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#최초-진단-명령-30초-안에-실행'
+      - alert: ReadinessFailureWarning
+        expr: increase(aidream_http_requests_total{route="/api/ready",status="5xx"}[2m]) >= 1
+        labels: { severity: warning }
+        annotations:
+          summary: 'readiness 검사 실패'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#최초-진단-명령-30초-안에-실행'
+      - alert: ReadinessFailureCritical
+        expr: increase(aidream_http_requests_total{route="/api/ready",status="5xx"}[2m]) >= 3
+        labels: { severity: critical }
+        annotations:
+          summary: 'readiness 검사 3회 이상 실패'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#최초-진단-명령-30초-안에-실행'
+
+  - name: aidream-worker
+    rules:
+      - alert: TranscodeQueueWaitWarning
+        expr: aidream_queue_wait_seconds{queue="video.transcode"} > 600
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: '트랜스코드 대기 10분 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#큐-적체'
+      - alert: TranscodeQueueWaitCritical
+        expr: aidream_queue_wait_seconds{queue="video.transcode"} > 1800
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: '트랜스코드 대기 30분 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#큐-적체'
+      - alert: DlqNotEmpty
+        expr: increase(aidream_queue_dlq_total[15m]) >= 1
+        labels: { severity: warning }
+        annotations:
+          summary: 'DLQ 작업 발생'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#dlq'
+      - alert: DlqCritical
+        expr: increase(aidream_queue_dlq_total[15m]) >= 10
+        labels: { severity: critical }
+        annotations:
+          summary: 'DLQ 10건 이상 발생'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#dlq'
+      - alert: TranscodeSuccessRateWarning
+        expr: sum(increase(aidream_jobs_total{queue="video.transcode"}[1h])) > 0 and (sum(increase(aidream_jobs_total{queue="video.transcode",status="success"}[1h])) / clamp_min(sum(increase(aidream_jobs_total{queue="video.transcode"}[1h])), 1) < 0.95)
+        labels: { severity: warning }
+        annotations:
+          summary: '트랜스코드 성공률 95% 미만'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#트랜스코드-성공률-하락'
+      - alert: TranscodeSuccessRateCritical
+        expr: sum(increase(aidream_jobs_total{queue="video.transcode"}[1h])) > 0 and (sum(increase(aidream_jobs_total{queue="video.transcode",status="success"}[1h])) / clamp_min(sum(increase(aidream_jobs_total{queue="video.transcode"}[1h])), 1) < 0.90)
+        labels: { severity: critical }
+        annotations:
+          summary: '트랜스코드 성공률 90% 미만'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#트랜스코드-성공률-하락'
+
+  - name: aidream-infrastructure
+    rules:
+      - alert: DiskUsageWarning
+        expr: 1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} > 0.75
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: '디스크 사용률 75% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#디스크-가득'
+      - alert: DiskUsageCritical
+        expr: 1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} > 0.90
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: '디스크 사용률 90% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#디스크-가득'
+      - alert: DbConnectionsWarning
+        expr: sum(pg_stat_database_numbackends) / clamp_min(max(pg_settings_max_connections), 1) > 0.80
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'PostgreSQL 연결 사용률 80% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#db-장애'
+      - alert: DbConnectionsCritical
+        expr: sum(pg_stat_database_numbackends) / clamp_min(max(pg_settings_max_connections), 1) > 0.95
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: 'PostgreSQL 연결 사용률 95% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#db-장애'
+      - alert: RedisMemoryWarning
+        expr: redis_memory_used_bytes / clamp_min(redis_memory_max_bytes, scalar(node_memory_MemTotal_bytes)) > 0.80
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Redis 메모리 사용률 80% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#redis-장애'
+      - alert: RedisMemoryCritical
+        expr: redis_memory_used_bytes / clamp_min(redis_memory_max_bytes, scalar(node_memory_MemTotal_bytes)) > 0.95
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: 'Redis 메모리 사용률 95% 초과'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#redis-장애'
+      - alert: BackupMetricMissingWarning
+        expr: absent(aidream_backup_timestamp)
+        for: 24h
+        labels: { severity: warning }
+        annotations:
+          summary: '24시간 동안 PostgreSQL 백업 지표 없음'
+          runbook: 'docs/20_OPS/O04_BACKUP_DR.md#4-백업-감시-알럿'
+      - alert: BackupMetricMissingCritical
+        expr: absent(aidream_backup_timestamp)
+        for: 48h
+        labels: { severity: critical }
+        annotations:
+          summary: '48시간 동안 PostgreSQL 백업 지표 없음'
+          runbook: 'docs/20_OPS/O04_BACKUP_DR.md#4-백업-감시-알럿'
+      - alert: BackupStaleWarning
+        expr: time() - aidream_backup_timestamp > 86400
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: '최근 PostgreSQL 백업이 24시간 경과'
+          runbook: 'docs/20_OPS/O04_BACKUP_DR.md#4-백업-감시-알럿'
+      - alert: BackupStaleCritical
+        expr: time() - aidream_backup_timestamp > 172800
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: '최근 48시간 PostgreSQL 백업 없음'
+          runbook: 'docs/20_OPS/O04_BACKUP_DR.md#4-백업-감시-알럿'
+      - alert: TooManySeries
+        expr: prometheus_tsdb_head_series > 500000
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Prometheus 시계열 과다'
+          runbook: 'docs/20_OPS/O05_INCIDENT.md#고에러율'

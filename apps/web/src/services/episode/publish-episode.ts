@@ -8,9 +8,10 @@ import {
   type TransitionActor,
 } from '@aidream/core'
 import { findEpisodeForTransition, transitionEpisode } from '@aidream/db'
-import { enqueue, QUEUE } from '@aidream/queue'
+import { QUEUE } from '@aidream/queue'
 
 import type { RouteSession } from '@/src/auth/types'
+import { enqueue } from '@/src/lib/enqueue'
 
 export interface PublishEpisodeServiceInput {
   readonly episodeId: string

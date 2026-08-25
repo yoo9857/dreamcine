@@ -9,11 +9,12 @@ import {
   findAssetByUploadId,
   updateUploadStatus,
 } from '@aidream/db'
-import { QUEUE, enqueue } from '@aidream/queue'
+import { QUEUE } from '@aidream/queue'
 import { BUCKET, completeMultipart } from '@aidream/storage'
 
 import { getLogger } from '@/src/lib/logger'
 import type { RouteSession } from '@/src/auth/types'
+import { enqueue } from '@/src/lib/enqueue'
 
 import {
   assertNotExpired,

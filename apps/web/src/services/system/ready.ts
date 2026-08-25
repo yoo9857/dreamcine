@@ -1,5 +1,6 @@
 import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3'
 import { checkDbHealth } from '@aidream/db'
+import { getQueue, QUEUE } from '@aidream/queue'
 
 import { getLogger } from '@/src/lib/logger'
 import { getRedis } from '@/src/lib/redis'
@@ -10,11 +11,19 @@ export interface ReadyChecks {
   db: DependencyState
   redis: DependencyState
   storage: DependencyState
+  queue: DependencyState
 }
 
 export interface ReadyResult {
   status: 'ok' | 'degraded'
   checks: ReadyChecks
+}
+
+export interface ReadyDependencies {
+  readonly db: () => Promise<unknown>
+  readonly redis: () => Promise<unknown>
+  readonly storage: () => Promise<unknown>
+  readonly queue: () => Promise<unknown>
 }
 
 /** 의존 서비스 검사 타임아웃. 하나가 느려도 2초 안에 판정한다. */
@@ -82,18 +91,34 @@ async function probe(
  * 하나라도 실패하면 degraded 이며 라우트가 503 을 돌린다 — 배포 시 트래픽
  * 전환 판단에 쓰이므로 관대하게 통과시키지 않는다. (O01_DEPLOY.md)
  */
-export async function checkReadiness(): Promise<ReadyResult> {
-  const [db, redis, objectStorage] = await Promise.all([
-    probe('db', () => checkDbHealth(READY_TIMEOUT_MS)),
-    probe('redis', () => getRedis().ping()),
-    probe('storage', () =>
+export async function checkReadiness(
+  dependencies: ReadyDependencies = productionDependencies(),
+): Promise<ReadyResult> {
+  const [db, redis, objectStorage, queue] = await Promise.all([
+    probe('db', dependencies.db),
+    probe('redis', dependencies.redis),
+    probe('storage', dependencies.storage),
+    probe('queue', dependencies.queue),
+  ])
+
+  const checks: ReadyChecks = { db, redis, storage: objectStorage, queue }
+  const healthy = Object.values(checks).every((state) => state === 'ok')
+  return { status: healthy ? 'ok' : 'degraded', checks }
+}
+
+function productionDependencies(): ReadyDependencies {
+  return {
+    db: () => checkDbHealth(READY_TIMEOUT_MS),
+    redis: () => getRedis().ping(),
+    storage: () =>
       storage().send(
         new HeadBucketCommand({ Bucket: requireEnv('S3_BUCKET_ORIGINALS') }),
       ),
-    ),
-  ])
-
-  const checks: ReadyChecks = { db, redis, storage: objectStorage }
-  const healthy = Object.values(checks).every((state) => state === 'ok')
-  return { status: healthy ? 'ok' : 'degraded', checks }
+    queue: () =>
+      getQueue(QUEUE.VIDEO_TRANSCODE).getJobCounts(
+        'waiting',
+        'active',
+        'failed',
+      ),
+  }
 }

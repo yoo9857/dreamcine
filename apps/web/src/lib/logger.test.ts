@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { REDACT_CENSOR, REDACT_PATHS, createLogger } from './logger'
+import { runWithRequestContext } from './request-context'
 
 const originalLevel = process.env.LOG_LEVEL
 
@@ -38,6 +39,23 @@ afterEach(() => {
 })
 
 describe('logger', () => {
+  it('request context fields are included automatically', () => {
+    const sink = capture()
+    const logger = createLogger(sink.stream)
+    runWithRequestContext(
+      { requestId: 'request_1', method: 'GET', path: '/api/health' },
+      () => {
+        logger.info({}, 'inside request')
+      },
+    )
+
+    expect(parsed(sink.lines)[0]).toMatchObject({
+      service: 'web',
+      requestId: 'request_1',
+      msg: 'inside request',
+    })
+  })
+
   it('JSON 한 줄로 출력한다', () => {
     const sink = capture()
     createLogger(sink.stream).info({ requestId: 'r1' }, 'request')

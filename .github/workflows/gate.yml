@@ -163,6 +163,13 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Prometheus rules
+        run: |
+          docker run --rm \
+            -v "$PWD/infra/monitoring:/etc/aidream:ro" \
+            prom/prometheus:v3.5.0 \
+            promtool check rules /etc/aidream/alerts.yml
+
       - name: Gate L3 behaviour
         shell: bash
         run: |

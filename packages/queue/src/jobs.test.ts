@@ -9,6 +9,15 @@ import {
 import { QUEUE } from './queues.js'
 
 describe('T08 queue contracts', () => {
+  it('preserves an optional request ID across queue boundaries', () => {
+    expect(
+      JOB_SCHEMAS[QUEUE.VIDEO_TRANSCODE].parse({
+        assetId: 'asset_1',
+        requestId: 'req_123',
+      }),
+    ).toEqual({ assetId: 'asset_1', requestId: 'req_123' })
+  })
+
   it('예약공개 스캔은 외부 상태를 payload로 받지 않는다', () => {
     expect(PublishScheduledJobSchema.parse({})).toEqual({})
     expect(JOB_SCHEMAS[QUEUE.EPISODE_PUBLISH]).toBe(PublishScheduledJobSchema)

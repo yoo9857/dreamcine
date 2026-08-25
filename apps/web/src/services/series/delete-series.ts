@@ -1,8 +1,9 @@
 import { AppError, can } from '@aidream/core'
 import { softDeleteSeriesCascade, findSeriesById } from '@aidream/db'
-import { enqueue, QUEUE } from '@aidream/queue'
+import { QUEUE } from '@aidream/queue'
 
 import type { RouteSession } from '@/src/auth/types'
+import { enqueue } from '@/src/lib/enqueue'
 
 export async function deleteSeries(
   seriesId: string,

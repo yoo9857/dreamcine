@@ -1,8 +1,8 @@
-import { NotImplementedError } from '../errors/not-implemented.js'
-
 export const METRICS = {
   HTTP_DURATION: 'aidream_http_request_duration_seconds',
   HTTP_TOTAL: 'aidream_http_requests_total',
+  JOB_DURATION: 'aidream_job_duration_seconds',
+  JOB_TOTAL: 'aidream_jobs_total',
   TRANSCODE_DURATION: 'aidream_transcode_duration_seconds',
   TRANSCODE_TOTAL: 'aidream_transcode_total',
   QUEUE_DEPTH: 'aidream_queue_depth',
@@ -24,11 +24,54 @@ export type HttpStatusClass = '2xx' | '3xx' | '4xx' | '5xx'
 export type JobStatus = 'success' | 'failed' | 'error'
 
 export function normalizeRoutePattern(path: string): string {
-  void path
-  throw new NotImplementedError('T11:normalizeRoutePattern')
+  const pathname = path.split('?')[0] ?? path
+  const segments = pathname.split('/')
+  const dynamicParents: Readonly<Record<string, string>> = {
+    assets: '[id]',
+    comments: '[id]',
+    episodes: '[id]',
+    series: '[id]',
+    uploads: '[id]',
+    users: '[handle]',
+    tags: '[tag]',
+    reports: '[id]',
+  }
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const replacement = dynamicParents[segments[index] ?? '']
+    const candidate = segments[index + 1]
+    if (
+      replacement !== undefined &&
+      candidate !== undefined &&
+      candidate !== '' &&
+      !STATIC_ROUTE_SEGMENTS.has(candidate)
+    ) {
+      segments[index + 1] = replacement
+    }
+  }
+  return segments.join('/') || '/'
 }
 
 export function httpStatusClass(status: number): HttpStatusClass {
-  void status
-  throw new NotImplementedError('T11:httpStatusClass')
+  if (!Number.isInteger(status) || status < 200 || status >= 600) return '5xx'
+  const group = Math.floor(status / 100)
+  if (group === 2) return '2xx'
+  if (group === 3) return '3xx'
+  if (group === 4) return '4xx'
+  return '5xx'
 }
+
+const STATIC_ROUTE_SEGMENTS = new Set([
+  'age-confirm',
+  'comments',
+  'complete',
+  'follow',
+  'likes',
+  'parts',
+  'playback',
+  'progress',
+  'publish',
+  'read',
+  'retry',
+  'trending',
+  'views',
+])

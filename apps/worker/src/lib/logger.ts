@@ -1,13 +1,29 @@
-import { NotImplementedError } from '@aidream/core'
-import type { Logger } from 'pino'
+import pino, { type Logger } from 'pino'
 
 export interface JobLogContext {
   readonly queue: string
   readonly jobId: string
   readonly attempt: number
+  readonly requestId?: string | undefined
 }
 
 export function workerLogger(context?: JobLogContext): Logger {
-  void context
-  throw new NotImplementedError('T11:workerLogger')
+  const logger = pino({
+    level: process.env.LOG_LEVEL ?? 'info',
+    base: { service: 'worker', ...(context ?? {}) },
+    redact: {
+      censor: '[REDACTED]',
+      paths: [
+        '*.password',
+        '*.passwordHash',
+        '*.token',
+        '*.secret',
+        '*.accessKeyId',
+        '*.secretAccessKey',
+        '*.signedUrl',
+        '*.url',
+      ],
+    },
+  })
+  return logger
 }

@@ -34,6 +34,8 @@ export const ServerEnvSchema = z.object({
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error'])
     .default('info'),
+  METRICS_TOKEN: z.string().min(16).optional(),
+  WORKER_METRICS_PORT: z.coerce.number().int().min(1).max(65_535).default(9100),
 })
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>

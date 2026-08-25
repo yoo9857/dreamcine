@@ -27,6 +27,7 @@ describe('loadServerEnv', () => {
     expect(env.WORKER_CONCURRENCY).toBe(2)
     expect(env.FFMPEG_PATH).toBe('ffmpeg')
     expect(env.LOG_LEVEL).toBe('info')
+    expect(env.WORKER_METRICS_PORT).toBe(9100)
   })
 
   it('필수 키 누락을 거부한다', () => {

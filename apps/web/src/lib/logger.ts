@@ -1,5 +1,7 @@
 import { pino, type DestinationStream, type LoggerOptions } from 'pino'
 
+import { getRequestContext } from './request-context'
+
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error'
 
 export type LogFields = Readonly<Record<string, unknown>>
@@ -47,6 +49,16 @@ function resolveLevel(): LogLevel {
 function options(): LoggerOptions {
   return {
     level: resolveLevel(),
+    base: { service: 'web' },
+    mixin: () => {
+      const context = getRequestContext()
+      return context === undefined
+        ? {}
+        : {
+            requestId: context.requestId,
+            ...(context.userId === undefined ? {} : { userId: context.userId }),
+          }
+    },
     redact: { paths: [...REDACT_PATHS], censor: REDACT_CENSOR },
   }
 }
