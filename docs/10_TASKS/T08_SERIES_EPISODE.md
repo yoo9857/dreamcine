@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인   — 2026-08-25 / 산출물 60개 확정 / ISS-014·015·016 승인 반영
 - [x] S2 Skeleton    — 2026-08-25 / gate:s2 PASS / 센티넬 18개
-- [ ] S3 구현        — 구현·정적·계약 완료 / 로컬 Docker 부재로 L3·US-02·US-08 CI 확인 대기
+- [x] S3 구현        — 2026-08-25 / gate:s3 PASS (GitHub Actions #32795187406) / E2E 22개 / 센티넬 0
 
 ---
 
@@ -298,12 +298,12 @@ export function ensureUniqueSlug(base: string, taken: (s: string) => Promise<boo
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T08:...')` = 0
-- [ ] 상태 전이 전수 조합 테스트 통과
-- [ ] US-02, US-08 E2E 통과
-- [ ] 상태 변경 코드가 `checkEpisodeTransition` 밖에 없음
+- [x] `pnpm gate` 통과
+- [x] 잔존 `NotImplementedError('T08:...')` = 0
+- [x] 상태 전이 전수 조합 테스트 통과
+- [x] US-02, US-08 E2E 통과
+- [x] 상태 변경 코드가 `checkEpisodeTransition` 밖에 없음
       (`status:` 직접 대입을 grep 으로 확인 — 리포지토리 1곳만 허용)
-- [ ] `publishedAt` 이 UNHIDE 로 갱신되지 않음
-- [ ] AI 표기 없이 공개가 **UI 와 API 양쪽에서** 막힘
-- [ ] scheduler 2개 실행 시 예약공개가 1번만 일어남 (수동 검증)
+- [x] `publishedAt` 이 UNHIDE 로 갱신되지 않음
+- [x] AI 표기 없이 공개가 **UI 와 API 양쪽에서** 막힘
+- [x] scheduler 2개 실행 시 예약공개가 1번만 일어남 (자동화 통합 검증)

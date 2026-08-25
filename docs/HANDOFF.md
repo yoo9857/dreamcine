@@ -8,18 +8,16 @@
 - T08 시리즈·에피소드·공개예약 구현을 완료했다. 상태기계, 슬러그·태그 규칙,
   repository 트랜잭션, REST API, 예약공개 scheduler/worker, 미디어 삭제 잡, 공개·스튜디오
   화면, OpenAPI, US-02·US-08 E2E가 포함된다.
-- `pnpm sss:remaining` 결과는 `TOTAL=0`이다. T08 단위·서비스·워커·UI 표적 테스트
-  78개가 통과했고 전체 비컨테이너 테스트 1,145개도 통과했다.
-- `gate:static`과 `gate:contract`는 통과했다. 누적 Prisma 마이그레이션을 허용하면서 각
-  `migration.sql`의 존재·비어 있지 않음을 검사하도록 초기 T02 계약 검사기를 확장했다.
-- 로컬 Windows에는 Docker CLI가 없어 Testcontainers DB 스위트 6개와 Playwright E2E를
-  실행하지 못했다. `gate:test`에서 제품 테스트 1,164개는 통과했고 실패 원인은 모두
-  `Could not find a working container runtime strategy`였다.
-- Next 프로덕션 빌드는 컴파일·타입검사·정적 페이지 17개 생성까지 성공했으나, 기존에
-  알려진 Windows standalone symlink `EPERM`으로 파일 추적 복사 단계에서 실패했다.
-- 다음 작업은 Node 22 + Docker가 있는 Linux CI에서 `pnpm gate:s3`를 실행해 L3와
-  US-02·US-08을 확인하는 것이다. 성공하면 T08 문서의 S3를 체크하고 `pnpm sss:status`로
-  `docs/INDEX.md`를 갱신한 뒤 T09/S1로 이동한다.
+- `pnpm sss:remaining` 결과는 `TOTAL=0`이다. T08 단위·서비스·워커·UI 표적 테스트와
+  상태 전이·스케줄러 이중 실행 검증이 모두 통과했다.
+- GitHub Actions 실행 `32795187406`에서 Node 22 프로덕션 빌드, Prisma 마이그레이션,
+  L1 정적 검사, L2 계약 검사, L3 동작 검사와 Playwright E2E 22개가 모두 통과했다.
+- 누적 Prisma 마이그레이션을 허용하면서 각 `migration.sql`의 존재·비어 있지 않음을
+  검사하도록 초기 T02 계약 검사기를 확장했다.
+- 로컬 Windows에는 Docker CLI가 없고 standalone symlink 권한도 없어 컨테이너 통합
+  스위트와 최종 빌드는 Linux CI 결과를 정식 검증 근거로 사용했다.
+- T08/S3는 완료됐다. 다음 개발 세션은 한 세션 한 단계 규칙에 따라
+  `T09 FEED_RANKING / S1 Spec 확인`부터 시작한다.
 
 ## 2026-08-24 T07/S3 최신 인수인계
 
