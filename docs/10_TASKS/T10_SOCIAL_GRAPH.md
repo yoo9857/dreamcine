@@ -1,7 +1,7 @@
 # T10 — 소셜: 팔로우 · 좋아요 · 댓글 · 알림
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [x] S1 Spec 확인   — 2026-08-25 / 산출물 61개 확정 / 기존 T02 소셜 repository 재사용
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -50,6 +50,50 @@ SNS 의 본체를 붙인다. 모든 소셜 동작은 **멱등**하고, 카운터
 | `apps/web/app/(main)/u/[handle]/page.tsx` | 프로필 | S3 |
 | `apps/web/app/(main)/notifications/page.tsx` | 알림 화면 | S3 |
 | `apps/web/e2e/social.e2e.ts` | US-05, US-06 | S3 |
+
+### S1 추가 산출물
+
+기존 저장소의 Prisma repository, Redis, BullMQ, App Router 경계를 대조해 멱등
+트랜잭션과 알림·카운터 잡이 실제 실행 경로까지 이어지도록 아래 파일을 범위에
+포함한다. 새 Prisma 모델이나 인덱스는 추가하지 않는다.
+
+| 경로 | 책임 | 단계 |
+|---|---|---|
+| `packages/core/src/entities.ts` | 댓글 사용자·알림 표시용 응답 타입 | S2 |
+| `packages/core/src/index.ts` | T10 스키마·규칙·타입 export | S2 |
+| `packages/core/src/rules/sanitize-text.test.ts` | 제어문자·zero-width·개행 정규화 단위 테스트 | S3 |
+| `packages/core/src/schemas/comment.schema.test.ts` | 댓글 길이·부모·커서 계약 테스트 | S3 |
+| `packages/core/src/schemas/notification.schema.test.ts` | 타입별 알림 payload 판별 테스트 | S3 |
+| `packages/db/src/repositories/social.repo.ts` | 멱등 팔로우·차단·좋아요·댓글 트랜잭션 | S2→S3 |
+| `packages/db/src/repositories/notification.repo.ts` | 알림 생성·목록·읽음·팬아웃 배치 | S2→S3 |
+| `packages/db/src/repositories/counter.repo.ts` | 카운터 flush·실측·보정 쿼리 | S2→S3 |
+| `packages/db/src/mappers/social.mapper.ts` | 댓글 사용자·검증된 알림 payload 매핑 | S2→S3 |
+| `packages/db/src/index.ts` | T10 repository export | S2 |
+| `packages/db/tests/social.integration.test.ts` | 멱등·동시성·차단·댓글·알림 통합 테스트 | S3 |
+| `packages/db/tests/counter.integration.test.ts` | 실측 카운터 보정 통합 테스트 | S3 |
+| `packages/queue/src/jobs.ts` | 알림 팬아웃·flush·reconcile payload zod | S2→S3 |
+| `packages/queue/src/index.ts` | T10 잡 계약 export | S2 |
+| `packages/queue/src/jobs.test.ts` | T10 잡 payload 검증 | S3 |
+| `apps/worker/src/index.ts` | T10 consumer 등록 | S3 |
+| `apps/worker/src/scheduler.ts` | 1분 flush·매일 04시 reconcile 등록 | S3 |
+| `apps/worker/src/scheduler.test.ts` | T10 scheduler 단일 등록·주기 검증 | S3 |
+| `apps/worker/src/jobs/notification-fanout.test.ts` | 3배치·재개·중복 안전 테스트 | S3 |
+| `apps/worker/src/jobs/counter-flush.test.ts` | GETDEL 후 DB 실패 시 복원 테스트 | S3 |
+| `apps/worker/src/jobs/counter-reconcile.test.ts` | 불일치 보정·경고 메트릭 테스트 | S3 |
+| `apps/web/src/lib/redis.ts` | 알림 SET NX·조회수 GETDEL/INCRBY 명령 | S2→S3 |
+| `apps/web/src/lib/redis.test.ts` | T10 Redis 명령·장애 변환 테스트 | S3 |
+| `apps/web/src/services/social/unblock-user.ts` | 차단 해제 유스케이스 | S2→S3 |
+| `apps/web/src/services/social/update-comment.ts` | 15분 내 댓글 수정·소유권 검사 | S2→S3 |
+| `apps/web/src/services/social/list-comments.ts` | 댓글 커서·대댓글 미리보기 3개 | S2→S3 |
+| `apps/web/src/services/social/social.integration.test.ts` | 서비스 차단·알림 실패 격리 테스트 | S3 |
+| `apps/web/src/services/notification/list-notifications.ts` | 사용자 알림 커서 목록 | S2→S3 |
+| `apps/web/src/services/notification/mark-notifications-read.ts` | 본인 알림 일괄 읽음 | S2→S3 |
+| `apps/web/src/services/user/get-profile.ts` | 공개 프로필·팔로우 상태 조회 | S2→S3 |
+| `apps/web/src/components/social/social-components.test.tsx` | 좋아요·팔로우 낙관 UI와 연타 방지 | S3 |
+| `apps/web/src/components/comment/comment-thread.test.tsx` | 댓글 상태 4종·작성·삭제 UI | S3 |
+| `apps/web/src/components/notification-list.test.tsx` | 알림 타입·상태 4종 UI | S3 |
+| `apps/web/src/lib/messages/ko.ts` | 소셜·댓글·알림 상태와 오류 문구 | S3 |
+| `openapi.json` | T10 12개 REST 동작의 요청·응답 계약 | S3 |
 
 ## 4. S2 Skeleton
 
