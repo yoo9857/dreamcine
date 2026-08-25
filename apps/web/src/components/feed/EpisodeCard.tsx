@@ -1,11 +1,18 @@
 import type { FeedItem } from '@aidream/core'
 import { Badge } from '@aidream/ui'
+import Image from 'next/image'
 import Link from 'next/link'
 import React, { type ReactNode } from 'react'
 
 import { rememberFeedScrollPosition } from '@/src/lib/feed-scroll'
 
-export function EpisodeCard({ item }: { readonly item: FeedItem }): ReactNode {
+export function EpisodeCard({
+  item,
+  priority = false,
+}: {
+  readonly item: FeedItem
+  readonly priority?: boolean
+}): ReactNode {
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-bg-elevated">
       <Link
@@ -19,12 +26,13 @@ export function EpisodeCard({ item }: { readonly item: FeedItem }): ReactNode {
               썸네일 준비 중
             </div>
           ) : (
-            <img
+            <Image
               src={item.thumbUrl}
               alt={`${item.title} 썸네일`}
               width={640}
               height={360}
-              loading="lazy"
+              priority={priority}
+              unoptimized
               className="size-full object-cover"
             />
           )}

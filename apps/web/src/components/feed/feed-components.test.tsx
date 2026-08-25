@@ -68,6 +68,29 @@ describe('feed components', () => {
     ).toBe('/watch/episode_1')
   })
 
+  it('prioritizes only the first feed thumbnail', () => {
+    const first = { ...item, thumbUrl: 'https://cdn.example/first.jpg' }
+    const second = {
+      ...first,
+      episodeId: 'episode_2',
+      title: '둘째 화',
+      thumbUrl: 'https://cdn.example/second.jpg',
+    }
+    render(
+      providers(
+        <FeedList
+          type="popular"
+          initialItems={[first, second]}
+          initialCursor={null}
+        />,
+      ),
+    )
+
+    const images = screen.getAllByRole('img')
+    expect(images[0]?.getAttribute('loading')).toBeNull()
+    expect(images[1]?.getAttribute('loading')).toBe('lazy')
+  })
+
   it('remembers the feed position before opening an episode', () => {
     Object.defineProperty(window, 'scrollY', {
       configurable: true,

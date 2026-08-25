@@ -45,8 +45,12 @@ export function FeedList(props: FeedListProps): ReactNode {
   return (
     <section aria-label="에피소드 피드" className="flex flex-col gap-6">
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {feed.items.map((item) => (
-          <EpisodeCard key={item.episodeId} item={item} />
+        {feed.items.map((item, index) => (
+          <EpisodeCard
+            key={item.episodeId}
+            item={item}
+            priority={index === 0}
+          />
         ))}
       </div>
       {feed.isFetchNextPageError ? (

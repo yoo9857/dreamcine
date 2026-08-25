@@ -1,22 +1,12 @@
-import { Suspense, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
-import { FeedList, FeedSkeleton } from '@/src/components/feed/FeedList'
+import { FeedList } from '@/src/components/feed/FeedList'
 import { getFeed } from '@/src/services/feed/get-feed'
 
-async function PopularFeed(): Promise<ReactNode> {
+export default async function HomePage(): Promise<ReactNode> {
   const session = await getServerSession()
   const page = await getFeed({ type: 'popular', limit: 20 }, session)
-  return (
-    <FeedList
-      type="popular"
-      initialItems={page.items}
-      initialCursor={page.nextCursor}
-    />
-  )
-}
-
-export default function HomePage(): ReactNode {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -25,9 +15,11 @@ export default function HomePage(): ReactNode {
           지금 가장 주목받는 이야기를 만나보세요.
         </p>
       </div>
-      <Suspense fallback={<FeedSkeleton />}>
-        <PopularFeed />
-      </Suspense>
+      <FeedList
+        type="popular"
+        initialItems={page.items}
+        initialCursor={page.nextCursor}
+      />
     </div>
   )
 }
