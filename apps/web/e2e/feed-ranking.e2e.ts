@@ -67,7 +67,15 @@ test('US-05 팔로우한 제작자의 피드를 무한스크롤로 탐색한다'
   await expect(page.locator('article')).toHaveCount(25)
 
   const scrollBefore = await page.evaluate(() => window.scrollY)
-  await page.locator('article a').first().click()
+  await page.locator('article a').last().click()
+  await expect
+    .poll(async () => {
+      const stored = await page.evaluate(() =>
+        window.sessionStorage.getItem('aidream:feed-scroll:/following'),
+      )
+      return stored === null ? 0 : Number(stored)
+    })
+    .toBeGreaterThanOrEqual(Math.max(0, scrollBefore - 100))
   await page.goBack()
   await expect
     .poll(async () => page.evaluate(() => window.scrollY))
