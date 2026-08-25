@@ -14,6 +14,7 @@
     "@aidream/storage": "workspace:*",
     "bullmq": "5.81.3",
     "pino": "10.3.1",
+    "prom-client": "15.1.3",
     "zod": "3.25.76"
   }
 }

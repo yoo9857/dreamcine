@@ -2,7 +2,7 @@
 
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-25 / 산출물 35개 확정 / 기존 T03 로거·레디니스 확장
-- [ ] S2 Skeleton
+- [x] S2 Skeleton — 2026-08-25 / gate:s2 PASS / 마커 7개
 - [ ] S3 구현
 
 ---
@@ -53,7 +53,7 @@
 |---|---|---|
 | `packages/core/src/observability/metrics.test.ts` | 메트릭 이름·라벨·라우트 정규화 계약 | S3 |
 | `packages/core/src/index.ts` | 관측성 계약 export | S2 |
-| `packages/core/package.json` | `prom-client` 런타임 의존성 | S2 |
+| `apps/web/package.json` | web 메트릭의 `prom-client` 런타임 의존성 | S2 |
 | `apps/web/src/lib/logger.test.ts` | requestId 자동 바인딩·시크릿 redact | S3 |
 | `apps/web/src/lib/metrics-http.test.ts` | HTTP 성공·실패·수집 장애 격리 | S3 |
 | `apps/web/app/api/metrics/route.test.ts` | 내부망·토큰 접근 제어 | S3 |

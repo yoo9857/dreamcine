@@ -196,3 +196,11 @@ export {
 } from './state/episode-state.js'
 export { ensureUniqueSlug, toSlug } from './rules/slug.js'
 export { normalizeTag } from './rules/tag.js'
+export {
+  METRICS,
+  httpStatusClass,
+  normalizeRoutePattern,
+  type HttpStatusClass,
+  type JobStatus,
+  type MetricName,
+} from './observability/metrics.js'
