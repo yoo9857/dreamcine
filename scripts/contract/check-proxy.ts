@@ -27,6 +27,11 @@ const REQUIRED_DIRECTIVE =
 
 const CSP_DIRECTIVE = /^[ \t]*\??Content-Security-Policy[ \t]+/mu
 
+const REQUIRED_PUBLIC_MEDIA_ROUTES = [
+  { path: '/hls/*', bucket: 'S3_BUCKET_HLS' },
+  { path: '/thumbs/*', bucket: 'S3_BUCKET_THUMBS' },
+] as const
+
 interface Block {
   readonly startLine: number
   readonly body: string
@@ -126,6 +131,24 @@ export async function checkProxy(
     problems.push(
       `${CADDYFILE_PATH}: shared security_headers must not overwrite the app nonce CSP.`,
     )
+  }
+
+  for (const route of REQUIRED_PUBLIC_MEDIA_ROUTES) {
+    const escapedPath = route.path.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+    const handle = new RegExp(
+      `^[ \\t]*handle[ \\t]+${escapedPath}[ \\t]*\\{`,
+      'mu',
+    )
+    if (!handle.test(source)) {
+      problems.push(
+        `${CADDYFILE_PATH}: public media route ${route.path} is missing.`,
+      )
+    }
+    if (!source.includes(`/{$${route.bucket}}{uri}`)) {
+      problems.push(
+        `${CADDYFILE_PATH}: ${route.path} must map through ${route.bucket}.`,
+      )
+    }
   }
 
   return { ok: problems.length === 0, problems }

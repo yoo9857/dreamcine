@@ -27,6 +27,18 @@ async function createRoot(content?: string): Promise<string> {
 }
 
 const GOOD = `example.com {
+\thandle /hls/* {
+\t\trewrite * /{$S3_BUCKET_HLS}{uri}
+\t\treverse_proxy storage:9000 {
+\t\t\theader_up X-Forwarded-For {remote_host}
+\t\t}
+\t}
+\thandle /thumbs/* {
+\t\trewrite * /{$S3_BUCKET_THUMBS}{uri}
+\t\treverse_proxy storage:9000 {
+\t\t\theader_up X-Forwarded-For {remote_host}
+\t\t}
+\t}
 \thandle {
 \t\treverse_proxy web:3000 {
 \t\t\theader_up X-Forwarded-For {remote_host}
@@ -52,6 +64,16 @@ describe('checkProxy', () => {
     const result = await checkProxy(root)
     expect(result.ok).toBe(false)
     expect(result.problems.join('\n')).toContain('nonce')
+  })
+
+  it('공개 HLS 프록시가 빠지면 실패한다', async () => {
+    const root = await createRoot(
+      GOOD.replace(/\thandle \/hls\/\* \{[\s\S]*?\n\t\}\n/u, ''),
+    )
+
+    const result = await checkProxy(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems.join('\n')).toContain('/hls/*')
   })
 
   it('XFF 덮어쓰기가 없으면 신고한다', async () => {

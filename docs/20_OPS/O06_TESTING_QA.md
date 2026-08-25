@@ -324,3 +324,32 @@ pnpm sss:remaining
 
 **`pnpm gate` 를 로컬에서 통과시키고 푸시한다.**
 CI 를 디버깅 도구로 쓰면 피드백 루프가 10배 느려진다.
+
+## 12. 운영 미디어 재생 검수
+
+실제 운영 스토리지·워커·CDN·플레이어를 한 흐름으로 확인할 때만 실행한다.
+이 명령은 QA 크리에이터와 공개 시리즈·에피소드를 운영 DB에 생성하므로 실행 전에
+대상 파일과 공개 여부를 승인받아야 한다. 일회용 로그인 세션은 성공·실패와 관계없이
+종료 시 폐기하며 비밀번호나 토큰을 파일에 저장하지 않는다.
+
+```powershell
+pnpm qa:production-media -- ohhanbin_opt.mp4
+```
+
+검수 범위:
+
+- 브라우저 UI의 서명 URL 멀티파트 업로드와 실제 ETag 처리
+- 워커의 probe·360p/720p HLS 변환·포스터 생성 완료
+- 시리즈/에피소드 생성과 공개 전환
+- 비로그인 데스크톱·모바일 뷰포트에서 manifest/segment 로드
+- 재생, 10초 탐색, 볼륨, 1.5배속, 화질 메뉴와 HTTP 오류 0건
+- `artifacts/production-media-qa/<시각>/`의 JSON 보고서와 스크린샷
+
+중간 단계 이후 재실행할 때는 이미 검증된 자산이나 에피소드를 재사용한다.
+
+```powershell
+$env:QA_ASSET_ID = '<ready asset id>'
+$env:QA_SERIES_ID = '<series id>'
+$env:QA_EPISODE_ID = '<published episode id>'
+pnpm qa:production-media -- ohhanbin_opt.mp4
+```

@@ -8,4 +8,5 @@ coverage/
 dist/
 playwright-report/
 test-results/
+artifacts/
 *.tsbuildinfo

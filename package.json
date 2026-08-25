@@ -42,6 +42,7 @@
     "db:seed": "prisma db seed --schema prisma/schema.prisma",
     "perf:bundle": "tsx scripts/perf/check-bundle.ts",
     "perf:lighthouse": "lhci autorun",
+    "qa:production-media": "tsx scripts/ops/qa-production-media.ts",
     "sss:remaining": "tsx scripts/sss/count-remaining.ts",
     "sss:status": "tsx scripts/sss/status.ts",
     "prepare": "husky"
