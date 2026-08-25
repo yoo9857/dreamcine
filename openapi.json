@@ -42,6 +42,10 @@
     {
       "name": "social",
       "description": "팔로우 · 차단 · 좋아요 · 댓글 · 알림"
+    },
+    {
+      "name": "moderation",
+      "description": "신고 접수 · 심사 · 사용자 제재"
     }
   ],
   "components": {
@@ -2704,6 +2708,139 @@
             }
           },
           "401": { "description": "인증 필요" }
+        }
+      }
+    },
+    "/reports": {
+      "post": {
+        "tags": ["moderation"],
+        "summary": "신고 접수",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["target", "targetId", "reason"],
+                "properties": {
+                  "target": {
+                    "enum": ["EPISODE", "SERIES", "COMMENT", "USER"]
+                  },
+                  "targetId": { "type": "string" },
+                  "reason": {
+                    "enum": [
+                      "SEXUAL",
+                      "VIOLENCE",
+                      "HATE",
+                      "SPAM",
+                      "COPYRIGHT",
+                      "MINOR_SAFETY",
+                      "OTHER"
+                    ]
+                  },
+                  "detail": { "type": "string", "maxLength": 1000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "접수 완료" },
+          "409": { "description": "중복 신고" },
+          "429": { "description": "일일 한도 초과" }
+        }
+      }
+    },
+    "/admin/reports": {
+      "get": {
+        "tags": ["moderation"],
+        "summary": "신고 심사큐",
+        "responses": {
+          "200": { "description": "커서 기반 심사큐" },
+          "403": { "description": "권한 부족" }
+        }
+      }
+    },
+    "/admin/reports/{id}/action": {
+      "post": {
+        "tags": ["moderation"],
+        "summary": "신고 조치",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["action"],
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "HIDE_CONTENT",
+                      "REMOVE_CONTENT",
+                      "SUSPEND_USER",
+                      "REJECT"
+                    ]
+                  },
+                  "note": { "type": "string", "maxLength": 1000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "조치 완료" },
+          "409": { "description": "이미 처리됨" }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": ["moderation"],
+        "summary": "관리자 사용자 검색",
+        "responses": {
+          "200": { "description": "사용자 목록" },
+          "403": { "description": "ADMIN 필요" }
+        }
+      }
+    },
+    "/admin/users/{id}/status": {
+      "post": {
+        "tags": ["moderation"],
+        "summary": "사용자 정지 또는 해제",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status", "reason"],
+                "properties": {
+                  "status": { "enum": ["ACTIVE", "SUSPENDED"] },
+                  "reason": { "type": "string", "maxLength": 1000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "상태 변경 완료" },
+          "403": { "description": "ADMIN 필요" }
         }
       }
     },

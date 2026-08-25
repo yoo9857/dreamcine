@@ -7,6 +7,7 @@ import { getServerSession } from '@/src/auth/server-session'
 import { AgeGate } from '@/src/components/AgeGate'
 import { CommentThread } from '@/src/components/comment/CommentThread'
 import { WatchPlayer } from '@/src/components/player/HlsPlayer'
+import { ReportDialog } from '@/src/components/ReportDialog'
 import { LikeButton } from '@/src/components/social/LikeButton'
 import { getPlayback } from '@/src/services/episode/get-playback'
 import { listComments } from '@/src/services/social/list-comments'
@@ -28,9 +29,10 @@ export default async function WatchPage(props: WatchPageProps) {
       cookieHeader: requestHeaders.get('cookie'),
       now: new Date(),
     })
-    const [comments, social] = await Promise.all([
+    const [comments, social, episodeRecord] = await Promise.all([
       listComments(episodeId, { limit: 20 }),
       getEpisodeSocialState(episodeId, session?.userId),
+      findPlaybackEpisode(episodeId),
     ])
     return (
       <main className="mx-auto flex max-w-6xl flex-col gap-6 p-4">
@@ -46,11 +48,20 @@ export default async function WatchPage(props: WatchPageProps) {
           durationSec={playback.durationSec}
         />
         {session === null ? null : (
-          <LikeButton
-            episodeId={episodeId}
-            initialLiked={social.isLiked}
-            initialCount={social.likeCount}
-          />
+          <div className="flex items-center gap-3">
+            <LikeButton
+              episodeId={episodeId}
+              initialLiked={social.isLiked}
+              initialCount={social.likeCount}
+            />
+            {episodeRecord?.ownerId === session.userId ? null : (
+              <ReportDialog
+                target="EPISODE"
+                targetId={episodeId}
+                trigger="신고"
+              />
+            )}
+          </div>
         )}
         <CommentThread
           episodeId={episodeId}

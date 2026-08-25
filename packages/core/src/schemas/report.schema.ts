@@ -1,11 +1,6 @@
 import { z } from 'zod'
 
-import {
-  ReportReason,
-  ReportStatus,
-  ReportTarget,
-  UserStatus,
-} from '../enums.js'
+import { ReportReason, ReportStatus, ReportTarget } from '../enums.js'
 import { PaginationSchema } from './pagination.schema.js'
 
 export const CreateReportSchema = z.object({
@@ -29,7 +24,7 @@ export const AdminUserQuerySchema = PaginationSchema.extend({
 })
 
 export const UpdateUserStatusSchema = z.object({
-  status: z.enum(UserStatus),
+  status: z.enum(['ACTIVE', 'SUSPENDED']),
   reason: z.string().trim().min(1).max(1000),
 })
 

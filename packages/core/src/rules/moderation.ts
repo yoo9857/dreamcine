@@ -1,5 +1,4 @@
 import type { ReportReason } from '../enums.js'
-import { NotImplementedError } from '../errors/not-implemented.js'
 
 export interface AutoActionInput {
   reportCount: number
@@ -10,6 +9,15 @@ export interface AutoActionInput {
 
 export type AutoAction = 'NONE' | 'PRIORITIZE' | 'AUTO_HIDE'
 
-export function decideAutoAction(_input: AutoActionInput): AutoAction {
-  throw new NotImplementedError('T12:decideAutoAction')
+export function decideAutoAction(input: AutoActionInput): AutoAction {
+  if (input.reason === 'MINOR_SAFETY') return 'AUTO_HIDE'
+  if (
+    (input.reason === 'SEXUAL' || input.reason === 'COPYRIGHT') &&
+    input.distinctReporters >= 3
+  ) {
+    return 'AUTO_HIDE'
+  }
+  if (input.distinctReporters >= 5) return 'AUTO_HIDE'
+  if (input.distinctReporters >= 2) return 'PRIORITIZE'
+  return 'NONE'
 }

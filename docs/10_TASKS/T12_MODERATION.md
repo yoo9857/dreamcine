@@ -1,7 +1,7 @@
 # T12 — 신고 · 심사 · 연령등급 · 저작권
 
 ## 진행 상태
-- [x] S1 Spec 확인 — 2026-08-25 / ISS-017 승인 / 산출물 33개 확정
+- [x] S1 Spec 확인 — 2026-08-25 / ISS-017 승인 / 산출물 37개 확정
 - [x] S2 Skeleton — 2026-08-25 / gate:s2 PASS / 마커 7개
 - [ ] S3 구현
 
@@ -35,6 +35,7 @@ UGC 영상 플랫폼에서 이것은 **선택 기능이 아니라 법적·운영
 | `packages/core/tests/permission.test.ts` | MODERATOR·ADMIN 권한 경계 | S3 |
 | `packages/db/src/mappers/report.mapper.ts` | Prisma Report 매핑 | S2→S3 |
 | `packages/db/src/repositories/report.repo.ts` | 신고 집계·심사큐·조건부 일괄 처리 | S2→S3 |
+| `packages/db/src/repositories/user.repo.ts` | 사용자 검색·정지 트랜잭션 | S3 |
 | `packages/db/tests/moderation.integration.test.ts` | 저장·정렬·동시 처리 통합 검증 | S3 |
 | `apps/web/src/services/moderation/create-report.ts` | 신고 접수 | S2→S3 |
 | `apps/web/src/services/moderation/create-report.test.ts` | 접수·중복·자동숨김 검증 | S3 |
@@ -51,6 +52,9 @@ UGC 영상 플랫폼에서 이것은 **선택 기능이 아니라 법적·운영
 | `apps/web/app/api/admin/users/[id]/status/route.ts` | POST | S3 |
 | `apps/web/src/components/ReportDialog.tsx` | 신고 UI | S3 |
 | `apps/web/src/components/report-dialog.test.tsx` | 신고 UI 검증 | S3 |
+| `apps/web/src/components/moderation/ReportActions.tsx` | 심사 조치 컨트롤 | S3 |
+| `apps/web/src/components/moderation/UserStatusActions.tsx` | 사용자 정지·해제 컨트롤 | S3 |
+| `apps/web/app/(main)/watch/[episodeId]/page.tsx` | 본인 콘텐츠를 제외한 신고 진입점 | S3 |
 | `apps/web/app/(admin)/layout.tsx` | 권한 가드 | S3 |
 | `apps/web/app/(admin)/admin/reports/page.tsx` | 심사큐 화면 | S3 |
 | `apps/web/app/(admin)/admin/users/page.tsx` | 사용자 관리 | S3 |
