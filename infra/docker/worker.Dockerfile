@@ -35,7 +35,7 @@ RUN ffmpeg -version | grep -q '^ffmpeg version 7\.1\.1' && \
 COPY --from=build --chown=node:node /app/apps/worker/dist ./dist
 COPY --from=build --chown=node:node /app/apps/worker/package.json ./package.json
 COPY --from=build --chown=node:node /app/packages /app/packages
-COPY --from=deps --chown=node:node /app/node_modules /app/node_modules
+COPY --from=build --chown=node:node /app/node_modules /app/node_modules
 COPY --from=deps --chown=node:node /app/apps/worker/node_modules ./node_modules
 
 USER node
