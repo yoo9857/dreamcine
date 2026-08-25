@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인   — 2026-08-25 / 산출물 56개 확정 / DEP-004 승인 반영
 - [x] S2 Skeleton    — 2026-08-25 / gate:s2 PASS (GitHub Actions #32797682937 L1) / 센티넬 14개
-- [ ] S3 구현
+- [x] S3 구현 — 2026-08-25 / CI 32847439087 PASS / 운영 배포 32848683658 PASS
 
 ---
 
@@ -311,13 +311,27 @@ CREATE INDEX idx_user_search_trgm   ON "user"  USING gin (handle gin_trgm_ops, d
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T09:...')` = 0
-- [ ] 커서 중복/누락 테스트 통과 (동일 정렬키 20개)
-- [ ] `isLiked` N+1 없음 (쿼리 카운트 테스트)
-- [ ] US-05 E2E 통과
-- [ ] Lighthouse CI: LCP ≤ 2.5s, CLS ≤ 0.05
-- [ ] 피드 API p95 ≤ 300ms (에피소드 1000개 시드 상태에서 측정)
-- [ ] `EXPLAIN ANALYZE` 로 3종 피드 쿼리가 **인덱스 스캔**임을 확인 (Seq Scan 이면 실패)
-- [ ] 랭킹 산식이 코드에 한 번만 존재 (SQL 중복 없음)
-- [ ] Redis 를 끈 상태에서 피드가 정상 동작
+- [x] `pnpm gate` 통과
+- [x] 잔존 `NotImplementedError('T09:...')` = 0
+- [x] 커서 중복/누락 테스트 통과 (동일 정렬키 20개)
+- [x] `isLiked` N+1 없음 (쿼리 카운트 테스트)
+- [x] US-05 E2E 통과
+- [x] Lighthouse CI: LCP ≤ 2.5s, CLS ≤ 0.05
+- [x] 피드 API p95 ≤ 300ms (에피소드 1000개 시드 상태에서 측정)
+- [x] `EXPLAIN ANALYZE` 로 3종 피드 쿼리가 **인덱스 스캔**임을 확인 (Seq Scan 이면 실패)
+- [x] 랭킹 산식이 코드에 한 번만 존재 (SQL 중복 없음)
+- [x] Redis 를 끈 상태에서 피드가 정상 동작
+
+### S3 검증 근거
+
+- GitHub Actions gate/image: `32847439087` — PostgreSQL 통합, Playwright 27개,
+  Lighthouse, 웹·워커 이미지 게시 통과
+- `feed-search.integration.test.ts`: 동일 `publishedAt` 20개와 페이지 사이 신규 삽입에서
+  중복·누락 0건
+- `feed-performance.integration.test.ts`: 1,000건에서 popular/latest/following 모두
+  `episode_feed_popular_idx` 또는 `episode_feed_latest_idx` 사용, episode Seq Scan 0건
+- `feed-performance.e2e.ts`: 1,000개 에피소드의 캐시되지 않은 피드 API 20회 p95 ≤ 300ms
+- `get-feed.test.ts`: 20개 항목의 좋아요 상태를 `likedIds` 단 한 번으로 조회
+- 운영 배포 `32848683658`: SHA `e2fc74a6a976956e1e7c525bcefd398ad4e57663`,
+  인덱스 마이그레이션·웹·워커·내부 헬스 검사 통과
+- 외부 확인: 홈·health·ready·popular/latest 피드 200, DB·Redis·스토리지·큐 `ok`

@@ -3,6 +3,18 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-08-25 T09/S3 성능 게이트·운영 배포 완료
+
+- 기존 T09 구현에서 빠져 있던 20개 동일 정렬키 커서, `isLiked` 단일 배치 조회,
+  1,000건 API p95, 3종 피드 `EXPLAIN ANALYZE` 검증을 추가했다.
+- 피드 정렬과 커서 조건을 완전히 지원하도록 episode 인덱스를
+  `(status, published_at DESC, id DESC)`와 `(status, rank_score DESC, id DESC)`로 교체했다.
+- CI `32847439087`에서 전체 gate, Playwright 27개, Lighthouse와 이미지 게시가 통과했다.
+  운영 배포 `32848683658`로 SHA `e2fc74a6a976956e1e7c525bcefd398ad4e57663`을 반영했다.
+- 외부 홈·health·ready·popular/latest 피드가 모두 200이고 readiness 의존성도 모두 `ok`다.
+- T08·T09는 S3 완료다. 다음 작업은 T10/S3의 남은 팬아웃 2,500명 3배치,
+  알림 생성 단일 관문, 낙관 UI 수동 항목을 자동 검증으로 닫는 것이다.
+
 ## 2026-08-25 T12/S3 운영 배포 인수인계
 
 - T12 신고·심사·계정 정지 구현과 운영 배포를 완료했다. 신고 자동 우선순위·숨김,
