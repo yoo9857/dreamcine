@@ -180,4 +180,182 @@ describe('moderation repository', () => {
     expect(episode.status).toBe('HIDDEN')
     expect(upload.status).toBe('ABORTED')
   })
+
+  it('모든 신고 대상의 실제 미리보기와 소유자를 조회한다', async () => {
+    const item = await fixture()
+    const comment = await database.comment.create({
+      data: {
+        episodeId: item.episode.id,
+        userId: item.firstReporter.id,
+        body: '신고된 댓글 본문',
+      },
+    })
+    await Promise.all([
+      repo.createReport({
+        reporterId: item.firstReporter.id,
+        target: 'EPISODE',
+        targetId: item.episode.id,
+        reason: 'VIOLENCE',
+      }),
+      repo.createReport({
+        reporterId: item.secondReporter.id,
+        target: 'COMMENT',
+        targetId: comment.id,
+        reason: 'HATE',
+      }),
+    ])
+    const series = await database.series.findFirstOrThrow({
+      where: { ownerId: item.owner.id },
+    })
+    const [episodePreview, seriesPreview, commentPreview, userPreview] =
+      await Promise.all([
+        repo.getReportTargetPreview('EPISODE', item.episode.id),
+        repo.getReportTargetPreview('SERIES', series.id),
+        repo.getReportTargetPreview('COMMENT', comment.id),
+        repo.getReportTargetPreview('USER', item.owner.id),
+      ])
+    const contexts = await Promise.all([
+      repo.findReportTargetContext('EPISODE', item.episode.id),
+      repo.findReportTargetContext('SERIES', series.id),
+      repo.findReportTargetContext('COMMENT', comment.id),
+      repo.findReportTargetContext('USER', item.owner.id),
+    ])
+    expect(contexts.every((context) => context !== null)).toBe(true)
+    expect(episodePreview).toMatchObject({
+      title: 'Reported',
+      ownerId: item.owner.id,
+      reportCount: 1,
+      reasonCounts: { VIOLENCE: 1 },
+    })
+    expect(seriesPreview).toMatchObject({
+      title: 'Moderation',
+      ownerId: item.owner.id,
+    })
+    expect(commentPreview).toMatchObject({
+      title: '댓글',
+      body: '신고된 댓글 본문',
+      ownerId: item.firstReporter.id,
+    })
+    expect(userPreview).toMatchObject({
+      title: '@owner',
+      ownerId: item.owner.id,
+    })
+    await expect(
+      repo.getReportTargetPreview('EPISODE', 'missing'),
+    ).resolves.toBeNull()
+  })
+
+  it('대상별 숨김과 복원을 적용한다', async () => {
+    const item = await fixture()
+    const series = await database.series.findFirstOrThrow({
+      where: { ownerId: item.owner.id },
+    })
+    const comment = await database.comment.create({
+      data: {
+        episodeId: item.episode.id,
+        userId: item.firstReporter.id,
+        body: '숨김 대상',
+      },
+    })
+    for (const [target, targetId] of [
+      ['EPISODE', item.episode.id],
+      ['COMMENT', comment.id],
+      ['SERIES', series.id],
+      ['USER', item.owner.id],
+    ] as const) {
+      await repo.setModerationTargetHidden(target, targetId, true)
+      await repo.setModerationTargetHidden(target, targetId, false)
+    }
+    const [episode, restoredComment] = await Promise.all([
+      database.episode.findUniqueOrThrow({ where: { id: item.episode.id } }),
+      database.comment.findUniqueOrThrow({ where: { id: comment.id } }),
+    ])
+    expect(episode.status).toBe('PUBLISHED')
+    expect(restoredComment.isHidden).toBe(false)
+  })
+
+  it('신고 묶음을 한 번에 처리하고 커서로 사용자 검색을 이어간다', async () => {
+    const item = await fixture()
+    const first = await repo.createReport({
+      reporterId: item.firstReporter.id,
+      target: 'EPISODE',
+      targetId: item.episode.id,
+      reason: 'SPAM',
+    })
+    await repo.createReport({
+      reporterId: item.secondReporter.id,
+      target: 'EPISODE',
+      targetId: item.episode.id,
+      reason: 'SPAM',
+    })
+    await repo.claimReportForReview(first.id)
+    await repo.resolveReportGroup({
+      reportId: first.id,
+      status: 'ACTIONED',
+      handledBy: item.owner.id,
+      handledAt: new Date(),
+      actionNote: '일괄 처리',
+    })
+    expect(
+      await database.report.count({
+        where: { targetId: item.episode.id, status: 'ACTIONED' },
+      }),
+    ).toBe(2)
+
+    const firstPage = await repo.listUsersForAdmin({
+      limit: 1,
+      query: 'reporter',
+    })
+    expect(firstPage.items).toHaveLength(1)
+    expect(firstPage.nextCursor).not.toBeNull()
+    if (firstPage.nextCursor === null) throw new Error('cursor missing')
+    const secondPage = await repo.listUsersForAdmin({
+      limit: 1,
+      cursor: firstPage.nextCursor,
+      query: 'reporter',
+    })
+    expect(secondPage.items).toHaveLength(1)
+    expect(secondPage.items[0]?.id).not.toBe(firstPage.items[0]?.id)
+  })
+
+  it('콘텐츠 영구 삭제는 대상 상태를 바꾸고 사용자 대상은 거부한다', async () => {
+    const item = await fixture()
+    const comment = await database.comment.create({
+      data: {
+        episodeId: item.episode.id,
+        userId: item.firstReporter.id,
+        body: '삭제 대상',
+      },
+    })
+    await expect(
+      repo.removeModerationTarget('COMMENT', comment.id, new Date()),
+    ).resolves.toEqual([])
+    const deletedComment = await database.comment.findUniqueOrThrow({
+      where: { id: comment.id },
+    })
+    expect(deletedComment.deletedAt).not.toBeNull()
+    await expect(
+      repo.removeModerationTarget('EPISODE', item.episode.id, new Date()),
+    ).resolves.toEqual([])
+    expect(
+      (
+        await database.episode.findUniqueOrThrow({
+          where: { id: item.episode.id },
+        })
+      ).status,
+    ).toBe('REMOVED')
+    const series = await database.series.findFirstOrThrow({
+      where: { ownerId: item.owner.id },
+    })
+    await expect(
+      repo.removeModerationTarget('SERIES', series.id, new Date()),
+    ).resolves.toEqual([])
+    expect(
+      (await database.series.findUniqueOrThrow({ where: { id: series.id } }))
+        .deletedAt,
+    ).not.toBeNull()
+    await expect(
+      repo.removeModerationTarget('USER', item.owner.id, new Date()),
+    ).rejects.toMatchObject({ code: 'E_PERM_DENIED' })
+  })
 })
