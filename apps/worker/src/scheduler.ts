@@ -20,6 +20,32 @@ export interface FeedRankScheduleRegistrar {
   ) => Promise<void>
 }
 
+export interface SocialScheduleRegistrar {
+  readonly register: (
+    queue: typeof QUEUE.COUNTER_FLUSH | typeof QUEUE.COUNTER_RECONCILE,
+    id: string,
+    pattern: { readonly every: number } | { readonly pattern: string },
+    data: Readonly<Record<string, number>>,
+  ) => Promise<void>
+}
+
+export async function registerSocialSchedules(
+  registrar: SocialScheduleRegistrar,
+): Promise<void> {
+  await registrar.register(
+    QUEUE.COUNTER_FLUSH,
+    'counter-flush-every-minute',
+    { every: 60 * 1000 },
+    {},
+  )
+  await registrar.register(
+    QUEUE.COUNTER_RECONCILE,
+    'counter-reconcile-daily-at-four',
+    { pattern: '0 4 * * *' },
+    { changedSinceDays: 7 },
+  )
+}
+
 export async function registerFeedRankSchedules(
   registrar: FeedRankScheduleRegistrar,
 ): Promise<void> {
@@ -174,6 +200,14 @@ function productionDependencies(): SchedulerDependencies {
             { every: everyMs },
             { name: QUEUE.FEED_RANK, data },
           )
+        },
+      })
+      await registerSocialSchedules({
+        register: async (queueName, id, pattern, data) => {
+          await getQueue(queueName).upsertJobScheduler(id, pattern, {
+            name: queueName,
+            data,
+          })
         },
       })
     },

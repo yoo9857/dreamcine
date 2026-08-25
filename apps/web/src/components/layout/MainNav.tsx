@@ -35,6 +35,14 @@ export function MainNav({
             >
               검색
             </Link>
+            {session === null ? null : (
+              <Link
+                href="/notifications"
+                className="text-sm text-fg-secondary hover:text-fg"
+              >
+                알림
+              </Link>
+            )}
           </nav>
           <div className="ml-auto mr-12 flex items-center gap-2">
             {session === null ? (

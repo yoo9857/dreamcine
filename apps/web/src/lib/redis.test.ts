@@ -1,7 +1,12 @@
 import { AppError } from '@aidream/core'
 import { describe, expect, it } from 'vitest'
 
-import { assertSetSuccess, isSetNxSuccess, parseRedisUrl } from './redis'
+import {
+  assertSetSuccess,
+  expectNullableString,
+  isSetNxSuccess,
+  parseRedisUrl,
+} from './redis'
 
 describe('parseRedisUrl', () => {
   it('호스트와 포트를 읽는다', () => {
@@ -81,4 +86,15 @@ describe('SET EX reply', () => {
       }).toThrow(AppError)
     },
   )
+})
+
+describe('GETDEL reply', () => {
+  it('bulk string과 없는 키를 구분한다', () => {
+    expect(expectNullableString('12')).toBe('12')
+    expect(expectNullableString(null)).toBeNull()
+  })
+
+  it('정수가 오면 큐 오류로 거부한다', () => {
+    expect(() => expectNullableString(12)).toThrow(AppError)
+  })
 })

@@ -1,13 +1,12 @@
-import {
-  NotImplementedError,
-  type MarkNotificationsReadInput,
-} from '@aidream/core'
+import type { MarkNotificationsReadInput } from '@aidream/core'
+import { markNotificationsReadByIds } from '@aidream/db'
 
 import type { RouteSession } from '@/src/auth/types'
 
 export function markNotificationsRead(
-  _session: RouteSession,
-  _input: MarkNotificationsReadInput,
+  session: RouteSession,
+  input: MarkNotificationsReadInput,
+  mark: typeof markNotificationsReadByIds = markNotificationsReadByIds,
 ): Promise<{ readonly updated: number }> {
-  throw new NotImplementedError('T10:markNotificationsRead')
+  return mark(session.userId, input.ids).then((updated) => ({ updated }))
 }

@@ -83,6 +83,21 @@ export interface Messages {
     readonly handleHint: string
     readonly displayName: string
   }
+  readonly social: {
+    readonly like: string
+    readonly likeFailed: string
+    readonly follow: string
+    readonly following: string
+    readonly followFailed: string
+    readonly comments: string
+    readonly commentLabel: string
+    readonly commentSubmit: string
+    readonly commentFailed: string
+    readonly commentLogin: string
+    readonly commentEmpty: string
+    readonly notificationEmpty: string
+    readonly markAllRead: string
+  }
 }
 
 const KO: Messages = {
@@ -158,6 +173,23 @@ const KO: Messages = {
     handle: '아이디',
     handleHint: '영문 소문자·숫자·밑줄 3~20자',
     displayName: '표시 이름',
+  },
+  social: {
+    like: '좋아요',
+    likeFailed: '좋아요를 반영하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    follow: '팔로우',
+    following: '팔로잉',
+    followFailed:
+      '팔로우 상태를 바꾸지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    comments: '댓글',
+    commentLabel: '댓글 내용',
+    commentSubmit: '댓글 등록',
+    commentFailed:
+      '댓글을 등록하지 못했습니다. 내용을 확인하고 다시 시도해 주세요.',
+    commentLogin: '로그인하면 댓글을 작성할 수 있습니다.',
+    commentEmpty: '첫 댓글을 남겨 보세요.',
+    notificationEmpty: '새 알림이 없습니다.',
+    markAllRead: '모두 읽음',
   },
 }
 

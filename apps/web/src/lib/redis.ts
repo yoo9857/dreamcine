@@ -1,6 +1,6 @@
 import { Socket } from 'node:net'
 
-import { AppError, NotImplementedError } from '@aidream/core'
+import { AppError } from '@aidream/core'
 
 /**
  * 레이트리밋과 readiness 가 필요한 최소 명령만 노출하는 관문.
@@ -275,6 +275,11 @@ function expectNumber(reply: RedisReply): number {
   return reply
 }
 
+export function expectNullableString(reply: unknown): string | null {
+  if (reply === null || typeof reply === 'string') return reply
+  throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'unexpected-reply' })
+}
+
 class RedisClient implements RedisGateway {
   readonly #connection: RedisConnection
 
@@ -330,12 +335,14 @@ class RedisClient implements RedisGateway {
     )
   }
 
-  getdel(_key: string): Promise<string | null> {
-    throw new NotImplementedError('T10:redisGetdel')
+  async getdel(key: string): Promise<string | null> {
+    return expectNullableString(await this.#connection.command(['GETDEL', key]))
   }
 
-  incrby(_key: string, _by: number): Promise<number> {
-    throw new NotImplementedError('T10:redisIncrby')
+  async incrby(key: string, by: number): Promise<number> {
+    return expectNumber(
+      await this.#connection.command(['INCRBY', key, String(by)]),
+    )
   }
 
   close(): void {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   registerFeedRankSchedules,
+  registerSocialSchedules,
   startScheduler,
   type SchedulerDependencies,
 } from './scheduler.js'
@@ -82,6 +83,24 @@ describe('registerFeedRankSchedules', () => {
     expect(register.mock.calls).toEqual([
       ['feed-rank-recent-every-ten-minutes', 600_000, { scope: 'recent' }],
       ['feed-rank-expired-daily', 86_400_000, { scope: 'expired' }],
+    ])
+  })
+})
+
+describe('registerSocialSchedules', () => {
+  it('registers minute flush and daily 04:00 reconciliation', async () => {
+    const register = vi.fn().mockResolvedValue(undefined)
+
+    await registerSocialSchedules({ register })
+
+    expect(register.mock.calls).toEqual([
+      ['counter.flush', 'counter-flush-every-minute', { every: 60_000 }, {}],
+      [
+        'counter.reconcile',
+        'counter-reconcile-daily-at-four',
+        { pattern: '0 4 * * *' },
+        { changedSinceDays: 7 },
+      ],
     ])
   })
 })

@@ -1,15 +1,20 @@
 import {
-  NotImplementedError,
   type Notification,
   type NotificationListQuery,
   type Page,
 } from '@aidream/core'
+import { listNotificationsPage } from '@aidream/db'
 
 import type { RouteSession } from '@/src/auth/types'
 
 export function listNotifications(
-  _session: RouteSession,
-  _query: NotificationListQuery,
+  session: RouteSession,
+  query: NotificationListQuery,
+  list: typeof listNotificationsPage = listNotificationsPage,
 ): Promise<Page<Notification>> {
-  throw new NotImplementedError('T10:listNotifications')
+  return list({
+    userId: session.userId,
+    limit: query.limit,
+    ...(query.cursor === undefined ? {} : { cursor: query.cursor }),
+  })
 }

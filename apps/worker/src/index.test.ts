@@ -106,6 +106,9 @@ describe('bootstrapWorker', () => {
       'episode.publishScheduled',
       'episode.mediaDelete',
       'feed.rankRecompute',
+      'counter.flush',
+      'counter.reconcile',
+      'notification.fanout',
     ])
     expect(mocks.workers[0]?.options).toMatchObject({
       concurrency: 2,
@@ -113,7 +116,7 @@ describe('bootstrapWorker', () => {
     })
     expect(
       mocks.workers.slice(1).map(({ options }) => options.concurrency),
-    ).toEqual([1, 1, 1, 1, 1, 1])
+    ).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1])
   })
 
   it('각 잡을 검증해 해당 처리기로 전달한다', async () => {
@@ -167,8 +170,8 @@ describe('bootstrapWorker', () => {
     await runtime.close()
     await runtime.close()
 
-    expect(mocks.pause).toHaveBeenCalledTimes(7)
-    expect(mocks.close).toHaveBeenCalledTimes(7)
+    expect(mocks.pause).toHaveBeenCalledTimes(10)
+    expect(mocks.close).toHaveBeenCalledTimes(10)
     expect(mocks.close).toHaveBeenCalledWith(true)
 
     await transcodeWorker?.processor({ data: { assetId: 'asset_1' } })

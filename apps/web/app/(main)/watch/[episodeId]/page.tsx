@@ -1,12 +1,15 @@
 import { AppError } from '@aidream/core'
-import { findPlaybackEpisode } from '@aidream/db'
+import { findPlaybackEpisode, getEpisodeSocialState } from '@aidream/db'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { AgeGate } from '@/src/components/AgeGate'
+import { CommentThread } from '@/src/components/comment/CommentThread'
 import { WatchPlayer } from '@/src/components/player/HlsPlayer'
+import { LikeButton } from '@/src/components/social/LikeButton'
 import { getPlayback } from '@/src/services/episode/get-playback'
+import { listComments } from '@/src/services/social/list-comments'
 
 interface WatchPageProps {
   readonly params: Promise<{ episodeId: string }>
@@ -25,8 +28,12 @@ export default async function WatchPage(props: WatchPageProps) {
       cookieHeader: requestHeaders.get('cookie'),
       now: new Date(),
     })
+    const [comments, social] = await Promise.all([
+      listComments(episodeId, { limit: 20 }),
+      getEpisodeSocialState(episodeId, session?.userId),
+    ])
     return (
-      <main className="mx-auto max-w-6xl p-4">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 p-4">
         <h1 className="sr-only">에피소드 재생</h1>
         <WatchPlayer
           episodeId={playback.episodeId}
@@ -37,6 +44,18 @@ export default async function WatchPage(props: WatchPageProps) {
             : { posterUrl: playback.posterUrl })}
           startAtSec={playback.startAtSec}
           durationSec={playback.durationSec}
+        />
+        {session === null ? null : (
+          <LikeButton
+            episodeId={episodeId}
+            initialLiked={social.isLiked}
+            initialCount={social.likeCount}
+          />
+        )}
+        <CommentThread
+          episodeId={episodeId}
+          initialItems={comments.items}
+          authenticated={session !== null}
         />
       </main>
     )

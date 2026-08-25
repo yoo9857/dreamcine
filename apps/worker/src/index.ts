@@ -1,7 +1,10 @@
 import {
   connectionFromUrl,
+  CounterFlushJobSchema,
+  CounterReconcileJobSchema,
   DbPurgeJobSchema,
   EpisodeMediaDeleteJobSchema,
+  NotificationFanoutJobSchema,
   PublishScheduledJobSchema,
   QUEUE,
   RankRecomputeJobSchema,
@@ -15,8 +18,11 @@ import pino from 'pino'
 
 import { loadWorkerConfig } from './config.js'
 import { cleanupOrphans } from './jobs/cleanup-orphans.js'
+import { counterFlushJob } from './jobs/counter-flush.js'
+import { counterReconcileJob } from './jobs/counter-reconcile.js'
 import { purgeDatabase } from './jobs/db-purge.js'
 import { deleteEpisodeMedia } from './jobs/delete-episode-media.js'
+import { processNotificationFanoutJob } from './jobs/notification-fanout.js'
 import { publishScheduled } from './jobs/publish-scheduled.js'
 import { rankRecompute } from './jobs/rank-recompute.js'
 import { recoverStuck } from './jobs/recover-stuck.js'
@@ -98,6 +104,45 @@ function startWorkers(): Promise<WorkerRuntime> {
       async (job: Job<unknown>) => {
         const data = RankRecomputeJobSchema.parse(job.data)
         return rankRecompute({ ...data, now: new Date() })
+      },
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.COUNTER_FLUSH,
+      async (job: Job<unknown>) => {
+        CounterFlushJobSchema.parse(job.data)
+        return counterFlushJob()
+      },
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.COUNTER_RECONCILE,
+      async (job: Job<unknown>) => {
+        const data = CounterReconcileJobSchema.parse(job.data)
+        const changedSince = new Date()
+        changedSince.setUTCDate(
+          changedSince.getUTCDate() - data.changedSinceDays,
+        )
+        return counterReconcileJob(changedSince)
+      },
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.NOTIFY_FANOUT,
+      async (job: Job<unknown>) => {
+        let data = NotificationFanoutJobSchema.parse(job.data)
+        let created = 0
+        let keepGoing = true
+        do {
+          const result = await processNotificationFanoutJob(data)
+          created += result.created
+          data =
+            data.type === 'NEW_EPISODE' && result.nextCursor !== null
+              ? { ...data, cursor: result.nextCursor }
+              : data
+          keepGoing = data.type === 'NEW_EPISODE' && result.nextCursor !== null
+        } while (keepGoing)
+        return { created }
       },
       { connection, concurrency: 1 },
     ),
