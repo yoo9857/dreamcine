@@ -1,7 +1,7 @@
 # T09 — 피드 · 랭킹 · 검색 · 태그
 
 ## 진행 상태
-- [ ] S1 Spec 확인   — 산출물 54개·경계 확정 / DEP-004 승인 대기
+- [x] S1 Spec 확인   — 2026-08-25 / 산출물 56개 확정 / DEP-004 승인 반영
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -85,10 +85,12 @@
 | `apps/web/e2e/feed-ranking.e2e.ts` | 무한스크롤·복원·US-05 | S3 |
 | `apps/web/e2e/feed-performance.e2e.ts` | 1,000건 조건 피드 API p95 측정 | S3 |
 | `openapi.json` | T09 4개 REST 경로·응답 union 계약 | S3 |
-| `package.json` | 승인 시 Lighthouse CI 명령 등록 | S2 |
+| `package.json` | 승인된 Lighthouse CI 명령 등록 | S2 |
 | `pnpm-lock.yaml` | 승인된 Lighthouse CI 버전 고정 | S2 |
 | `lighthouserc.cjs` | 모바일 LCP·CLS 예산과 홈 수집 설정 | S2→S3 |
 | `.github/workflows/gate.yml` | 프로덕션 서버 대상 Lighthouse 단계 연결 | S3 |
+| `scripts/contract/check-deps.ts` | 승인된 `@lhci/cli` 의존성 근거 등록 | S2 |
+| `scripts/contract/check-deps.test.ts` | 승인·미승인 품질도구 판정 회귀 테스트 | S3 |
 
 ### S1 경계 결정
 
@@ -112,8 +114,8 @@
 - 홈은 인기, `/following`은 팔로잉, `/tags/[tag]`는 태그 첫 페이지를 SSR한다.
   `/search`는 URL query를 기준으로 클라이언트 요청하며 모든 데이터 화면은 로딩·
   비어있음·오류·정상 상태를 갖는다.
-- Lighthouse CI 도구는 불변 기술스택에 없으므로 `DEP-004` 승인을 받기 전에는 설치나
-  S2 진입을 하지 않는다. 승인 버전은 npm 공식 레지스트리의 `0.15.1`로 고정한다.
+- Lighthouse CI 도구는 `DEP-004` 사용자 승인에 따라 개발·CI 전용 의존성으로만
+  설치한다. npm 공식 레지스트리의 `0.15.1`로 고정하고 런타임 번들에는 포함하지 않는다.
 
 ## 4. S2 Skeleton
 
