@@ -274,12 +274,12 @@ describe('database repository integration', () => {
     ])
   })
 
-  it('paginates ten identical publish times without duplicates across an insertion boundary', async () => {
+  it('paginates 20 identical publish times without duplicates across an insertion boundary', async () => {
     const ownerId = await createFixtureUser('feed-owner')
     const seriesId = await createFixtureSeries(ownerId, 'feed')
     const publishedAt = new Date('2026-08-21T00:00:00.000Z')
     await database.episode.createMany({
-      data: Array.from({ length: 10 }, (_, index) => ({
+      data: Array.from({ length: 20 }, (_, index) => ({
         id: `feed_episode_${index.toString().padStart(2, '0')}`,
         seriesId,
         number: index + 1,
@@ -305,7 +305,7 @@ describe('database repository integration', () => {
       data: {
         id: 'feed_episode_new',
         seriesId,
-        number: 11,
+        number: 21,
         title: 'Newer Episode',
         status: 'PUBLISHED',
         publishedAt: new Date('2026-08-21T01:00:00.000Z'),
@@ -319,8 +319,8 @@ describe('database repository integration', () => {
       seen.push(...page.items.map((item) => item.id))
       cursor = page.nextCursor
     }
-    expect(seen).toHaveLength(10)
-    expect(new Set(seen).size).toBe(10)
+    expect(seen).toHaveLength(20)
+    expect(new Set(seen).size).toBe(20)
     expect(seen).not.toContain('feed_episode_new')
 
     const popular = await repo.listPopularFeed({ limit: 4 })

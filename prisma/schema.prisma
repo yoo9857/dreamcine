@@ -231,8 +231,8 @@ model Episode {
   tags          EpisodeTag[]
 
   @@unique([seriesId, seasonId, number])
-  @@index([status, publishedAt(sort: Desc)])
-  @@index([status, rankScore(sort: Desc)])
+  @@index([status, publishedAt(sort: Desc), id(sort: Desc)], map: "episode_feed_latest_idx")
+  @@index([status, rankScore(sort: Desc), id(sort: Desc)], map: "episode_feed_popular_idx")
   @@index([seriesId, number])
   @@index([status, publishAt])
   @@map("episode")
@@ -436,19 +436,19 @@ model Notification {
 }
 
 model Report {
-  id         String       @id @default(cuid())
-  reporterId String       @map("reporter_id")
-  target     ReportTarget
-  targetId   String       @map("target_id")
-  reason     ReportReason
-  detail     String?      @db.VarChar(1000)
-  status     ReportStatus @default(OPEN)
-  priorityFlag Boolean    @default(false) @map("priority_flag")
-  autoHidden  Boolean     @default(false) @map("auto_hidden")
-  handledBy  String?      @map("handled_by")
-  handledAt  DateTime?    @map("handled_at")
-  actionNote String?      @map("action_note") @db.VarChar(1000)
-  createdAt  DateTime     @default(now()) @map("created_at")
+  id           String       @id @default(cuid())
+  reporterId   String       @map("reporter_id")
+  target       ReportTarget
+  targetId     String       @map("target_id")
+  reason       ReportReason
+  detail       String?      @db.VarChar(1000)
+  status       ReportStatus @default(OPEN)
+  priorityFlag Boolean      @default(false) @map("priority_flag")
+  autoHidden   Boolean      @default(false) @map("auto_hidden")
+  handledBy    String?      @map("handled_by")
+  handledAt    DateTime?    @map("handled_at")
+  actionNote   String?      @map("action_note") @db.VarChar(1000)
+  createdAt    DateTime     @default(now()) @map("created_at")
 
   reporter User @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
 

@@ -69,17 +69,21 @@ describe('getFeed', () => {
 
   it('caches a public first page and applies likes in one batch', async () => {
     const deps = dependencies()
-    vi.mocked(deps.likedIds).mockResolvedValue(new Set([row.id]))
+    const rows = Array.from({ length: 20 }, (_, index) => ({
+      ...row,
+      id: `episode_${String(index + 1)}`,
+      number: index + 1,
+    }))
+    vi.mocked(deps.popular).mockResolvedValue({ items: rows, nextCursor: null })
+    vi.mocked(deps.likedIds).mockResolvedValue(new Set([rows[0]?.id ?? '']))
     const query: FeedQuery = { type: 'popular', limit: 20 }
 
-    await expect(getFeed(query, session, deps)).resolves.toMatchObject({
-      items: [
-        {
-          episodeId: row.id,
-          thumbUrl: 'https://cdn.example.com/thumbs/asset_1/thumb.jpg',
-          isLiked: true,
-        },
-      ],
+    const result = await getFeed(query, session, deps)
+    expect(result.items).toHaveLength(20)
+    expect(result.items[0]).toMatchObject({
+      episodeId: rows[0]?.id,
+      thumbUrl: 'https://cdn.example.com/thumbs/asset_1/thumb.jpg',
+      isLiked: true,
     })
     expect(deps.writeCache).toHaveBeenCalledWith(
       'feed:popular:20',
@@ -87,6 +91,10 @@ describe('getFeed', () => {
       60,
     )
     expect(deps.likedIds).toHaveBeenCalledOnce()
+    expect(deps.likedIds).toHaveBeenCalledWith(
+      session.userId,
+      rows.map((item) => item.id),
+    )
   })
 
   it('bypasses a cache outage and still serves the database page', async () => {
