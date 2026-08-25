@@ -109,3 +109,114 @@ test('US-07 신고 → 자동 숨김 → 모더레이터 기각 복원', async (
     .toBe('PUBLISHED')
   await moderatorContext.close()
 })
+
+test('계정 정지는 두 활성 브라우저의 세션을 즉시 무효화한다', async ({
+  browser,
+}) => {
+  const suffix = randomUUID().replaceAll('-', '').slice(0, 10)
+  const [viewer, creator, admin] = await Promise.all([
+    createUser({
+      handle: `suspended_viewer_${suffix}`,
+      email: `suspended_viewer_${suffix}@example.com`,
+      displayName: '정지 대상',
+    }),
+    createUser({
+      handle: `suspend_creator_${suffix}`,
+      email: `suspend_creator_${suffix}@example.com`,
+      displayName: '제작자',
+      role: 'CREATOR',
+    }),
+    createUser({
+      handle: `suspend_admin_${suffix}`,
+      email: `suspend_admin_${suffix}@example.com`,
+      displayName: '관리자',
+      role: 'ADMIN',
+    }),
+  ])
+  const series = await createSeries({
+    ownerId: creator.id,
+    slug: `suspension-${suffix}`,
+    title: '정지 검증 시리즈',
+  })
+  const episode = await createEpisode({
+    seriesId: series.id,
+    number: 1,
+    title: '정지 검증 에피소드',
+  })
+  await updateEpisodeStatus(episode.id, 'PUBLISHED', {
+    publishedAt: new Date(),
+  })
+
+  const viewerTokens = [`viewer-a-${suffix}`, `viewer-b-${suffix}`]
+  await Promise.all(
+    viewerTokens.map((sessionToken) =>
+      createAuthSession({
+        sessionToken,
+        userId: viewer.id,
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      }),
+    ),
+  )
+  const viewerContexts = await Promise.all(
+    viewerTokens.map(async (value) => {
+      const context = await browser.newContext()
+      await context.addCookies([
+        {
+          name: 'authjs.session-token',
+          value,
+          url: appUrl,
+          httpOnly: true,
+          sameSite: 'Lax',
+        },
+      ])
+      return context
+    }),
+  )
+
+  const adminToken = `admin-${suffix}`
+  await createAuthSession({
+    sessionToken: adminToken,
+    userId: admin.id,
+    expires: new Date(Date.now() + 60 * 60 * 1000),
+  })
+  const adminContext = await browser.newContext()
+  await adminContext.addCookies([
+    {
+      name: 'authjs.session-token',
+      value: adminToken,
+      url: appUrl,
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ])
+
+  try {
+    const suspension = await adminContext.request.post(
+      `/api/admin/users/${viewer.id}/status`,
+      {
+        headers: { origin: new URL(appUrl).origin },
+        data: { status: 'SUSPENDED', reason: '두 브라우저 즉시 차단 검증' },
+      },
+    )
+    expect(suspension.status()).toBe(200)
+
+    const responses = await Promise.all(
+      viewerContexts.map((context) =>
+        context.request.post('/api/reports', {
+          headers: { origin: new URL(appUrl).origin },
+          data: {
+            target: 'EPISODE',
+            targetId: episode.id,
+            reason: 'VIOLENCE',
+          },
+        }),
+      ),
+    )
+    expect(responses.map((response) => response.status())).toEqual([401, 401])
+  } finally {
+    await Promise.all([
+      adminContext.close(),
+      ...viewerContexts.map((context) => context.close()),
+    ])
+  }
+})
