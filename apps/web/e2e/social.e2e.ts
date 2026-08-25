@@ -97,12 +97,17 @@ test('US-06 좋아요와 댓글이 반영되고 제작자가 알림을 받는다
   ])
   const creatorPage = await creatorContext.newPage()
   await creatorPage.goto('/notifications')
-  await expect(creatorPage.getByText('새 팔로워가 생겼습니다.')).toBeVisible()
+  const notifications = creatorPage.getByRole('listitem')
   await expect(
-    creatorPage.getByText('에피소드에 새 좋아요가 있습니다.'),
+    notifications.filter({ hasText: '새 팔로워가 생겼습니다.' }).first(),
   ).toBeVisible()
   await expect(
-    creatorPage.getByText('에피소드에 새 댓글이 있습니다.'),
+    notifications
+      .filter({ hasText: '에피소드에 새 좋아요가 있습니다.' })
+      .first(),
+  ).toBeVisible()
+  await expect(
+    notifications.filter({ hasText: '에피소드에 새 댓글이 있습니다.' }).first(),
   ).toBeVisible()
   await creatorContext.close()
 })

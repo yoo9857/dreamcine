@@ -4,7 +4,6 @@ import type { FeedItem } from '@aidream/core'
 import { Button, EmptyState, ErrorState } from '@aidream/ui'
 import React, { type ReactNode } from 'react'
 
-import { QueryProvider } from '@/src/components/QueryProvider'
 import { useInfiniteFeed } from '@/src/hooks/use-infinite-feed'
 import { EpisodeCard } from './EpisodeCard'
 import { FeedSkeleton } from './FeedSkeleton'
@@ -14,21 +13,11 @@ export interface FeedListProps {
   readonly initialItems: readonly FeedItem[]
   readonly initialCursor: string | null
   readonly endpoint?: string
-  readonly queryKey?: readonly unknown[]
 }
 
 export function FeedList(props: FeedListProps): ReactNode {
-  return (
-    <QueryProvider>
-      <FeedListContent {...props} />
-    </QueryProvider>
-  )
-}
-
-function FeedListContent(props: FeedListProps): ReactNode {
   const feed = useInfiniteFeed({
     endpoint: props.endpoint ?? `/api/feed?type=${props.type}&limit=20`,
-    queryKey: props.queryKey ?? ['feed', props.type],
     initialItems: props.initialItems,
     initialCursor: props.initialCursor,
   })

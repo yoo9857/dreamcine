@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import type { FeedItem } from '@aidream/core'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -58,24 +57,16 @@ afterEach(() => {
 })
 
 function mountFeed() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  })
   let latest: ReturnType<typeof useInfiniteFeed> | undefined
   function Probe(): ReactNode {
     latest = useInfiniteFeed({
       endpoint: '/api/feed?type=popular',
-      queryKey: ['test-feed'],
       initialItems: [first],
       initialCursor: 'cursor-1',
     })
     return <div ref={latest.sentinelRef} />
   }
-  render(
-    <QueryClientProvider client={client}>
-      <Probe />
-    </QueryClientProvider>,
-  )
+  render(<Probe />)
   return () => {
     if (latest === undefined) throw new Error('feed hook was not rendered')
     return latest

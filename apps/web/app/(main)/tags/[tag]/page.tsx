@@ -20,7 +20,6 @@ export default async function TagPage({
         initialItems={page.items}
         initialCursor={page.nextCursor}
         endpoint={`/api/tags/${encodeURIComponent(tag)}/episodes?limit=20`}
-        queryKey={['tag-feed', tag]}
       />
     </div>
   )

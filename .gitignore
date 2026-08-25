@@ -9,4 +9,5 @@ dist/
 playwright-report/
 test-results/
 artifacts/
+.tmp/
 *.tsbuildinfo

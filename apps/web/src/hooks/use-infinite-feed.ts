@@ -1,8 +1,7 @@
 'use client'
 
 import { FeedPageSchema, type FeedItem } from '@aidream/core'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   forgetFeedScrollPosition,
@@ -11,7 +10,6 @@ import {
 
 export interface InfiniteFeedOptions {
   readonly endpoint: string
-  readonly queryKey: readonly unknown[]
   readonly initialItems: readonly FeedItem[]
   readonly initialCursor: string | null
 }
@@ -19,38 +17,70 @@ export interface InfiniteFeedOptions {
 export function useInfiniteFeed(options: InfiniteFeedOptions) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const restoredScrollRef = useRef(false)
-  const query = useInfiniteQuery({
-    queryKey: options.queryKey,
-    staleTime: 30_000,
-    initialPageParam: null as string | null,
-    initialData: {
-      pages: [
-        { items: [...options.initialItems], nextCursor: options.initialCursor },
-      ],
-      pageParams: [null],
-    },
-    queryFn: async ({ pageParam }) => {
+  const fetchingRef = useRef(false)
+  const [items, setItems] = useState<readonly FeedItem[]>(options.initialItems)
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    options.initialCursor,
+  )
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false)
+  const [isFetchNextPageError, setIsFetchNextPageError] = useState(false)
+
+  const requestPage = useCallback(
+    async (cursor: string | null) => {
       const url = new URL(options.endpoint, window.location.origin)
-      if (pageParam !== null) url.searchParams.set('cursor', pageParam)
+      if (cursor !== null) url.searchParams.set('cursor', cursor)
       const response = await fetch(url, { credentials: 'same-origin' })
       if (!response.ok)
         throw new Error(`feed request failed: ${String(response.status)}`)
       return FeedPageSchema.parse(await response.json())
     },
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-  })
+    [options.endpoint],
+  )
+
+  const fetchNextPage = useCallback(async (): Promise<void> => {
+    if (nextCursor === null || fetchingRef.current) return
+    fetchingRef.current = true
+    setIsFetchingNextPage(true)
+    setIsFetchNextPageError(false)
+    try {
+      const page = await requestPage(nextCursor)
+      setItems((current) => {
+        const seen = new Set(current.map((item) => item.episodeId))
+        return [
+          ...current,
+          ...page.items.filter((item) =>
+            seen.has(item.episodeId) ? false : (seen.add(item.episodeId), true),
+          ),
+        ]
+      })
+      setNextCursor(page.nextCursor)
+    } catch {
+      setIsFetchNextPageError(true)
+    } finally {
+      fetchingRef.current = false
+      setIsFetchingNextPage(false)
+    }
+  }, [nextCursor, requestPage])
+
+  const refetch = useCallback(async (): Promise<void> => {
+    setIsFetchNextPageError(false)
+    try {
+      const page = await requestPage(null)
+      setItems(page.items)
+      setNextCursor(page.nextCursor)
+    } catch {
+      setIsFetchNextPageError(true)
+    }
+  }, [requestPage])
+
+  const hasNextPage = nextCursor !== null
 
   useEffect(() => {
     const target = sentinelRef.current
-    if (target === null || !query.hasNextPage) return
+    if (target === null || !hasNextPage) return
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries.some((entry) => entry.isIntersecting) &&
-          !query.isFetchingNextPage
-        ) {
-          void query.fetchNextPage()
-        }
+        if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage()
       },
       { rootMargin: '400px 0px' },
     )
@@ -58,14 +88,7 @@ export function useInfiniteFeed(options: InfiniteFeedOptions) {
     return () => {
       observer.disconnect()
     }
-  }, [query.fetchNextPage, query.hasNextPage, query.isFetchingNextPage])
-
-  const seen = new Set<string>()
-  const items = query.data.pages
-    .flatMap((page) => page.items)
-    .filter((item) =>
-      seen.has(item.episodeId) ? false : (seen.add(item.episodeId), true),
-    )
+  }, [fetchNextPage, hasNextPage])
 
   useEffect(() => {
     let firstFrame: number | undefined
@@ -93,5 +116,14 @@ export function useInfiniteFeed(options: InfiniteFeedOptions) {
     }
   }, [items.length])
 
-  return { ...query, items, sentinelRef }
+  return {
+    items,
+    sentinelRef,
+    hasNextPage,
+    isError: isFetchNextPageError && items.length === 0,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    fetchNextPage,
+    refetch,
+  }
 }
