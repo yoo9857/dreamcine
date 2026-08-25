@@ -77,6 +77,8 @@ test('US-05 팔로우한 제작자의 피드를 무한스크롤로 탐색한다'
     })
     .toBeGreaterThanOrEqual(Math.max(0, scrollBefore - 100))
   await page.goBack()
+  await expect(page).toHaveURL(/\/following$/u)
+  await expect(page.getByRole('heading', { name: '팔로잉' })).toBeVisible()
   await expect
     .poll(async () => page.evaluate(() => window.scrollY))
     .toBeGreaterThanOrEqual(Math.max(0, scrollBefore - 100))
