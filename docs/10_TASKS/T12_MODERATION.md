@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-25 / ISS-017 승인 / 산출물 37개 확정
 - [x] S2 Skeleton — 2026-08-25 / gate:s2 PASS / 마커 7개
-- [ ] S3 구현
+- [x] S3 구현 — 2026-08-25 / CI 32842735110 PASS / 운영 배포 32843982847 PASS
 
 ---
 
@@ -233,13 +233,23 @@ WHERE id = $id AND status IN ('OPEN', 'REVIEWING')
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T12:...')` = 0
-- [ ] US-07 E2E 통과
-- [ ] `MINOR_SAFETY` 자동 숨김 동작 확인
-- [ ] `REJECT` 가 자동 숨김을 되돌림 확인
-- [ ] 계정 정지 시 **즉시** 로그아웃 확인 (수동: 두 브라우저로 검증)
-- [ ] 동시 처리 방어 확인 (조건부 UPDATE)
-- [ ] 권한 경계 확인 (MODERATOR ≠ ADMIN)
-- [ ] 모든 조치가 감사 로그에 남음
-- [ ] 심사큐에서 대상 미리보기가 실제로 보임 (썸네일/본문)
+- [x] `pnpm gate` 통과
+- [x] 잔존 `NotImplementedError('T12:...')` = 0
+- [x] US-07 E2E 통과
+- [x] `MINOR_SAFETY` 자동 숨김 동작 확인
+- [x] `REJECT` 가 자동 숨김을 되돌림 확인
+- [x] 계정 정지 시 **즉시** 로그아웃 확인 (자동: 서로 다른 브라우저 컨텍스트 2개)
+- [x] 동시 처리 방어 확인 (조건부 UPDATE)
+- [x] 권한 경계 확인 (MODERATOR ≠ ADMIN)
+- [x] 모든 조치가 감사 로그에 남음
+- [x] 심사큐에서 대상 미리보기가 실제로 보임 (썸네일/본문)
+
+### S3 검증 근거
+
+- GitHub Actions gate/image: `32842735110` — PostgreSQL 통합, Playwright 26개,
+  Lighthouse, promtool, 웹·워커 이미지 게시 통과
+- 운영 배포: `32843982847` — SHA `4be0d3fddee1d41d8fd480534550ecbbcfbd7b9c`,
+  마이그레이션·웹·워커·배포 내부 헬스 검사 통과
+- 외부 확인: `https://ilog.info/`, `/api/health`, `/api/ready` 200;
+  readiness의 DB·Redis·스토리지·큐 모두 `ok`; 비인증 `/api/admin/reports` 401
+- `pnpm sss:remaining`: `TOTAL=0`
