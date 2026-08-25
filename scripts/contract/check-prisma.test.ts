@@ -182,15 +182,46 @@ describe('checkPrismaContract', () => {
     expect(result.problems[0]).toContain('diff unavailable')
   })
 
-  it('초기 단계에서 마이그레이션 디렉터리가 여러 개면 거부한다', async () => {
+  it('후속 마이그레이션에 SQL이 있으면 누적 이력을 승인한다', async () => {
     const root = await createContractFixture()
-    await mkdir(join(root, 'prisma', 'migrations', '20260822000000_extra'))
+    const next = join(root, 'prisma', 'migrations', '20260822000000_extra')
+    await mkdir(next)
+    await writeFile(
+      join(next, 'migration.sql'),
+      'ALTER TABLE example ADD value INT;',
+    )
     const runner: PrismaRunner = () =>
       Promise.resolve({ stdout: '', stderr: '' })
 
-    const result = await checkPrismaContract(root, runner)
+    await expect(checkPrismaContract(root, runner)).resolves.toEqual({
+      ok: true,
+      problems: [],
+    })
+  })
+
+  it('후속 마이그레이션의 SQL 누락과 빈 파일을 거부한다', async () => {
+    const missingRoot = await createContractFixture()
+    await mkdir(
+      join(missingRoot, 'prisma', 'migrations', '20260822000000_missing'),
+    )
+    const runner: PrismaRunner = () =>
+      Promise.resolve({ stdout: '', stderr: '' })
+    await expect(
+      checkPrismaContract(missingRoot, runner),
+    ).resolves.toMatchObject({ ok: false })
+
+    const emptyRoot = await createContractFixture()
+    const emptyDirectory = join(
+      emptyRoot,
+      'prisma',
+      'migrations',
+      '20260822000000_empty',
+    )
+    await mkdir(emptyDirectory)
+    await writeFile(join(emptyDirectory, 'migration.sql'), '   \n')
+    const result = await checkPrismaContract(emptyRoot, runner)
     expect(result.ok).toBe(false)
-    expect(result.problems[0]).toContain('2개')
+    expect(result.problems[0]).toContain('빈 migration.sql')
   })
 
   // Prisma CLI 프로세스를 실제로 띄우므로 기본 5초 경계에 걸려 플레이키했다.

@@ -1,10 +1,5 @@
 import type { AgeRating, Episode, EpisodeStatus, Page } from '@aidream/core'
-import {
-  AppError,
-  NotImplementedError,
-  type AssetStatus,
-  type TransitionPatch,
-} from '@aidream/core'
+import { AppError, type AssetStatus, type TransitionPatch } from '@aidream/core'
 import { Prisma } from '@prisma/client'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
@@ -57,31 +52,154 @@ export interface EpisodeTransitionRecord {
   readonly assetStatus: AssetStatus | null
 }
 
+export function countEpisodesBySeries(seriesId: string): Promise<number> {
+  return executeDb(() =>
+    db.episode.count({ where: { seriesId, deletedAt: null } }),
+  )
+}
+
 export function createEpisodeWithTags(
-  _input: CreateEpisodeWithTagsData,
+  input: CreateEpisodeWithTagsData,
 ): Promise<Episode> {
-  throw new NotImplementedError('T08:createEpisodeWithTags')
+  return withTransaction(async (tx) => {
+    await tx.$executeRaw(Prisma.sql`
+      SELECT pg_advisory_xact_lock(hashtextextended(${input.seriesId}, 0))
+    `)
+    const duplicate = await tx.episode.findFirst({
+      where: {
+        seriesId: input.seriesId,
+        season: { number: input.seasonNumber },
+        number: input.number,
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+    if (duplicate !== null) {
+      throw new AppError('E_EPISODE_NUMBER_DUPLICATE', {
+        fields: ['seasonNumber', 'number'],
+      })
+    }
+    const reusedAsset = await tx.episode.findFirst({
+      where: { assetId: input.assetId },
+      select: { id: true },
+    })
+    if (reusedAsset !== null) {
+      throw new AppError('E_DB_CONFLICT', {
+        fields: ['assetId'],
+        reason: 'asset-already-linked',
+      })
+    }
+    const season = await tx.season.upsert({
+      where: {
+        seriesId_number: {
+          seriesId: input.seriesId,
+          number: input.seasonNumber,
+        },
+      },
+      create: { seriesId: input.seriesId, number: input.seasonNumber },
+      update: {},
+    })
+    const row = await tx.episode.create({
+      data: {
+        seriesId: input.seriesId,
+        seasonId: season.id,
+        assetId: input.assetId,
+        number: input.number,
+        title: input.title,
+        description: input.description ?? null,
+        ageRating: input.ageRating,
+        aiDisclosure: input.aiDisclosure,
+      },
+    })
+    for (const name of input.tags) {
+      const tag = await tx.tag.upsert({
+        where: { name },
+        create: { name, useCount: 1 },
+        update: { useCount: { increment: 1 } },
+      })
+      await tx.episodeTag.create({
+        data: { episodeId: row.id, tagId: tag.id },
+      })
+    }
+    return mapEpisode(row)
+  })
 }
 
 export function findEpisodeForTransition(
-  _id: string,
+  id: string,
 ): Promise<EpisodeTransitionRecord | null> {
-  throw new NotImplementedError('T08:findEpisodeForTransition')
+  return executeDb(async () => {
+    const row = await db.episode.findFirst({
+      where: { id, deletedAt: null, series: { deletedAt: null } },
+      include: {
+        series: { select: { ownerId: true } },
+        asset: { select: { status: true } },
+      },
+    })
+    if (row === null) return null
+    return {
+      episode: mapEpisode(row),
+      ownerId: row.series.ownerId,
+      assetStatus: row.asset?.status ?? null,
+    }
+  })
 }
 
 export function transitionEpisode(
-  _id: string,
-  _next: EpisodeStatus,
-  _patch: TransitionPatch,
+  id: string,
+  next: EpisodeStatus,
+  patch: TransitionPatch,
 ): Promise<Episode> {
-  throw new NotImplementedError('T08:transitionEpisode')
+  return withTransaction(async (tx) => {
+    const current = await tx.episode.findFirst({
+      where: { id, deletedAt: null },
+      select: { seriesId: true },
+    })
+    if (current === null) throw new AppError('E_EPISODE_NOT_FOUND')
+    const row = await tx.episode.update({
+      where: { id, deletedAt: null },
+      data: { status: next, ...patch },
+    })
+    const episodeCount = await tx.episode.count({
+      where: {
+        seriesId: current.seriesId,
+        status: 'PUBLISHED',
+        deletedAt: null,
+      },
+    })
+    await tx.series.update({
+      where: { id: current.seriesId, deletedAt: null },
+      data: { episodeCount },
+    })
+    return mapEpisode(row)
+  })
 }
 
 export function listScheduledEpisodesDue(
-  _now: Date,
-  _limit: number,
+  now: Date,
+  limit: number,
 ): Promise<readonly EpisodeTransitionRecord[]> {
-  throw new NotImplementedError('T08:listScheduledEpisodesDue')
+  return executeDb(async () => {
+    const rows = await db.episode.findMany({
+      where: {
+        status: 'SCHEDULED',
+        publishAt: { lte: now },
+        deletedAt: null,
+        series: { deletedAt: null },
+      },
+      include: {
+        series: { select: { ownerId: true } },
+        asset: { select: { status: true } },
+      },
+      orderBy: [{ publishAt: 'asc' }, { id: 'asc' }],
+      take: limit,
+    })
+    return rows.map((row) => ({
+      episode: mapEpisode(row),
+      ownerId: row.series.ownerId,
+      assetStatus: row.asset?.status ?? null,
+    }))
+  })
 }
 
 function dateCursor(cursor: string): { createdAt: Date; id: string } {
@@ -181,6 +299,44 @@ export function updateEpisode(
       }),
     ),
   )
+}
+
+export function updateEpisodeWithTags(
+  id: string,
+  input: UpdateEpisodeData,
+  tags?: readonly string[],
+): Promise<Episode> {
+  return withTransaction(async (tx) => {
+    const current = await tx.episode.findFirst({
+      where: { id, deletedAt: null },
+      include: { tags: { select: { tagId: true } } },
+    })
+    if (current === null) throw new AppError('E_EPISODE_NOT_FOUND')
+    const row = await tx.episode.update({
+      where: { id, deletedAt: null },
+      data: input,
+    })
+    if (tags !== undefined) {
+      for (const relation of current.tags) {
+        await tx.tag.update({
+          where: { id: relation.tagId },
+          data: { useCount: { decrement: 1 } },
+        })
+      }
+      await tx.episodeTag.deleteMany({ where: { episodeId: id } })
+      for (const name of tags) {
+        const tag = await tx.tag.upsert({
+          where: { name },
+          create: { name, useCount: 1 },
+          update: { useCount: { increment: 1 } },
+        })
+        await tx.episodeTag.create({
+          data: { episodeId: id, tagId: tag.id },
+        })
+      }
+    }
+    return mapEpisode(row)
+  })
 }
 
 export function updateEpisodeStatus(

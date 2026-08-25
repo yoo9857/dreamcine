@@ -4,7 +4,6 @@ import type {
   Rendition,
   VideoAsset,
 } from '@aidream/core'
-import { NotImplementedError } from '@aidream/core'
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
@@ -72,9 +71,24 @@ export interface AssetOwnershipRecord {
 }
 
 export function findAssetOwnership(
-  _assetId: string,
+  assetId: string,
 ): Promise<AssetOwnershipRecord | null> {
-  throw new NotImplementedError('T08:findAssetOwnership')
+  return executeDb(async () => {
+    const row = await db.videoAsset.findUnique({
+      where: { id: assetId },
+      include: {
+        upload: { select: { userId: true } },
+        episode: { select: { id: true } },
+      },
+    })
+    if (row === null) return null
+    if (row.upload === null) return null
+    return {
+      asset: mapVideoAsset(row),
+      ownerId: row.upload.userId,
+      episodeId: row.episode?.id ?? null,
+    }
+  })
 }
 
 export function findAssetById(id: string): Promise<VideoAsset | null> {

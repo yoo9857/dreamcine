@@ -23,21 +23,56 @@ async function runScheduler(
   signal: AbortSignal | undefined,
   dependencies: SchedulerDependencies,
 ): Promise<SchedulerHandle> {
-  const leader = await dependencies.acquire()
-  if (leader) await dependencies.register()
-  const refreshTimer = leader
-    ? setInterval(() => {
+  let leader = false
+  let closed = false
+  let refreshTimer: ReturnType<typeof setInterval> | undefined
+  let retryTimer: ReturnType<typeof setInterval> | undefined
+  let acquireAttempt: Promise<boolean> | undefined
+
+  const tryAcquire = (): Promise<boolean> => {
+    if (closed || leader) return Promise.resolve(leader)
+    if (acquireAttempt !== undefined) return acquireAttempt
+    acquireAttempt = (async () => {
+      const acquired = await dependencies.acquire()
+      if (!acquired) return false
+      leader = true
+      if (retryTimer !== undefined) clearInterval(retryTimer)
+      try {
+        await dependencies.register()
+      } catch (error: unknown) {
+        leader = false
+        await dependencies.release()
+        throw error
+      }
+      refreshTimer = setInterval(() => {
         void dependencies.refresh()
-      }, 20_000)
-    : undefined
-  refreshTimer?.unref()
+      }, 10_000)
+      refreshTimer.unref()
+      return true
+    })().finally(() => {
+      acquireAttempt = undefined
+    })
+    return acquireAttempt
+  }
+
+  const initialLeader = await tryAcquire()
+  if (!initialLeader) {
+    retryTimer = setInterval(() => {
+      void tryAcquire()
+    }, 10_000)
+    retryTimer.unref()
+  }
 
   let closing: Promise<void> | undefined
   const handle: SchedulerHandle = {
     close: () => {
       closing ??= (async () => {
+        closed = true
+        if (retryTimer !== undefined) clearInterval(retryTimer)
         if (refreshTimer !== undefined) clearInterval(refreshTimer)
+        if (acquireAttempt !== undefined) await acquireAttempt
         if (leader) await dependencies.release()
+        leader = false
       })()
       return closing
     },
@@ -55,8 +90,8 @@ async function runScheduler(
 function productionDependencies(): SchedulerDependencies {
   const queue = getQueue(QUEUE.STORAGE_CLEANUP)
   const token = randomUUID()
-  const lockKey = 'scheduler:leader'
-  const lockTtlSec = 60
+  const lockKey = 'sched:leader'
+  const lockTtlSec = 30
   return {
     acquire: async () => {
       const client = await queue.client
@@ -102,6 +137,11 @@ function productionDependencies(): SchedulerDependencies {
           name: QUEUE.DB_PURGE,
           data: { dryRun: process.env.DRY_RUN === 'true' },
         },
+      )
+      await getQueue(QUEUE.EPISODE_PUBLISH).upsertJobScheduler(
+        'episodes-publish-every-minute',
+        { every: 60 * 1000 },
+        { name: QUEUE.EPISODE_PUBLISH, data: {} },
       )
     },
     refresh: async () => {

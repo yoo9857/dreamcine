@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   cleanup: vi.fn().mockResolvedValue(1),
+  deleteEpisodeMedia: vi.fn().mockResolvedValue(undefined),
   close: vi.fn().mockResolvedValue(undefined),
   error: vi.fn(),
   on: vi.fn(),
   pause: vi.fn().mockResolvedValue(undefined),
   purge: vi.fn().mockResolvedValue(2),
+  publishScheduled: vi.fn().mockResolvedValue({ published: 1 }),
   recover: vi.fn().mockResolvedValue(3),
   schedulerClose: vi.fn().mockResolvedValue(undefined),
   startScheduler: vi.fn(),
@@ -49,6 +51,12 @@ vi.mock('./jobs/cleanup-orphans.js', () => ({
   cleanupOrphans: mocks.cleanup,
 }))
 vi.mock('./jobs/db-purge.js', () => ({ purgeDatabase: mocks.purge }))
+vi.mock('./jobs/delete-episode-media.js', () => ({
+  deleteEpisodeMedia: mocks.deleteEpisodeMedia,
+}))
+vi.mock('./jobs/publish-scheduled.js', () => ({
+  publishScheduled: mocks.publishScheduled,
+}))
 vi.mock('./jobs/recover-stuck.js', () => ({ recoverStuck: mocks.recover }))
 vi.mock('./jobs/transcode.js', () => ({
   processTranscodeJob: mocks.transcode,
@@ -64,7 +72,9 @@ beforeEach(() => {
   mocks.on.mockClear()
   mocks.error.mockClear()
   mocks.cleanup.mockClear()
+  mocks.deleteEpisodeMedia.mockClear()
   mocks.purge.mockClear()
+  mocks.publishScheduled.mockClear()
   mocks.recover.mockClear()
   mocks.transcode.mockClear()
 })
@@ -78,7 +88,7 @@ describe('transcodeBackoff', () => {
 })
 
 describe('bootstrapWorker', () => {
-  it('네 큐를 올리고 트랜스코드 동시성과 재시도 정책을 적용한다', async () => {
+  it('여섯 큐를 올리고 트랜스코드 동시성과 재시도 정책을 적용한다', async () => {
     await bootstrapWorker()
 
     expect(mocks.workers.map(({ name }) => name)).toEqual([
@@ -86,6 +96,8 @@ describe('bootstrapWorker', () => {
       'storage.cleanup',
       'asset.recoverStuck',
       'db.purge',
+      'episode.publishScheduled',
+      'episode.mediaDelete',
     ])
     expect(mocks.workers[0]?.options).toMatchObject({
       concurrency: 2,
@@ -93,7 +105,7 @@ describe('bootstrapWorker', () => {
     })
     expect(
       mocks.workers.slice(1).map(({ options }) => options.concurrency),
-    ).toEqual([1, 1, 1])
+    ).toEqual([1, 1, 1, 1, 1])
   })
 
   it('각 잡을 검증해 해당 처리기로 전달한다', async () => {
@@ -103,6 +115,8 @@ describe('bootstrapWorker', () => {
     await mocks.workers[1]?.processor({ data: { scope: 'staleUploads' } })
     await mocks.workers[2]?.processor({ data: { olderThanMinutes: 10 } })
     await mocks.workers[3]?.processor({ data: { dryRun: true } })
+    await mocks.workers[4]?.processor({ data: {} })
+    await mocks.workers[5]?.processor({ data: { assetId: 'asset_2' } })
 
     const transcodeInput = mocks.transcode.mock.calls[0]?.[0] as {
       assetId: string
@@ -124,6 +138,13 @@ describe('bootstrapWorker', () => {
     expect(mocks.recover.mock.calls[0]?.[1]).toBeInstanceOf(Date)
     expect(purgeInput.dryRun).toBe(true)
     expect(purgeInput.now).toBeInstanceOf(Date)
+    const scheduledInput = mocks.publishScheduled.mock.calls[0]?.[0] as
+      | { now: Date }
+      | undefined
+    expect(scheduledInput?.now).toBeInstanceOf(Date)
+    expect(mocks.deleteEpisodeMedia).toHaveBeenCalledWith({
+      assetId: 'asset_2',
+    })
   })
 
   it('종료는 수신 중단 후 실행 중 잡을 취소하고 워커를 한 번만 닫는다', async () => {
@@ -132,8 +153,8 @@ describe('bootstrapWorker', () => {
     await runtime.close()
     await runtime.close()
 
-    expect(mocks.pause).toHaveBeenCalledTimes(4)
-    expect(mocks.close).toHaveBeenCalledTimes(4)
+    expect(mocks.pause).toHaveBeenCalledTimes(6)
+    expect(mocks.close).toHaveBeenCalledTimes(6)
     expect(mocks.close).toHaveBeenCalledWith(true)
 
     await transcodeWorker?.processor({ data: { assetId: 'asset_1' } })

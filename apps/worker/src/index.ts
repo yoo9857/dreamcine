@@ -1,6 +1,8 @@
 import {
   connectionFromUrl,
   DbPurgeJobSchema,
+  EpisodeMediaDeleteJobSchema,
+  PublishScheduledJobSchema,
   QUEUE,
   RecoverStuckJobSchema,
   StorageCleanupJobSchema,
@@ -13,6 +15,8 @@ import pino from 'pino'
 import { loadWorkerConfig } from './config.js'
 import { cleanupOrphans } from './jobs/cleanup-orphans.js'
 import { purgeDatabase } from './jobs/db-purge.js'
+import { deleteEpisodeMedia } from './jobs/delete-episode-media.js'
+import { publishScheduled } from './jobs/publish-scheduled.js'
 import { recoverStuck } from './jobs/recover-stuck.js'
 import { processTranscodeJob } from './jobs/transcode.js'
 import { startScheduler } from './scheduler.js'
@@ -71,6 +75,20 @@ function startWorkers(): Promise<WorkerRuntime> {
         const data = DbPurgeJobSchema.parse(job.data)
         return purgeDatabase({ ...data, now: new Date() })
       },
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.EPISODE_PUBLISH,
+      async (job: Job<unknown>) => {
+        PublishScheduledJobSchema.parse(job.data)
+        return publishScheduled({ now: new Date() })
+      },
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.EPISODE_MEDIA_DELETE,
+      async (job: Job<unknown>) =>
+        deleteEpisodeMedia(EpisodeMediaDeleteJobSchema.parse(job.data)),
       { connection, concurrency: 1 },
     ),
   ]

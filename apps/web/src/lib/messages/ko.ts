@@ -40,6 +40,19 @@ export interface Messages {
     readonly assetPreparing: string
     readonly loadFailed: string
   }
+  readonly studio: {
+    readonly title: string
+    readonly emptySeries: string
+    readonly newSeries: string
+    readonly addEpisode: string
+    readonly emptyEpisodes: string
+    readonly aiDisclosure: string
+    readonly aiDisclosureHint: string
+    readonly publish: string
+    readonly schedule: string
+    readonly hide: string
+    readonly unhide: string
+  }
   readonly theme: {
     readonly label: string
     readonly dark: string
@@ -100,6 +113,20 @@ const KO: Messages = {
     ageGateSubmit: '확인하고 재생',
     assetPreparing: '영상을 변환하고 있습니다',
     loadFailed: '동영상을 불러오지 못했습니다. 다시 시도해 주세요.',
+  },
+  studio: {
+    title: '스튜디오',
+    emptySeries: '첫 시리즈를 만들어 보세요',
+    newSeries: '새 시리즈',
+    addEpisode: '에피소드 추가',
+    emptyEpisodes: '아직 에피소드가 없습니다',
+    aiDisclosure: 'AI 제작 표기',
+    aiDisclosureHint:
+      '사용한 AI 도구와 제작 범위를 시청자가 이해할 수 있게 적어 주세요.',
+    publish: '공개',
+    schedule: '예약',
+    hide: '숨기기',
+    unhide: '다시 공개',
   },
   theme: {
     label: '화면 테마',

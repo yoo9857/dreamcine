@@ -26,6 +26,14 @@
     {
       "name": "system",
       "description": "라이브니스 · 레디니스"
+    },
+    {
+      "name": "series",
+      "description": "시리즈 생성 · 조회 · 관리"
+    },
+    {
+      "name": "episodes",
+      "description": "에피소드 생성 · 조회 · 상태 전이"
     }
   ],
   "components": {
@@ -469,6 +477,171 @@
               }
             }
           }
+        }
+      },
+      "CreateSeriesRequest": {
+        "type": "object",
+        "required": ["title"],
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "synopsis": { "type": "string", "maxLength": 2000 },
+          "posterKey": { "type": "string", "minLength": 1 },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" }
+        }
+      },
+      "UpdateSeriesRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "synopsis": { "type": ["string", "null"], "maxLength": 2000 },
+          "posterKey": { "type": ["string", "null"], "minLength": 1 },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" },
+          "isCompleted": { "type": "boolean" },
+          "commentsOff": { "type": "boolean" }
+        }
+      },
+      "AgeRating": {
+        "type": "string",
+        "enum": ["ALL", "A12", "A15", "A19"]
+      },
+      "EpisodeStatus": {
+        "type": "string",
+        "enum": ["DRAFT", "SCHEDULED", "PUBLISHED", "HIDDEN", "REMOVED"]
+      },
+      "Series": {
+        "type": "object",
+        "required": [
+          "id",
+          "ownerId",
+          "slug",
+          "title",
+          "synopsis",
+          "ageRating",
+          "isCompleted",
+          "commentsOff",
+          "episodeCount",
+          "totalViews",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "ownerId": { "type": "string" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "synopsis": { "type": ["string", "null"] },
+          "posterUrl": { "type": "string", "format": "uri" },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" },
+          "isCompleted": { "type": "boolean" },
+          "commentsOff": { "type": "boolean" },
+          "episodeCount": { "type": "integer", "minimum": 0 },
+          "totalViews": { "type": "string", "pattern": "^[0-9]+$" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateEpisodeRequest": {
+        "type": "object",
+        "required": [
+          "seriesId",
+          "number",
+          "title",
+          "assetId",
+          "ageRating",
+          "aiDisclosure"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "seriesId": { "type": "string", "minLength": 1 },
+          "seasonNumber": { "type": "integer", "minimum": 1 },
+          "number": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "description": { "type": "string", "maxLength": 2000 },
+          "assetId": { "type": "string", "minLength": 1 },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" },
+          "aiDisclosure": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 10,
+            "items": { "type": "string", "minLength": 1, "maxLength": 24 }
+          }
+        }
+      },
+      "UpdateEpisodeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "description": { "type": ["string", "null"], "maxLength": 2000 },
+          "thumbKey": { "type": ["string", "null"] },
+          "assetId": { "type": ["string", "null"] },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" },
+          "aiDisclosure": { "type": ["string", "null"], "maxLength": 500 },
+          "tags": {
+            "type": "array",
+            "maxItems": 10,
+            "items": { "type": "string", "minLength": 1, "maxLength": 24 }
+          }
+        }
+      },
+      "PublishEpisodeRequest": {
+        "type": "object",
+        "required": ["action"],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["PUBLISH", "SCHEDULE", "HIDE", "UNHIDE"]
+          },
+          "publishAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Episode": {
+        "type": "object",
+        "required": [
+          "id",
+          "seriesId",
+          "seasonId",
+          "assetId",
+          "number",
+          "title",
+          "description",
+          "status",
+          "ageRating",
+          "aiDisclosure",
+          "publishAt",
+          "publishedAt",
+          "viewCount",
+          "likeCount",
+          "commentCount",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "seriesId": { "type": "string" },
+          "seasonId": { "type": ["string", "null"] },
+          "assetId": { "type": ["string", "null"] },
+          "number": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "thumbUrl": { "type": "string", "format": "uri" },
+          "status": { "$ref": "#/components/schemas/EpisodeStatus" },
+          "ageRating": { "$ref": "#/components/schemas/AgeRating" },
+          "aiDisclosure": { "type": ["string", "null"] },
+          "publishAt": { "type": ["string", "null"], "format": "date-time" },
+          "publishedAt": { "type": ["string", "null"], "format": "date-time" },
+          "viewCount": { "type": "string", "pattern": "^[0-9]+$" },
+          "likeCount": { "type": "integer", "minimum": 0 },
+          "commentCount": { "type": "integer", "minimum": 0 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
       "Health": {
@@ -961,6 +1134,402 @@
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series": {
+      "get": {
+        "tags": ["series"],
+        "summary": "공개 시리즈 커서 목록",
+        "security": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "공개 시리즈 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items", "nextCursor"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Series" }
+                    },
+                    "nextCursor": { "type": ["string", "null"] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["series"],
+        "summary": "시리즈 생성",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateSeriesRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "생성된 시리즈",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Series" }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "시리즈 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "tags": ["series"],
+        "summary": "시리즈 상세와 공개 에피소드 목록",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "시리즈 상세",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["series", "episodes"],
+                  "properties": {
+                    "series": { "$ref": "#/components/schemas/Series" },
+                    "episodes": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Episode" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "시리즈 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["series"],
+        "summary": "소유 시리즈 수정",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateSeriesRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "수정된 시리즈",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Series" }
+              }
+            }
+          },
+          "403": {
+            "description": "소유자 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "시리즈 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["series"],
+        "summary": "시리즈와 하위 에피소드 소프트 삭제",
+        "responses": {
+          "204": { "description": "삭제 및 미디어 삭제 작업 등록" },
+          "403": {
+            "description": "소유자 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "시리즈 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes": {
+      "post": {
+        "tags": ["episodes"],
+        "summary": "영상 자산을 연결해 에피소드 생성",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateEpisodeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "초안 에피소드",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Episode" }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 또는 소유권 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "시리즈 또는 자산 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "회차 중복, 자산 재사용 또는 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "tags": ["episodes"],
+        "summary": "공개 또는 소유 에피소드 상세",
+        "security": [{ "sessionCookie": [] }, {}],
+        "responses": {
+          "200": {
+            "description": "에피소드 상세",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Episode" }
+              }
+            }
+          },
+          "404": {
+            "description": "에피소드 없음 또는 비공개",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["episodes"],
+        "summary": "에피소드 상태 무관 필드 수정",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateEpisodeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "수정된 에피소드",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Episode" }
+              }
+            }
+          },
+          "403": {
+            "description": "소유자 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "에피소드 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["episodes"],
+        "summary": "상태기계를 통한 REMOVED 전이",
+        "responses": {
+          "204": { "description": "삭제 및 미디어 삭제 작업 등록" },
+          "403": {
+            "description": "소유자 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "허용되지 않은 상태 전이",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/episodes/{id}/publish": {
+      "post": {
+        "tags": ["episodes"],
+        "summary": "에피소드 공개 · 예약 · 숨김 · 재공개",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PublishEpisodeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "변경된 공개 상태",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Episode" }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 또는 소유권 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "자산 미준비 또는 금지된 전이",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "AI 표기 누락 또는 과거 예약",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
           }

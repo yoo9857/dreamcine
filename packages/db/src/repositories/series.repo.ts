@@ -1,8 +1,9 @@
 import type { AgeRating, Episode, Page, Series } from '@aidream/core'
-import { AppError, NotImplementedError } from '@aidream/core'
+import { AppError } from '@aidream/core'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
 import { executeDb } from '../errors.js'
+import { mapEpisode } from '../mappers/episode.mapper.js'
 import { mapSeries } from '../mappers/series.mapper.js'
 import { withTransaction } from '../tx.js'
 
@@ -46,26 +47,106 @@ export interface SoftDeleteSeriesResult {
   readonly assetIds: readonly string[]
 }
 
-export function countSeriesByOwner(_ownerId: string): Promise<number> {
-  throw new NotImplementedError('T08:countSeriesByOwner')
+export function countSeriesByOwner(ownerId: string): Promise<number> {
+  return executeDb(() =>
+    db.series.count({ where: { ownerId, deletedAt: null } }),
+  )
 }
 
 export function listPublicSeries(
-  _options: ListPublicSeriesOptions,
+  options: ListPublicSeriesOptions,
 ): Promise<Page<Series>> {
-  throw new NotImplementedError('T08:listPublicSeries')
+  return executeDb(async () => {
+    const cursor =
+      options.cursor === undefined ? null : dateCursor(options.cursor)
+    const rows = await db.series.findMany({
+      where: {
+        deletedAt: null,
+        episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+        ...(cursor === null
+          ? {}
+          : {
+              OR: [
+                { createdAt: { lt: cursor.createdAt } },
+                { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+              ],
+            }),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: options.limit + 1,
+    })
+    const hasNext = rows.length > options.limit
+    const pageRows = hasNext ? rows.slice(0, options.limit) : rows
+    const last = pageRows.at(-1)
+    return {
+      items: pageRows.map(mapSeries),
+      nextCursor:
+        hasNext && last !== undefined
+          ? encodeCursor({ k: last.createdAt.toISOString(), id: last.id })
+          : null,
+    }
+  })
 }
 
 export function findPublicSeriesDetail(
-  _id: string,
+  id: string,
 ): Promise<SeriesDetailRecord | null> {
-  throw new NotImplementedError('T08:findPublicSeriesDetail')
+  return executeDb(async () => {
+    const row = await db.series.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        episodes: {
+          where: { status: 'PUBLISHED', deletedAt: null },
+          orderBy: [
+            { season: { number: 'asc' } },
+            { number: 'asc' },
+            { id: 'asc' },
+          ],
+        },
+      },
+    })
+    if (row === null) return null
+    return {
+      series: mapSeries(row),
+      episodes: row.episodes.map(mapEpisode),
+    }
+  })
 }
 
 export function softDeleteSeriesCascade(
-  _id: string,
+  id: string,
 ): Promise<SoftDeleteSeriesResult> {
-  throw new NotImplementedError('T08:softDeleteSeriesCascade')
+  return withTransaction(async (tx) => {
+    const current = await tx.series.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        episodes: {
+          where: { deletedAt: null, assetId: { not: null } },
+          select: { assetId: true },
+        },
+      },
+    })
+    if (current === null) throw new AppError('E_SERIES_NOT_FOUND')
+    const deletedAt = new Date()
+    await tx.episode.updateMany({
+      where: { seriesId: id, deletedAt: null },
+      data: { deletedAt },
+    })
+    const row = await tx.series.update({
+      where: { id, deletedAt: null },
+      data: { deletedAt },
+    })
+    await tx.user.update({
+      where: { id: row.ownerId, deletedAt: null },
+      data: { seriesCount: { decrement: 1 } },
+    })
+    return {
+      series: mapSeries(row),
+      assetIds: current.episodes.flatMap(({ assetId }) =>
+        assetId === null ? [] : [assetId],
+      ),
+    }
+  })
 }
 
 function dateCursor(cursor: string): { createdAt: Date; id: string } {

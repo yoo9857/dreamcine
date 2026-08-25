@@ -10,10 +10,14 @@ export const CreateSeriesSchema = z.object({
   ageRating: z.enum(AgeRating).optional(),
 })
 
-export const UpdateSeriesSchema = CreateSeriesSchema.extend({
+export const UpdateSeriesSchema = z.object({
+  title: z.string().trim().min(1).max(120).optional(),
+  synopsis: z.string().trim().max(2000).nullable().optional(),
+  posterKey: z.string().min(1).nullable().optional(),
+  ageRating: z.enum(AgeRating).optional(),
   isCompleted: z.boolean().optional(),
   commentsOff: z.boolean().optional(),
-}).partial()
+})
 
 export const SeriesListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(LIMITS.FEED_PAGE_MAX).default(20),

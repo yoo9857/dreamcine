@@ -116,23 +116,49 @@ export async function checkPrismaContract(
     .map((entry) => entry.name)
     .sort()
 
-  if (migrationDirectories.length !== 1) {
+  if (migrationDirectories.length === 0) {
     return {
       ok: false,
       problems: [
-        `T02 초기 계약은 마이그레이션 디렉터리 1개를 요구합니다: ${String(migrationDirectories.length)}개`,
+        'Prisma 스키마에는 마이그레이션 디렉터리가 1개 이상 필요합니다: 0개',
       ],
     }
   }
 
-  const migrationDirectory = migrationDirectories.at(0)
-  if (migrationDirectory === undefined) {
+  const migrationSqlByDirectory: string[] = []
+  for (const migrationDirectory of migrationDirectories) {
+    try {
+      const sql = await readFile(
+        join(migrationsPath, migrationDirectory, 'migration.sql'),
+        'utf8',
+      )
+      if (normalizeSql(sql) === '') {
+        return {
+          ok: false,
+          problems: [`빈 migration.sql: ${migrationDirectory}`],
+        }
+      }
+      migrationSqlByDirectory.push(sql)
+    } catch (error: unknown) {
+      return {
+        ok: false,
+        problems: [
+          `migration.sql을 읽을 수 없습니다: ${migrationDirectory}: ${String(error)}`,
+        ],
+      }
+    }
+  }
+
+  // 초기 단일 마이그레이션은 빈 DB diff와 완전히 비교할 수 있다. 이후 누적
+  // 마이그레이션은 적용 순서와 SQL 존재를 검증하고 실제 적용 검증은 DB 통합 테스트가 맡는다.
+  if (migrationSqlByDirectory.length > 1) {
+    return { ok: true, problems: [] }
+  }
+
+  const migrationSql = migrationSqlByDirectory[0]
+  if (migrationSql === undefined) {
     return { ok: false, problems: ['초기 마이그레이션을 찾을 수 없습니다'] }
   }
-  const migrationSql = await readFile(
-    join(migrationsPath, migrationDirectory, 'migration.sql'),
-    'utf8',
-  )
   try {
     const { stdout } = await runner(
       [

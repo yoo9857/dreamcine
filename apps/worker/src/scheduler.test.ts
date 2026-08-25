@@ -27,6 +27,7 @@ describe('startScheduler', () => {
   })
 
   it('팔로워는 등록도 락 해제도 하지 않는다', async () => {
+    vi.useFakeTimers()
     const deps = dependencies(false)
     const handle = await startScheduler(undefined, deps)
 
@@ -41,13 +42,28 @@ describe('startScheduler', () => {
     const controller = new AbortController()
     const handle = await startScheduler(controller.signal, deps)
 
-    await vi.advanceTimersByTimeAsync(20_000)
+    await vi.advanceTimersByTimeAsync(10_000)
     expect(deps.refresh).toHaveBeenCalledOnce()
 
     controller.abort()
     await vi.waitFor(() => {
       expect(deps.release).toHaveBeenCalledOnce()
     })
+    await handle.close()
+    expect(deps.release).toHaveBeenCalledOnce()
+  })
+
+  it('팔로워가 주기적으로 재시도해 리더가 되면 한 번만 등록한다', async () => {
+    vi.useFakeTimers()
+    const deps = dependencies(false)
+    vi.mocked(deps.acquire)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+    const handle = await startScheduler(undefined, deps)
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(deps.acquire).toHaveBeenCalledTimes(2)
+    expect(deps.register).toHaveBeenCalledOnce()
     await handle.close()
     expect(deps.release).toHaveBeenCalledOnce()
   })
