@@ -62,6 +62,51 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [ISS-018] Phase 2 모바일 절차가 Expo를 전제로 한다
+- 발견 단계: T13 사전 아키텍처 확인
+- 스펙 위치: `00_SPEC/00_PRODUCT.md` §3, `10_TASKS/T13_PWA_PHASE2.md` §1·부록
+- 문제: 제품 요구는 하나의 코드베이스로 Android/iOS를 제공하는 비-Expo 크로스플랫폼
+  네이티브 앱이다. 그러나 T13은 `Expo SDK`, `expo-router`, `expo-secure-store`,
+  `expo-video`, `expo-file-system`을 시작 절차로 명시해 요구와 충돌한다.
+- 결정: Phase 2 앱은 **bare React Native(React Native CLI)** 기준으로 설계한다.
+  `apps/mobile/android`와 `apps/mobile/ios` 네이티브 프로젝트를 직접 소유하고,
+  `packages/core`와 `packages/api-client`만 웹과 공유한다. 웹 DOM 기반 `packages/ui`,
+  쿠키/Next 미들웨어 인증, hls.js는 모바일에서 재사용하지 않는다.
+- 구현 원칙: 인증 비밀은 iOS Keychain/Android Keystore 기반 저장소에 보관하고 Bearer 토큰을
+  주입한다. 영상·업로드·알림·딥링크는 공통 인터페이스 뒤에 플랫폼 어댑터를 두며,
+  iOS/Android 네이티브 프로젝트·서명·빌드 CI를 저장소에서 명시적으로 관리한다.
+- 영향: T13/S1에서 모바일 파일 목록, React Native 및 네이티브 라이브러리 버전,
+  토큰 갱신 계약, AVPlayer/Media3 기반 재생기, 백그라운드 업로드, Android/iOS CI를
+  확정해야 한다. 새 의존성은 `DEP-*` 승인 후에만 설치한다.
+- 상태: RESOLVED (2026-08-25 사용자 요구 — 비-Expo 크로스플랫폼)
+
+## [ISS-017] T12 자동 조치 상태를 Report 모델에 보존할 수 없음
+- 발견 단계: T12/S1
+- 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §2 (`Report`),
+  `10_TASKS/T12_MODERATION.md` §4·§5
+- 문제: T12는 `PRIORITIZE` 결과를 `priority_flag`에 저장해 심사큐의 첫 번째 정렬 키로
+  사용하고, `AUTO_HIDE`로 임시 숨김된 대상은 `REJECT` 시 원상복구하라고 요구한다.
+  그러나 확정된 `Report` 모델에는 우선순위 플래그와 자동 숨김 여부(또는 숨김 전 상태)를
+  보존할 필드가 없다. 현재 필드만으로는 원래부터 `HIDDEN`이었던 에피소드와 신고 때문에
+  숨겨진 에피소드를 구분할 수 없어, `REJECT`가 정상적인 기존 숨김까지 잘못 해제할 수 있다.
+- 재현/근거: `prisma/schema.prisma`의 `Report` 필드는 `reporterId`, `target`, `targetId`,
+  `reason`, `detail`, `status`, `handledBy`, `handledAt`, `actionNote`, `createdAt`뿐이다.
+  반면 T12 심사큐 SQL은 `priority_flag DESC`를 명시한다. 기존
+  `packages/db/src/repositories/report.repo.ts`도 `createdAt DESC`만 지원한다.
+- 제안:
+  1. 권장: `Report`에 `priorityFlag Boolean @default(false)`와
+     `autoHidden Boolean @default(false)`를 추가하고 마이그레이션한다. 자동 숨김을 실제로
+     수행한 신고 묶음에만 `autoHidden=true`를 기록해 `REJECT` 복원 조건으로 사용한다.
+  2. 대안: 별도의 `ModerationAction`/감사 모델에 `AUTO_HIDE`와 이전 상태를 기록하고,
+     심사큐 우선순위도 그 모델에서 계산한다.
+- 영향: Prisma 스키마·마이그레이션, core `Report` 엔티티와 mapper,
+  `report.repo.ts`, T12 서비스 및 통합 테스트, 계약 하네스가 함께 바뀐다. 이 결정 전에는
+  T12 S1 파일 목록을 확정할 수 없다.
+- 결정: 권장안 승인. `Report`에 `priorityFlag`와 `autoHidden`을 추가해
+  `PRIORITIZE` 정렬과 안전한 자동 숨김 복원을 명시적으로 보존한다. 별도 감사 모델은
+  이번 범위에 추가하지 않고 T11 구조적 감사 로그를 함께 사용한다. (2026-08-25, 사용자 승인)
+- 상태: RESOLVED
+
 ## [DEP-004] @lhci/cli@0.15.1
 - 요청 단계: T09/S1
 - 용도: `10_NFR.md` §1과 T09 DoD가 요구하는 모바일 피드 LCP ≤ 2.5s, CLS ≤ 0.05를
