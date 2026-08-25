@@ -2,7 +2,7 @@
 
 ## 진행 상태
 - [x] S1 Spec 확인   — 2026-08-25 / 산출물 56개 확정 / DEP-004 승인 반영
-- [ ] S2 Skeleton
+- [x] S2 Skeleton    — 2026-08-25 / gate:s2 PASS (GitHub Actions #32797682937 L1) / 센티넬 14개
 - [ ] S3 구현
 
 ---
