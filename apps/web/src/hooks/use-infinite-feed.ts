@@ -68,17 +68,28 @@ export function useInfiniteFeed(options: InfiniteFeedOptions) {
     )
 
   useEffect(() => {
-    if (restoredScrollRef.current) return
-    restoredScrollRef.current = true
-    const position = readFeedScrollPosition()
-    if (position === null) return
+    let firstFrame: number | undefined
+    let secondFrame: number | undefined
+    const restore = (): void => {
+      if (restoredScrollRef.current) return
+      const position = readFeedScrollPosition()
+      if (position === null) return
 
-    const frame = window.requestAnimationFrame(() => {
-      window.scrollTo({ top: position, behavior: 'auto' })
-      forgetFeedScrollPosition()
-    })
+      firstFrame = window.requestAnimationFrame(() => {
+        secondFrame = window.requestAnimationFrame(() => {
+          window.scrollTo({ top: position, behavior: 'auto' })
+          forgetFeedScrollPosition()
+          restoredScrollRef.current = true
+        })
+      })
+    }
+
+    restore()
+    window.addEventListener('popstate', restore)
     return () => {
-      window.cancelAnimationFrame(frame)
+      window.removeEventListener('popstate', restore)
+      if (firstFrame !== undefined) window.cancelAnimationFrame(firstFrame)
+      if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame)
     }
   }, [items.length])
 

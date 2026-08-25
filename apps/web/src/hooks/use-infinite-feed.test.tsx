@@ -112,6 +112,28 @@ describe('useInfiniteFeed', () => {
     expect(window.sessionStorage.getItem('aidream:feed-scroll:/')).toBeNull()
   })
 
+  it('restores on browser back when the cached feed remains mounted', async () => {
+    const scrollTo = vi
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => undefined)
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      (callback: FrameRequestCallback): number => {
+        callback(0)
+        return 1
+      },
+    )
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    mountFeed()
+
+    window.sessionStorage.setItem('aidream:feed-scroll:/', '720')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+
+    await waitFor(() => {
+      expect(scrollTo).toHaveBeenCalledWith({ top: 720, behavior: 'auto' })
+    })
+  })
+
   it('prefetches at 400px and removes duplicate episodes across pages', async () => {
     vi.stubGlobal(
       'fetch',
