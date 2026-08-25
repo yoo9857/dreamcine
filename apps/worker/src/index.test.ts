@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   deleteEpisodeMedia: vi.fn().mockResolvedValue(undefined),
   close: vi.fn().mockResolvedValue(undefined),
   error: vi.fn(),
+  fanout: vi.fn().mockResolvedValue({ created: 0, nextCursor: null }),
   on: vi.fn(),
   pause: vi.fn().mockResolvedValue(undefined),
   purge: vi.fn().mockResolvedValue(2),
@@ -18,7 +19,10 @@ const mocks = vi.hoisted(() => ({
   transcode: vi.fn().mockResolvedValue('COMPLETED'),
   workers: [] as {
     name: string
-    processor: (job: { data: unknown }) => Promise<unknown>
+    processor: (job: {
+      data: unknown
+      updateData?: (data: unknown) => Promise<void>
+    }) => Promise<unknown>
     options: Record<string, unknown>
   }[],
 }))
@@ -57,6 +61,11 @@ vi.mock('./jobs/db-purge.js', () => ({ purgeDatabase: mocks.purge }))
 vi.mock('./jobs/delete-episode-media.js', () => ({
   deleteEpisodeMedia: mocks.deleteEpisodeMedia,
 }))
+vi.mock('./jobs/notification-fanout.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('./jobs/notification-fanout.js')>()
+  return { ...actual, processNotificationFanoutJob: mocks.fanout }
+})
 vi.mock('./jobs/publish-scheduled.js', () => ({
   publishScheduled: mocks.publishScheduled,
 }))
@@ -77,6 +86,8 @@ beforeEach(() => {
   mocks.close.mockClear()
   mocks.on.mockClear()
   mocks.error.mockClear()
+  mocks.fanout.mockReset()
+  mocks.fanout.mockResolvedValue({ created: 0, nextCursor: null })
   mocks.cleanup.mockClear()
   mocks.deleteEpisodeMedia.mockClear()
   mocks.purge.mockClear()
@@ -177,6 +188,31 @@ describe('bootstrapWorker', () => {
     await transcodeWorker?.processor({ data: { assetId: 'asset_1' } })
     const input = mocks.transcode.mock.calls[0]?.[0] as { signal: AbortSignal }
     expect(input.signal.aborted).toBe(true)
+  })
+
+  it('알림 팬아웃 커서를 BullMQ 잡 데이터에 체크포인트한다', async () => {
+    await bootstrapWorker()
+    mocks.fanout
+      .mockResolvedValueOnce({ created: 1000, nextCursor: 'cursor-1000' })
+      .mockResolvedValueOnce({ created: 500, nextCursor: null })
+    const updateData = vi.fn().mockResolvedValue(undefined)
+
+    await expect(
+      mocks.workers[9]?.processor({
+        data: { type: 'NEW_EPISODE', episodeId: 'episode_1' },
+        updateData,
+      }),
+    ).resolves.toEqual({ created: 1500 })
+    expect(updateData).toHaveBeenCalledWith({
+      type: 'NEW_EPISODE',
+      episodeId: 'episode_1',
+      cursor: 'cursor-1000',
+    })
+    expect(mocks.fanout).toHaveBeenLastCalledWith({
+      type: 'NEW_EPISODE',
+      episodeId: 'episode_1',
+      cursor: 'cursor-1000',
+    })
   })
 
   it('워커 오류를 구조화 로그로 남긴다', async () => {

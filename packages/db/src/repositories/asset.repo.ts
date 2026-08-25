@@ -7,6 +7,7 @@ import type {
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
+import { createNotificationInTransaction } from './notification.repo.js'
 
 export interface CreateAssetData {
   uploadId?: string | null
@@ -193,12 +194,9 @@ export function finalizeAsset(input: FinalizeAssetData): Promise<VideoAsset> {
         },
       })
       if (input.userId !== null) {
-        await tx.notification.create({
-          data: {
-            userId: input.userId,
-            type: 'TRANSCODE_DONE',
-            payload: { assetId: input.assetId },
-          },
+        await createNotificationInTransaction(tx, {
+          userId: input.userId,
+          payload: { type: 'TRANSCODE_DONE', assetId: input.assetId },
         })
       }
       return mapVideoAsset(asset)
@@ -222,11 +220,12 @@ export function failAsset(input: FailAssetData): Promise<VideoAsset> {
         input.userId !== null &&
         (!input.retryable || asset.attemptCount >= 3)
       ) {
-        await tx.notification.create({
-          data: {
-            userId: input.userId,
+        await createNotificationInTransaction(tx, {
+          userId: input.userId,
+          payload: {
             type: 'TRANSCODE_FAILED',
-            payload: { assetId: input.assetId, errorCode: input.errorCode },
+            assetId: input.assetId,
+            errorCode: input.errorCode,
           },
         })
       }

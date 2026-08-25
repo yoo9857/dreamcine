@@ -24,6 +24,18 @@ export interface NotificationFanoutResult {
   readonly nextCursor: string | null
 }
 
+export type ProcessNotificationFanoutInput =
+  | NotificationFanoutInput
+  | PublishFailedNotificationInput
+
+export interface NotificationFanoutDrainDependencies {
+  readonly process: (
+    input: ProcessNotificationFanoutInput,
+  ) => Promise<NotificationFanoutResult>
+  readonly checkpoint: (input: NotificationFanoutInput) => Promise<void>
+  readonly pause: () => Promise<void>
+}
+
 export interface NotificationFanoutDependencies {
   readonly findEpisode: typeof findNotificationEpisode
   readonly followers: typeof listFollowerIds
@@ -42,7 +54,7 @@ export function notificationFanoutJob(
 }
 
 export async function processNotificationFanoutJob(
-  input: NotificationFanoutInput | PublishFailedNotificationInput,
+  input: ProcessNotificationFanoutInput,
 ): Promise<NotificationFanoutResult> {
   if (input.type === 'NEW_EPISODE') return notificationFanoutJob(input)
   const ownerId = await findNotificationEpisodeOwner(input.episodeId)
@@ -62,6 +74,24 @@ export async function processNotificationFanoutJob(
     },
   ])
   return { created, nextCursor: null }
+}
+
+export async function drainNotificationFanout(
+  input: ProcessNotificationFanoutInput,
+  dependencies: NotificationFanoutDrainDependencies,
+): Promise<{ readonly created: number }> {
+  let data = input
+  let created = 0
+  for (;;) {
+    const result = await dependencies.process(data)
+    created += result.created
+    if (data.type !== 'NEW_EPISODE' || result.nextCursor === null) {
+      return { created }
+    }
+    data = { ...data, cursor: result.nextCursor }
+    await dependencies.checkpoint(data)
+    await dependencies.pause()
+  }
 }
 
 async function runFanout(

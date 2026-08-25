@@ -34,6 +34,7 @@ export interface ObservableJob<TData> {
   readonly queueName?: string | undefined
   readonly attemptsMade?: number | undefined
   readonly opts?: { readonly attempts?: number | undefined } | undefined
+  readonly updateData?: ((data: TData) => Promise<void>) | undefined
 }
 
 export interface JobWrapperDependencies {
@@ -44,7 +45,11 @@ export interface JobWrapperDependencies {
 
 export function withJob<TData, TResult>(
   name: string,
-  handler: (data: TData, meta: JobMeta) => Promise<TResult>,
+  handler: (
+    data: TData,
+    meta: JobMeta,
+    job: ObservableJob<TData>,
+  ) => Promise<TResult>,
   dependencies: JobWrapperDependencies = productionDependencies,
 ): (job: ObservableJob<TData>) => Promise<TResult> {
   return async (job) => {
@@ -65,7 +70,7 @@ export function withJob<TData, TResult>(
     let status: JobStatus = 'success'
     let code: ErrorCode | 'none' = 'none'
     try {
-      const result = await handler(job.data, meta)
+      const result = await handler(job.data, meta, job)
       safeMetric(() => {
         dependencies.metrics.total(queue, status, code)
       }, logger)

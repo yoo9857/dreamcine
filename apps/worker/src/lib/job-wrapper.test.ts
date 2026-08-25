@@ -63,6 +63,11 @@ describe('withJob', () => {
     expect(handler).toHaveBeenCalledWith(
       { id: 'asset_1' },
       { queue: 'video.transcode', jobId: 'job_1', attempt: 1 },
+      expect.objectContaining({
+        data: { id: 'asset_1' },
+        id: 'job_1',
+        queueName: 'video.transcode',
+      }),
     )
     expect(deps.metrics.total).toHaveBeenCalledWith(
       'video.transcode',
@@ -91,7 +96,7 @@ describe('withJob', () => {
       requestId: 'req_123',
     }
     expect(deps.logger).toHaveBeenCalledWith(context)
-    expect(handler).toHaveBeenCalledWith(tracedJob.data, context)
+    expect(handler).toHaveBeenCalledWith(tracedJob.data, context, tracedJob)
   })
 
   it('labels AppError and increments DLQ on the final attempt', async () => {

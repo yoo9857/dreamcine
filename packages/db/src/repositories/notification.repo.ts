@@ -5,6 +5,7 @@ import {
   type NotificationPayload,
   type Page,
 } from '@aidream/core'
+import type { Prisma } from '@prisma/client'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
 import { executeDb } from '../errors.js'
@@ -15,6 +16,8 @@ export interface CreateNotificationData {
   readonly userId: string
   readonly payload: NotificationPayload
 }
+
+type NotificationWriter = Pick<Prisma.TransactionClient, 'notification'>
 
 export function findNotificationEpisode(episodeId: string): Promise<{
   readonly id: string
@@ -51,19 +54,14 @@ export function findNotificationEpisodeOwner(
 export function createNotification(
   input: CreateNotificationData,
 ): Promise<Notification> {
-  return executeDb(async () => {
-    const payload = NotificationPayloadSchema.parse(input.payload)
-    return mapNotification(
-      await db.notification.create({
-        data: {
-          ...(input.id === undefined ? {} : { id: input.id }),
-          userId: input.userId,
-          type: payload.type,
-          payload,
-        },
-      }),
-    )
-  })
+  return executeDb(() => insertNotification(db, input))
+}
+
+export function createNotificationInTransaction(
+  transaction: NotificationWriter,
+  input: CreateNotificationData,
+): Promise<Notification> {
+  return insertNotification(transaction, input)
 }
 
 export function createNotifications(
@@ -191,4 +189,21 @@ function notificationCursor(cursor: string): { createdAt: Date; id: string } {
   if (Number.isNaN(createdAt.getTime()))
     throw new AppError('E_FEED_INVALID_CURSOR')
   return { createdAt, id: payload.id }
+}
+
+async function insertNotification(
+  writer: NotificationWriter,
+  input: CreateNotificationData,
+): Promise<Notification> {
+  const payload = NotificationPayloadSchema.parse(input.payload)
+  return mapNotification(
+    await writer.notification.create({
+      data: {
+        ...(input.id === undefined ? {} : { id: input.id }),
+        userId: input.userId,
+        type: payload.type,
+        payload,
+      },
+    }),
+  )
 }

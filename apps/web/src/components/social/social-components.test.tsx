@@ -20,7 +20,16 @@ afterEach(() => {
 
 describe('social buttons', () => {
   it('rolls back an optimistic like when the API fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    let rejectRequest: ((value: { ok: boolean }) => void) | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            rejectRequest = resolve
+          }),
+      ),
+    )
     render(
       <LikeButton
         episodeId="episode_1"
@@ -30,6 +39,12 @@ describe('social buttons', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: '좋아요 4' }))
+    expect(
+      screen
+        .getByRole('button', { name: /좋아요 5/u })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    rejectRequest?.({ ok: false })
 
     await waitFor(() => {
       expect(

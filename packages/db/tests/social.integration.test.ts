@@ -130,4 +130,28 @@ describe('T10 social repositories', () => {
     expect(page.items[0]?.deletedAt).not.toBeNull()
     expect(page.items[0]?.replies[0]?.body).toBe('reply')
   })
+
+  it('keeps fanout notifications idempotent when the same batch runs twice', async () => {
+    const current = requireContext()
+    const data = await fixture()
+    const batch = [
+      {
+        id: 'notification_fanout_retry',
+        userId: data.viewer.id,
+        payload: {
+          type: 'NEW_EPISODE' as const,
+          seriesId: 'series_1',
+          episodeId: data.episode.id,
+        },
+      },
+    ]
+
+    await expect(current.repo.createNotifications(batch)).resolves.toBe(1)
+    await expect(current.repo.createNotifications(batch)).resolves.toBe(0)
+    await expect(
+      current.database.notification.count({
+        where: { id: 'notification_fanout_retry' },
+      }),
+    ).resolves.toBe(1)
+  })
 })

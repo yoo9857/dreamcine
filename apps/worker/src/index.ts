@@ -22,7 +22,10 @@ import { counterFlushJob } from './jobs/counter-flush.js'
 import { counterReconcileJob } from './jobs/counter-reconcile.js'
 import { purgeDatabase } from './jobs/db-purge.js'
 import { deleteEpisodeMedia } from './jobs/delete-episode-media.js'
-import { processNotificationFanoutJob } from './jobs/notification-fanout.js'
+import {
+  drainNotificationFanout,
+  processNotificationFanoutJob,
+} from './jobs/notification-fanout.js'
 import { publishScheduled } from './jobs/publish-scheduled.js'
 import { rankRecompute } from './jobs/rank-recompute.js'
 import { recoverStuck } from './jobs/recover-stuck.js'
@@ -133,20 +136,18 @@ function startWorkers(): Promise<WorkerRuntime> {
     ),
     new Worker(
       QUEUE.NOTIFY_FANOUT,
-      withJob(QUEUE.NOTIFY_FANOUT, async (input: unknown) => {
-        let data = NotificationFanoutJobSchema.parse(input)
-        let created = 0
-        let keepGoing = true
-        do {
-          const result = await processNotificationFanoutJob(data)
-          created += result.created
-          data =
-            data.type === 'NEW_EPISODE' && result.nextCursor !== null
-              ? { ...data, cursor: result.nextCursor }
-              : data
-          keepGoing = data.type === 'NEW_EPISODE' && result.nextCursor !== null
-        } while (keepGoing)
-        return { created }
+      withJob(QUEUE.NOTIFY_FANOUT, async (input: unknown, _meta, job) => {
+        const data = NotificationFanoutJobSchema.parse(input)
+        return drainNotificationFanout(data, {
+          process: processNotificationFanoutJob,
+          checkpoint: async (next) => {
+            await job.updateData?.(next)
+          },
+          pause: () =>
+            new Promise((resolve) => {
+              setTimeout(resolve, 25)
+            }),
+        })
       }),
       { connection, concurrency: 1 },
     ),
