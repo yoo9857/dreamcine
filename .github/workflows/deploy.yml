@@ -114,7 +114,17 @@ jobs:
           # 서버 안에서의 헬스는 deploy.sh 가 이미 봤다. 여기서는 **밖에서**
           # 본다 — Caddy·TLS·DNS 까지 포함한 경로가 실제로 열렸는지는
           # 컨테이너 안에서 확인할 수 없다.
-          status="$(curl -sS -o /dev/null -w '%{http_code}' "https://${DOMAIN}/api/health")"
+          # 컨테이너가 healthy가 된 직후에도 외부 Caddy가 새 upstream 연결을
+          # 준비하는 짧은 구간에는 503이 날 수 있다. 최대 60초만 재시도한다.
+          status='000'
+          for attempt in $(seq 1 12); do
+            status="$(curl -sS -o /dev/null -w '%{http_code}' "https://${DOMAIN}/api/health" || printf '000')"
+            if [ "${status}" = '200' ]; then
+              break
+            fi
+            echo "External health not ready (${status}), attempt ${attempt}/12"
+            sleep 5
+          done
           if [ "${status}" != '200' ]; then
             echo "::error title=External health failed::https://${DOMAIN}/api/health → ${status}"
             exit 1
