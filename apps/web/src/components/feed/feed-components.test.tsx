@@ -2,9 +2,9 @@
 
 import type { FeedItem } from '@aidream/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { EpisodeCard } from './EpisodeCard'
 import { FeedList } from './FeedList'
@@ -23,7 +23,11 @@ const item: FeedItem = {
   isLiked: false,
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+  window.sessionStorage.clear()
+})
 
 function providers(children: ReactNode): ReactNode {
   return (
@@ -62,5 +66,22 @@ describe('feed components', () => {
     expect(
       screen.getByRole('link', { name: /첫 화/u }).getAttribute('href'),
     ).toBe('/watch/episode_1')
+  })
+
+  it('remembers the feed position before opening an episode', () => {
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 640,
+    })
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    render(providers(<EpisodeCard item={item} />))
+
+    const link = screen.getByRole('link', { name: /첫 화/u })
+    link.addEventListener('click', (event) => {
+      event.preventDefault()
+    })
+    fireEvent.click(link)
+
+    expect(setItem).toHaveBeenCalledWith('aidream:feed-scroll:/', '640')
   })
 })

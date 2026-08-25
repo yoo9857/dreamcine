@@ -3,10 +3,16 @@ import { Badge } from '@aidream/ui'
 import Link from 'next/link'
 import React, { type ReactNode } from 'react'
 
+import { rememberFeedScrollPosition } from '@/src/lib/feed-scroll'
+
 export function EpisodeCard({ item }: { readonly item: FeedItem }): ReactNode {
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-bg-elevated">
-      <Link href={`/watch/${item.episodeId}`} className="block">
+      <Link
+        href={`/watch/${item.episodeId}`}
+        className="block"
+        onClick={rememberFeedScrollPosition}
+      >
         <div className="aspect-video bg-bg-subtle">
           {item.thumbUrl === null ? (
             <div className="flex size-full items-center justify-center text-sm text-fg-muted">

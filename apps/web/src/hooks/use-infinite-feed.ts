@@ -4,6 +4,11 @@ import { FeedPageSchema, type FeedItem } from '@aidream/core'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 
+import {
+  forgetFeedScrollPosition,
+  readFeedScrollPosition,
+} from '@/src/lib/feed-scroll'
+
 export interface InfiniteFeedOptions {
   readonly endpoint: string
   readonly queryKey: readonly unknown[]
@@ -13,6 +18,7 @@ export interface InfiniteFeedOptions {
 
 export function useInfiniteFeed(options: InfiniteFeedOptions) {
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const restoredScrollRef = useRef(false)
   const query = useInfiniteQuery({
     queryKey: options.queryKey,
     staleTime: 30_000,
@@ -60,6 +66,21 @@ export function useInfiniteFeed(options: InfiniteFeedOptions) {
     .filter((item) =>
       seen.has(item.episodeId) ? false : (seen.add(item.episodeId), true),
     )
+
+  useEffect(() => {
+    if (restoredScrollRef.current) return
+    restoredScrollRef.current = true
+    const position = readFeedScrollPosition()
+    if (position === null) return
+
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: position, behavior: 'auto' })
+      forgetFeedScrollPosition()
+    })
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [items.length])
 
   return { ...query, items, sentinelRef }
 }

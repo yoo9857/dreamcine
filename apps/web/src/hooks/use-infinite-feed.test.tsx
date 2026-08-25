@@ -48,6 +48,7 @@ class FakeIntersectionObserver implements IntersectionObserver {
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver)
+  window.sessionStorage.clear()
 })
 
 afterEach(() => {
@@ -89,6 +90,28 @@ function intersect(): void {
 }
 
 describe('useInfiniteFeed', () => {
+  it('restores a remembered position after returning to the feed', async () => {
+    window.sessionStorage.setItem('aidream:feed-scroll:/', '480')
+    const scrollTo = vi
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => undefined)
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      (callback: FrameRequestCallback): number => {
+        callback(0)
+        return 1
+      },
+    )
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+
+    mountFeed()
+
+    await waitFor(() => {
+      expect(scrollTo).toHaveBeenCalledWith({ top: 480, behavior: 'auto' })
+    })
+    expect(window.sessionStorage.getItem('aidream:feed-scroll:/')).toBeNull()
+  })
+
   it('prefetches at 400px and removes duplicate episodes across pages', async () => {
     vi.stubGlobal(
       'fetch',

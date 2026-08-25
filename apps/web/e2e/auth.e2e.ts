@@ -356,12 +356,14 @@ test('로그아웃하면 훔친 쿠키로도 다시 들어올 수 없다', async
 
 test('홈이 열리고 로그인·가입으로 들어갈 수 있다', async ({ page }) => {
   // 배포하면 방문자가 보는 첫 화면이다. 404 로 돌아가는 회귀를 막는다.
-  // (`/` 는 T09 가 피드로 교체한다 — 그때 이 테스트도 피드 기준으로 바뀐다.)
+  // T09 이후 홈은 공개 인기 피드이며 비회원 진입 링크도 함께 제공한다.
   const response = await page.goto('/')
   expect(response?.status()).toBe(200)
 
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  await expect(page.getByRole('link', { name: '시작하기' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: '인기 에피소드' }),
+  ).toBeVisible()
+  await expect(page.getByRole('link', { name: '회원가입' })).toBeVisible()
 
   await page.getByRole('link', { name: '로그인' }).click()
   await expect(page).toHaveURL(/\/login$/u)
