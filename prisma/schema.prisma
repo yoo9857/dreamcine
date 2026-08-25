@@ -443,6 +443,8 @@ model Report {
   reason     ReportReason
   detail     String?      @db.VarChar(1000)
   status     ReportStatus @default(OPEN)
+  priorityFlag Boolean    @default(false) @map("priority_flag")
+  autoHidden  Boolean     @default(false) @map("auto_hidden")
   handledBy  String?      @map("handled_by")
   handledAt  DateTime?    @map("handled_at")
   actionNote String?      @map("action_note") @db.VarChar(1000)
@@ -452,6 +454,7 @@ model Report {
 
   @@unique([reporterId, target, targetId])
   @@index([status, createdAt])
+  @@index([status, priorityFlag, createdAt])
   @@index([target, targetId])
   @@map("report")
 }

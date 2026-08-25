@@ -10,6 +10,8 @@ export function mapReport(row: PrismaReport): Report {
     reason: row.reason,
     detail: row.detail,
     status: row.status,
+    priorityFlag: row.priorityFlag,
+    autoHidden: row.autoHidden,
     handledBy: row.handledBy,
     handledAt: row.handledAt,
     actionNote: row.actionNote,

@@ -174,6 +174,8 @@ export interface Report {
   reason: ReportReason
   detail: string | null
   status: ReportStatus
+  priorityFlag: boolean
+  autoHidden: boolean
   handledBy: string | null
   handledAt: Date | null
   actionNote: string | null

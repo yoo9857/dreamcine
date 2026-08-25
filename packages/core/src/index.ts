@@ -204,3 +204,20 @@ export {
   type JobStatus,
   type MetricName,
 } from './observability/metrics.js'
+export {
+  AdminUserQuerySchema,
+  CreateReportSchema,
+  ReportQueueQuerySchema,
+  ReviewReportSchema,
+  UpdateUserStatusSchema,
+  type AdminUserQuery,
+  type CreateReportInput,
+  type ReportQueueQuery,
+  type ReviewReportInput,
+  type UpdateUserStatusInput,
+} from './schemas/report.schema.js'
+export {
+  decideAutoAction,
+  type AutoAction,
+  type AutoActionInput,
+} from './rules/moderation.js'
