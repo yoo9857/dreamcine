@@ -3,6 +3,27 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-08-25 T11/S3 최신 인수인계
+
+- T11 관측성 자동화 구현을 완료했다. 구조적 로그, HTTP·잡 메트릭, `/api/metrics`,
+  readiness 의존성 점검, Prometheus·Alertmanager·Grafana 구성, 알럿 규칙·대시보드 3개,
+  로그 로테이션과 관측성 계약 게이트가 포함된다.
+- 최초 CI `32827323032`는 Prometheus 이미지의 기본 엔트리포인트에 `promtool`을 인자로
+  잘못 전달해 실패했다. `2898e98`에서 `--entrypoint promtool`로 고치고 같은 회귀를
+  `contract:observability`가 차단하게 했다.
+- 다음 CI에서 모바일 LCP가 2,643ms로 2,500ms 예산을 143ms 초과했다. 예산을 완화하지
+  않고 홈 피드 조회를 React Suspense 스트리밍 경계로 분리해 제목을 먼저 페인트하도록
+  `d5d26b7`에서 개선했다.
+- GitHub Actions `32834309607`의 gate job에서 프로덕션 빌드, L1 정적 검사, L2 계약 검사,
+  L3 단위·통합·Playwright 24개, promtool 및 Lighthouse 모바일 예산이 모두 통과했다.
+  로컬은 Docker 런타임 부재로 Testcontainers만 실행할 수 없었고, 단위 테스트 1,285개와
+  표적 피드 테스트 9개는 통과했다.
+- 운영에서 남은 수동 검증은 대시보드 실제 데이터 표시, 알럿 강제 발화·수신, 운영 로그의
+  시크릿 0건, requestId의 web→worker 종단 추적이다. 자동화 S3 완료와 별도로 배포 후
+  수행해야 하며 완료로 표시하지 않았다.
+- 다음 개발 세션은 `T12 MODERATION / S1 Spec 확인`이다. `ISS-017` 권장안이 사용자
+  승인되어 `Report.priorityFlag`와 `Report.autoHidden`을 추가하는 방향으로 확정됐다.
+
 ## 2026-08-25 T09/S3 배포 인수인계
 
 - T09 피드·랭킹·검색·태그 구현을 완료했다. 인기·최신·팔로잉 피드, 서명 커서,

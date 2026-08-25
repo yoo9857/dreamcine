@@ -3,7 +3,7 @@
 ## 진행 상태
 - [x] S1 Spec 확인 — 2026-08-25 / 산출물 35개 확정 / 기존 T03 로거·레디니스 확장
 - [x] S2 Skeleton — 2026-08-25 / gate:s2 PASS / 마커 7개
-- [ ] S3 구현
+- [x] S3 구현 — 2026-08-25 / CI 32834309607 gate PASS / Lighthouse 예산 PASS
 
 ---
 
@@ -261,13 +261,13 @@ groups:
 
 ## 8. 완료 조건 (DoD)
 
-- [ ] `pnpm gate` 통과
-- [ ] 잔존 `NotImplementedError('T11:...')` = 0
-- [ ] `promtool check rules` 통과 + 모든 알럿에 runbook 존재
+- [x] `pnpm gate` 통과 — GitHub Actions 32834309607
+- [x] 잔존 `NotImplementedError('T11:...')` = 0
+- [x] `promtool check rules` 통과 + 모든 알럿에 runbook 존재
 - [ ] 대시보드 3개가 실제 데이터를 표시
 - [ ] **알럿 1개를 인위적으로 발화시켜 실제 수신 확인** (수동 — 가장 중요)
 - [ ] 로그에서 시크릿 0건 (`grep -iE 'password|secret|token' 로그` 로 확인)
-- [ ] `route` 라벨 카디널리티가 라우트 개수 이하
-- [ ] 모든 잡이 `withJob` 으로 감싸짐 (grep 확인)
-- [ ] `console.log` 0건 (lint 가 보장하지만 확인)
+- [x] `route` 라벨 카디널리티가 라우트 개수 이하
+- [x] 모든 잡이 `withJob` 으로 감싸짐 (계약 게이트 확인)
+- [x] `console.log` 0건 (lint 확인)
 - [ ] 요청 1건의 requestId 로 web 로그 → worker 로그까지 추적 가능 (수동)
