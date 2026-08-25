@@ -1,7 +1,7 @@
 # T09 — 피드 · 랭킹 · 검색 · 태그
 
 ## 진행 상태
-- [ ] S1 Spec 확인
+- [ ] S1 Spec 확인   — 산출물 54개·경계 확정 / DEP-004 승인 대기
 - [ ] S2 Skeleton
 - [ ] S3 구현
 
@@ -19,6 +19,8 @@
 - `../00_SPEC/08_UIUX_SPEC.md` §2 레이아웃, §3 상태, §8 성능
 - `../00_SPEC/10_NFR.md` §1 성능 목표
 - `../00_SPEC/01_ARCHITECTURE.md` §5 저장 위치 (피드 캐시)
+- `../00_SPEC/03_TECH_STACK.md` §2 서버 상태, §4 테스트·품질
+- `../00_SPEC/09_ERROR_CATALOG.md` (`E_FEED_INVALID_CURSOR`, `E_VALIDATION`, 가용성 오류)
 
 ## 3. 산출물 파일
 
@@ -42,6 +44,76 @@
 | `apps/web/app/(main)/following/page.tsx` | 팔로잉 피드 | S3 |
 | `apps/web/app/(main)/search/page.tsx` | 검색 | S3 |
 | `apps/web/app/(main)/tags/[tag]/page.tsx` | 태그 피드 | S3 |
+
+### S1 추가 산출물
+
+현재 저장소의 repository·Redis·BullMQ·App Router 경계를 대조해, API 응답 계약과
+배치 등록, 캐시 장애 우회, 테스트·성능 게이트가 실제 실행 경로까지 이어지도록 아래
+파일을 범위에 포함한다.
+
+| 경로 | 책임 | 단계 |
+|---|---|---|
+| `packages/core/src/entities.ts` | `FeedItem`·검색 결과·인기 태그 타입 | S2 |
+| `packages/core/src/index.ts` | T09 타입·스키마·랭킹 규칙 export | S2 |
+| `packages/core/src/rules/rank-score.test.ts` | 산식 경계·단조성·30일 감쇠 단위 테스트 | S3 |
+| `packages/core/src/schemas/feed.schema.ts` | 피드 종류·검색·태그 query/response zod 계약 | S2→S3 |
+| `packages/core/src/schemas/feed.schema.test.ts` | limit·검색어·응답 직렬화 계약 | S3 |
+| `prisma/migrations/20260825_t09_feed_search/migration.sql` | `pg_trgm` 확장·검색 GIN 인덱스 | S2 |
+| `packages/db/src/repositories/rank.repo.ts` | 랭킹 대상 조회·점수 일괄 갱신·30일 초과 초기화 | S2→S3 |
+| `packages/db/src/index.ts` | T09 repository export | S2 |
+| `packages/db/tests/feed-search.integration.test.ts` | 피드·검색·커서·필터·N+1·Redis 우회 통합 | S3 |
+| `packages/db/tests/feed-performance.integration.test.ts` | 1,000건 시드·p95·3종 `EXPLAIN ANALYZE` | S3 |
+| `packages/queue/src/jobs.ts` | 최근/만료 랭킹 재계산 payload zod | S2→S3 |
+| `packages/queue/src/index.ts` | 랭킹 잡 계약 export | S2 |
+| `packages/queue/src/jobs.test.ts` | 랭킹 잡 payload 검증 | S3 |
+| `apps/worker/src/index.ts` | `FEED_RANK` consumer 등록 | S3 |
+| `apps/worker/src/scheduler.ts` | 10분 재계산·일일 만료점수 초기화 scheduler 등록 | S3 |
+| `apps/worker/src/scheduler.test.ts` | 랭킹 scheduler 단일 등록·주기 검증 | S3 |
+| `apps/worker/src/jobs/rank-recompute.test.ts` | 순수 산식 사용·배치·실패 시 기존점수 보존 | S3 |
+| `apps/web/src/lib/redis.ts` | TTL 포함 일반 `SET` 명령 추가 | S2→S3 |
+| `apps/web/src/lib/redis.test.ts` | 캐시 SET/GET·장애 변환 검증 | S3 |
+| `apps/web/src/services/feed/feed.integration.test.ts` | 캐시 정책·차단 후 보충·좋아요 일괄 조회 | S3 |
+| `apps/web/src/components/feed/SearchResults.tsx` | 타입별 검색 결과·상태 4종 | S3 |
+| `apps/web/src/components/feed/feed-components.test.tsx` | 카드 종횡비·피드/검색 상태·부분 실패 | S3 |
+| `apps/web/src/hooks/use-infinite-feed.test.tsx` | 400px 프리페치·중복 방지·부분 실패 복구 | S3 |
+| `apps/web/app/(main)/layout.tsx` | 데스크톱 상단바/사이드바·모바일 하단탭 | S3 |
+| `apps/web/app/(main)/loading.tsx` | 공통 피드 스켈레톤 8개 | S3 |
+| `apps/web/app/(main)/error.tsx` | 공통 오류 코드·재시도 화면 | S3 |
+| `apps/web/src/components/layout/AppShell.tsx` | 반응형 메인 레이아웃 | S3 |
+| `apps/web/src/components/layout/MainNav.tsx` | 홈·팔로잉·검색·업로드 내비게이션 | S3 |
+| `apps/web/src/lib/messages/ko.ts` | 피드·검색·태그 상태와 오류 한국어 문구 | S3 |
+| `apps/web/e2e/feed-ranking.e2e.ts` | 무한스크롤·복원·US-05 | S3 |
+| `apps/web/e2e/feed-performance.e2e.ts` | 1,000건 조건 피드 API p95 측정 | S3 |
+| `openapi.json` | T09 4개 REST 경로·응답 union 계약 | S3 |
+| `package.json` | 승인 시 Lighthouse CI 명령 등록 | S2 |
+| `pnpm-lock.yaml` | 승인된 Lighthouse CI 버전 고정 | S2 |
+| `lighthouserc.cjs` | 모바일 LCP·CLS 예산과 홈 수집 설정 | S2→S3 |
+| `.github/workflows/gate.yml` | 프로덕션 서버 대상 Lighthouse 단계 연결 | S3 |
+
+### S1 경계 결정
+
+- 기존 `feed.repo.ts`의 서명 커서 구현은 유지하되, API가 요구하는 시리즈·크리에이터·
+  자산 메타데이터를 한 번에 조회하는 내부 feed row로 확장한다. 외부 응답에는 내부
+  `creatorId`를 노출하지 않는다.
+- 공용 첫 페이지 캐시는 개인 정보가 없는 feed row만 저장한다. 차단 creator 제거와
+  `isLiked` 일괄 조회는 캐시 적중 뒤 사용자별로 적용하며, 필터로 빈 페이지가 되면
+  다음 커서를 최대 3회 따라가 보충한다.
+- `popular` 첫 페이지 TTL은 60초, `latest`는 30초, 태그 첫 페이지는 60초다.
+  `following`과 두 번째 이후 페이지는 캐시하지 않는다. Redis 오류는 DB 직행으로
+  우회하며 응답 자체는 실패시키지 않는다.
+- 검색 응답은 `type`에 따라 `series` 카드, `episode` feed item, `user` 공개 프로필의
+  판별 가능한 union으로 고정한다. 인기 태그는 `{ items: [{ name, useCount }] }`, 태그
+  피드는 일반 `{ items, nextCursor }` 형태로 고정해 OpenAPI와 zod가 같은 계약을 쓴다.
+- `%`, `_`, `\\`는 LIKE 패턴에서 escape하고 모든 값은 파라미터 바인딩한다. 검색은
+  공개·미삭제 리소스만 반환하고 차단 필터는 피드와 동일하게 서버에서 적용한다.
+- `FEED_RANK` 잡은 `{ scope: 'recent' | 'expired' }`만 받는다. `recent`는 10분마다 최근
+  30일을 1,000개씩 순수 `rankScore()`로 갱신하고, `expired`는 하루 한 번 30일 초과
+  점수를 0으로 만든다. SQL에는 랭킹 산식을 중복하지 않는다.
+- 홈은 인기, `/following`은 팔로잉, `/tags/[tag]`는 태그 첫 페이지를 SSR한다.
+  `/search`는 URL query를 기준으로 클라이언트 요청하며 모든 데이터 화면은 로딩·
+  비어있음·오류·정상 상태를 갖는다.
+- Lighthouse CI 도구는 불변 기술스택에 없으므로 `DEP-004` 승인을 받기 전에는 설치나
+  S2 진입을 하지 않는다. 승인 버전은 npm 공식 레지스트리의 `0.15.1`로 고정한다.
 
 ## 4. S2 Skeleton
 

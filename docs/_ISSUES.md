@@ -62,6 +62,17 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [DEP-004] @lhci/cli@0.15.1
+- 요청 단계: T09/S1
+- 용도: `10_NFR.md` §1과 T09 DoD가 요구하는 모바일 피드 LCP ≤ 2.5s, CLS ≤ 0.05를
+  프로덕션 Next 서버 대상으로 측정하고 GitHub Actions gate에서 예산 초과를 실패 처리한다.
+- 대안 검토: 허용 목록의 Playwright는 브라우저 E2E와 Navigation Timing 측정은 가능하지만
+  Lighthouse의 표준 점수·LCP/CLS 수집 및 CI assertion을 대체하지 않는다. 직접 CDP 수집기를
+  작성하면 “Lighthouse CI” 계약을 충족하지 못하고 측정 구현 자체를 새로 유지해야 한다.
+- 위험: npm 공식 레지스트리 기준 Apache-2.0이며 Lighthouse 12.6.1, Express 등 전이
+  의존성이 추가된다. 개발·CI 전용으로만 설치하고 웹 런타임 번들에는 포함하지 않는다.
+- 상태: OPEN
+
 ## [ISS-016] 예약공개 실패를 전달할 알림 타입이 없음
 - 발견 단계: T08/S1
 - 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §2,
