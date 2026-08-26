@@ -363,12 +363,15 @@ test('홈이 열리고 로그인·가입으로 들어갈 수 있다', async ({ p
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: /취향이 열리는.*ilog/u,
+      name: /이야기가 시작되고,.*취향이 연결되는 곳/u,
     }),
   ).toBeVisible()
-  await expect(page.getByRole('link', { name: '회원가입' })).toBeVisible()
+  const guestHeader = page.locator('.guest-header')
+  await expect(
+    guestHeader.getByRole('link', { name: '무료로 시작하기' }),
+  ).toBeVisible()
 
-  await page.getByRole('link', { name: '로그인' }).click()
+  await guestHeader.getByRole('link', { name: '로그인' }).click()
   await expect(page).toHaveURL(/\/login$/u)
 })
 
