@@ -67,4 +67,38 @@ describe('NavigationLinks', () => {
     ).toBe('/creator-apply')
     expect(screen.getAllByRole('link')).toHaveLength(5)
   })
+
+  it('keeps Works active on series and watch detail routes', () => {
+    pathname = '/series/series-1'
+    const { rerender } = render(<NavigationLinks authenticated />)
+
+    expect(
+      screen.getByRole('link', { name: '작품' }).getAttribute('aria-current'),
+    ).toBe('page')
+
+    pathname = '/watch/episode-1'
+    rerender(<NavigationLinks authenticated />)
+    expect(
+      screen.getByRole('link', { name: '작품' }).getAttribute('aria-current'),
+    ).toBe('page')
+  })
+
+  it('keeps Creators active on creator profile routes', () => {
+    pathname = '/u/hanbin'
+    render(<NavigationLinks authenticated />)
+
+    expect(
+      screen.getByRole('link', { name: '작가' }).getAttribute('aria-current'),
+    ).toBe('page')
+  })
+
+  it('uses the rendered item count for the mobile grid', () => {
+    const { container } = render(
+      <NavigationLinks authenticated={false} mobile />,
+    )
+
+    expect(container.querySelector('nav')?.getAttribute('style')).toContain(
+      '--nav-count: 4',
+    )
+  })
 })

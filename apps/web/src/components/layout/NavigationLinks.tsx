@@ -67,6 +67,15 @@ function matchesPath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+function isItemActive(pathname: string, item: NavigationItem): boolean {
+  if (matchesPath(pathname, item.href)) return true
+  if (item.icon === 'works') {
+    return ['/series', '/watch'].some((route) => matchesPath(pathname, route))
+  }
+  if (item.icon === 'creators') return matchesPath(pathname, '/u')
+  return false
+}
+
 export function NavigationLinks({
   authenticated,
   creatorRegistered = false,
@@ -99,11 +108,10 @@ export function NavigationLinks({
     },
   ]
 
-  const activeIndex = items.findIndex((item) =>
-    matchesPath(pathname, item.href),
-  )
+  const activeIndex = items.findIndex((item) => isItemActive(pathname, item))
   const railStyle = {
     '--rail-index': String(Math.max(activeIndex, 0)),
+    '--nav-count': String(items.length),
   } as CSSProperties
 
   return (
@@ -117,7 +125,7 @@ export function NavigationLinks({
         <i className="aidream-rail-indicator" aria-hidden="true" />
       )}
       {items.map((item) => {
-        const active = matchesPath(pathname, item.href)
+        const active = isItemActive(pathname, item)
         const pending = pendingHref === item.href
         return (
           <Link
