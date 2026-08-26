@@ -9,10 +9,11 @@ import React, {
   type ReactNode,
 } from 'react'
 
-type NavIconName = 'home' | 'following' | 'search' | 'notifications' | 'studio'
+type NavIconName = 'home' | 'works' | 'creators' | 'notifications' | 'studio'
 
 interface NavigationLinksProps {
   readonly authenticated: boolean
+  readonly creatorRegistered?: boolean
   readonly mobile?: boolean
 }
 
@@ -22,12 +23,6 @@ interface NavigationItem {
   readonly icon: NavIconName
 }
 
-const primaryItems: readonly NavigationItem[] = [
-  { href: '/', label: '인기', icon: 'home' },
-  { href: '/following', label: '팔로잉', icon: 'following' },
-  { href: '/search', label: '검색', icon: 'search' },
-]
-
 function NavIcon({ name }: { readonly name: NavIconName }): ReactNode {
   if (name === 'home') {
     return (
@@ -36,19 +31,19 @@ function NavIcon({ name }: { readonly name: NavIconName }): ReactNode {
       </svg>
     )
   }
-  if (name === 'following') {
+  if (name === 'works') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="9" cy="8" r="4" />
-        <path d="M2.5 21a6.5 6.5 0 0 1 13 0M18 8v6M15 11h6" />
+        <rect x="3" y="5" width="18" height="14" rx="3" />
+        <path d="m10 9 5 3-5 3Z" />
       </svg>
     )
   }
-  if (name === 'search') {
+  if (name === 'creators') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="10.5" cy="10.5" r="6.5" />
-        <path d="m16 16 5 5" />
+        <circle cx="9" cy="8" r="4" />
+        <path d="M2.5 21a6.5 6.5 0 0 1 13 0M17 8.5a3.5 3.5 0 0 1 0 7M17.5 18a5 5 0 0 1 4 3" />
       </svg>
     )
   }
@@ -61,8 +56,8 @@ function NavIcon({ name }: { readonly name: NavIconName }): ReactNode {
   }
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="3" />
-      <path d="m10 9 5 3-5 3Z" />
+      <path d="M4 8.5 12 4l8 4.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z" />
+      <path d="M9 20v-6h6v6M8 9h8" />
     </svg>
   )
 }
@@ -74,6 +69,7 @@ function matchesPath(pathname: string, href: string): boolean {
 
 export function NavigationLinks({
   authenticated,
+  creatorRegistered = false,
   mobile = false,
 }: NavigationLinksProps): ReactNode {
   const pathname = usePathname()
@@ -83,33 +79,25 @@ export function NavigationLinks({
     setPendingHref(null)
   }, [pathname])
 
-  const homeItems = authenticated
-    ? primaryItems.map((item) =>
-        item.icon === 'home' ? { ...item, href: '/browse' } : item,
-      )
-    : primaryItems
-  const items: readonly NavigationItem[] = mobile
-    ? [
-        ...homeItems,
-        {
-          href: authenticated ? '/studio' : '/login',
-          label: authenticated ? '업로드' : '로그인',
-          icon: 'studio',
-        },
-      ]
-    : [
-        ...homeItems,
-        ...(authenticated
-          ? ([
-              {
-                href: '/notifications',
-                label: '알림',
-                icon: 'notifications',
-              },
-            ] as const)
-          : []),
-        { href: '/studio', label: '스튜디오', icon: 'studio' },
-      ]
+  const items: readonly NavigationItem[] = [
+    { href: authenticated ? '/browse' : '/', label: '홈', icon: 'home' },
+    { href: '/works', label: '작품', icon: 'works' },
+    { href: '/creators', label: '작가', icon: 'creators' },
+    ...(authenticated
+      ? ([
+          {
+            href: '/notifications',
+            label: '알람',
+            icon: 'notifications',
+          },
+        ] as const)
+      : []),
+    {
+      href: creatorRegistered ? '/studio' : '/creator-apply',
+      label: '스튜디오',
+      icon: 'studio',
+    },
+  ]
 
   const activeIndex = items.findIndex((item) =>
     matchesPath(pathname, item.href),

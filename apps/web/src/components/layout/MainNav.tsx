@@ -11,6 +11,9 @@ export function MainNav({
 }: {
   readonly session: RouteSession | null
 }): ReactNode {
+  const creatorRegistered =
+    session?.user.role === 'CREATOR' || session?.user.role === 'ADMIN'
+
   return (
     <>
       <aside className="aidream-rail" aria-label="주요 메뉴">
@@ -21,7 +24,10 @@ export function MainNav({
         >
           <LeftBrandLogo />
         </Link>
-        <NavigationLinks authenticated={session !== null} />
+        <NavigationLinks
+          authenticated={session !== null}
+          creatorRegistered={creatorRegistered}
+        />
       </aside>
 
       {session === null ? (
@@ -37,7 +43,11 @@ export function MainNav({
         </div>
       ) : null}
 
-      <NavigationLinks authenticated={session !== null} mobile />
+      <NavigationLinks
+        authenticated={session !== null}
+        creatorRegistered={creatorRegistered}
+        mobile
+      />
     </>
   )
 }

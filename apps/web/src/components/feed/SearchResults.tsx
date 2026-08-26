@@ -23,24 +23,31 @@ const SearchPageSchema = z.object({
 
 export function SearchResults({
   initialQuery = '',
+  initialType = 'episode',
 }: {
   readonly initialQuery?: string
+  readonly initialType?: 'series' | 'episode' | 'user'
 }): ReactNode {
   return (
     <QueryProvider>
-      <SearchResultsContent initialQuery={initialQuery} />
+      <SearchResultsContent
+        initialQuery={initialQuery}
+        initialType={initialType}
+      />
     </QueryProvider>
   )
 }
 
 function SearchResultsContent({
   initialQuery,
+  initialType,
 }: {
   readonly initialQuery: string
+  readonly initialType: 'series' | 'episode' | 'user'
 }): ReactNode {
   const [input, setInput] = useState(initialQuery)
   const [query, setQuery] = useState(initialQuery)
-  const [type, setType] = useState<'series' | 'episode' | 'user'>('episode')
+  const [type, setType] = useState<'series' | 'episode' | 'user'>(initialType)
   const result = useQuery({
     queryKey: ['search', type, query],
     enabled: query.trim().length >= 2,
@@ -142,12 +149,13 @@ function SearchItems({
             </Link>
           )
         return (
-          <div
+          <Link
             key={`user:${item.handle}`}
+            href={`/u/${item.handle}`}
             className="rounded-lg border border-border p-4"
           >
             @{item.handle} · {item.displayName}
-          </div>
+          </Link>
         )
       })}
     </div>

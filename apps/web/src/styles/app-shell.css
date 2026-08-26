@@ -212,7 +212,7 @@
     z-index: 80;
     min-height: calc(62px + env(safe-area-inset-bottom));
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     padding: 5px 8px env(safe-area-inset-bottom);
     border-top: 1px solid rgb(255 255 255 / 10%);
     color: #8f9ba5;
