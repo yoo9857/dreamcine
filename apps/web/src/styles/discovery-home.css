@@ -581,6 +581,194 @@
   margin-left: 10px;
   color: var(--discovery-lime);
 }
+
+.discovery-shelves {
+  display: grid;
+  gap: 30px;
+  padding: 18px 3px 20px;
+}
+
+.discovery-shelf {
+  min-width: 0;
+}
+
+.discovery-shelf > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 13px;
+}
+
+.discovery-shelf > header > div > span {
+  color: var(--discovery-pink-soft);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.17em;
+}
+
+.discovery-shelf h2 {
+  margin: 4px 0 0;
+  color: white;
+  font-size: clamp(17px, 1.45vw, 22px);
+  letter-spacing: -0.045em;
+}
+
+.discovery-shelf > header > a {
+  flex: none;
+  color: #8996a0;
+  font-size: 9px;
+  font-weight: 800;
+  transition: color 160ms ease;
+}
+
+.discovery-shelf > header > a:hover {
+  color: white;
+}
+
+.discovery-shelf-track {
+  display: grid;
+  grid-auto-columns: clamp(180px, 18vw, 258px);
+  grid-auto-flow: column;
+  gap: 11px;
+  margin-right: calc(clamp(20px, 2.3vw, 44px) * -1);
+  padding: 4px clamp(20px, 2.3vw, 44px) 8px 0;
+  overflow-x: auto;
+  scroll-padding-inline: 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.discovery-shelf-track::-webkit-scrollbar {
+  display: none;
+}
+
+.discovery-shelf-card {
+  position: relative;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.discovery-shelf-card > a {
+  display: block;
+  color: white;
+}
+
+.discovery-shelf-visual {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 10px;
+  background: #101c25;
+  box-shadow: 0 9px 28px rgb(0 0 0 / 18%);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.discovery-shelf-visual::after {
+  content: '';
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(transparent, rgb(2 7 11 / 66%));
+  pointer-events: none;
+}
+
+.discovery-shelf-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 380ms ease;
+}
+
+.discovery-shelf-card:hover .discovery-shelf-visual,
+.discovery-shelf-card:focus-within .discovery-shelf-visual {
+  z-index: 2;
+  border-color: rgb(255 80 80 / 50%);
+  box-shadow: 0 17px 42px rgb(0 0 0 / 36%);
+  transform: translateY(-4px) scale(1.025);
+}
+
+.discovery-shelf-card:hover .discovery-shelf-visual img,
+.discovery-shelf-card:focus-within .discovery-shelf-visual img {
+  transform: scale(1.05);
+}
+
+.discovery-shelf-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 48%);
+  border-radius: 50%;
+  color: white;
+  background: rgb(3 9 14 / 52%);
+  opacity: 0;
+  transform: translate(-50%, -45%) scale(0.84);
+  transition: 180ms ease;
+  backdrop-filter: blur(9px);
+  font-size: 9px;
+}
+
+.discovery-shelf-card:hover .discovery-shelf-play,
+.discovery-shelf-card:focus-within .discovery-shelf-play {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.discovery-shelf-visual small {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  z-index: 3;
+  color: rgb(255 255 255 / 76%);
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.discovery-shelf-copy {
+  padding: 9px 3px 0;
+}
+
+.discovery-shelf-copy h3 {
+  overflow: hidden;
+  margin: 0;
+  color: #eef2f5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.discovery-shelf-copy p {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: #6f7d87;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.discovery-shelf-rank {
+  position: absolute;
+  left: 6px;
+  bottom: 39px;
+  z-index: 4;
+  color: rgb(255 255 255 / 92%);
+  text-shadow: 0 5px 18px rgb(0 0 0 / 65%);
+  font-family: Georgia, serif;
+  font-size: clamp(31px, 3vw, 47px);
+  font-style: italic;
+  line-height: 0.75;
+}
 .discovery-feed-coming {
   min-height: 120px;
   display: grid;
@@ -749,7 +937,7 @@
 /* Signed-in cinematic home ----------------------------------------------- */
 
 .discovery-hero {
-  min-height: max(680px, calc(100dvh - 112px));
+  min-height: clamp(500px, 64dvh, 680px);
 }
 
 .discovery-hero-image {
@@ -787,9 +975,13 @@
 .discovery-hero-copy {
   position: absolute;
   left: clamp(28px, 4.2vw, 72px);
-  bottom: clamp(54px, 8vh, 100px);
-  width: min(700px, 57%);
+  bottom: clamp(38px, 5vh, 64px);
+  width: min(620px, 55%);
   padding: 0;
+}
+
+.discovery-kicker {
+  margin-bottom: 14px;
 }
 
 .discovery-hero-byline {
@@ -800,14 +992,21 @@
 }
 
 .discovery-hero h1 {
-  font-size: clamp(45px, 5vw, 82px);
-  line-height: 0.98;
+  font-size: clamp(38px, 4.1vw, 64px);
+  line-height: 1;
+}
+
+.discovery-hero-copy > p:not(.discovery-kicker) {
+  max-width: 500px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .discovery-hero-meta {
   display: flex;
   gap: 8px;
-  margin-top: 22px;
+  margin-top: 16px;
 }
 
 .discovery-hero-meta span {
@@ -826,11 +1025,12 @@
 
 .discovery-hero-actions {
   align-items: center;
+  margin-top: 18px;
 }
 
 .discovery-hero-actions a,
 .discovery-reaction-button {
-  min-height: 48px;
+  min-height: 44px;
 }
 
 .discovery-hero-actions a:first-child {
@@ -885,9 +1085,9 @@
 .discovery-review-panel {
   position: absolute;
   right: clamp(25px, 3.2vw, 54px);
-  bottom: clamp(48px, 7vh, 88px);
-  width: min(340px, 29%);
-  padding: 24px;
+  bottom: clamp(34px, 4.5vh, 58px);
+  width: min(310px, 28%);
+  padding: 20px;
   border: 1px solid rgb(255 255 255 / 14%);
   border-radius: 20px;
   background: rgb(4 11 16 / 56%);
@@ -914,10 +1114,10 @@
 }
 
 .discovery-review-panel blockquote {
-  margin: 20px 0 7px;
+  margin: 15px 0 6px;
   color: white;
   font-family: Georgia, serif;
-  font-size: clamp(20px, 1.7vw, 27px);
+  font-size: clamp(18px, 1.45vw, 23px);
   line-height: 1.35;
 }
 
@@ -930,8 +1130,8 @@
 .discovery-review-panel > a {
   display: flex;
   justify-content: space-between;
-  margin-top: 21px;
-  padding-top: 15px;
+  margin-top: 15px;
+  padding-top: 12px;
   border-top: 1px solid rgb(255 255 255 / 12%);
   color: white;
   font-size: 10px;
@@ -1023,7 +1223,7 @@
     right: 14px;
   }
   .discovery-hero {
-    min-height: 610px;
+    min-height: clamp(500px, 68dvh, 570px);
     border-radius: 18px;
   }
   .discovery-hero-image {
@@ -1090,6 +1290,27 @@
   }
   .discovery-feed-heading > a {
     display: none;
+  }
+  .discovery-shelves {
+    gap: 25px;
+    padding-top: 13px;
+  }
+  .discovery-shelf > header {
+    margin-bottom: 10px;
+  }
+  .discovery-shelf > header > a {
+    display: none;
+  }
+  .discovery-shelf h2 {
+    font-size: 17px;
+  }
+  .discovery-shelf-track {
+    grid-auto-columns: 54vw;
+    margin-right: -14px;
+    padding-right: 14px;
+  }
+  .discovery-shelf-copy {
+    padding-top: 7px;
   }
   .discovery-home .episode-grid {
     display: flex;

@@ -6,13 +6,13 @@ import { Suspense, type ReactNode } from 'react'
 
 import type { RouteSession } from '@/src/auth/types'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
-import { FeedList } from '@/src/components/feed/FeedList'
 import { FeedSkeleton } from '@/src/components/feed/FeedSkeleton'
 import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 import { getFeed } from '@/src/services/feed/get-feed'
 
 import { DiscoveryBackdrop } from './DiscoveryBackdrop'
 import { BrowseAccountMenu } from './BrowseAccountMenu'
+import { DiscoveryStoryShelves } from './DiscoveryStoryShelves'
 import { HeroLikeButton } from './HeroLikeButton'
 
 const discoveryTabs = [
@@ -67,24 +67,27 @@ async function PopularDiscovery({
   const lead = page.items[0]
   if (lead === undefined) {
     return (
-      <div className="discovery-empty-hero">
-        <div>
-          <span>YOUR STORY STARTS HERE</span>
-          <h1>
-            첫 번째 이야기를
-            <br />
-            기다리고 있어요.
-          </h1>
-          <p>새로운 에피소드가 공개되면 가장 먼저 이곳에서 소개합니다.</p>
-          <Link href="/studio">
-            첫 작품 업로드하기 <b>↗</b>
-          </Link>
+      <>
+        <div className="discovery-empty-hero">
+          <div>
+            <span>YOUR STORY STARTS HERE</span>
+            <h1>
+              첫 번째 이야기를
+              <br />
+              기다리고 있어요.
+            </h1>
+            <p>새로운 에피소드가 공개되면 가장 먼저 이곳에서 소개합니다.</p>
+            <Link href="/studio">
+              첫 작품 업로드하기 <b>↗</b>
+            </Link>
+          </div>
+          <EmptyState
+            title="아직 공개된 에피소드가 없습니다"
+            description="새로운 이야기가 공개되면 이곳에 표시됩니다."
+          />
         </div>
-        <EmptyState
-          title="아직 공개된 에피소드가 없습니다"
-          description="새로운 이야기가 공개되면 이곳에 표시됩니다."
-        />
-      </div>
+        <DiscoveryStoryShelves items={[]} />
+      </>
     )
   }
 
@@ -171,23 +174,7 @@ async function PopularDiscovery({
         ))}
       </nav>
 
-      <section className="discovery-feed" aria-labelledby="popular-title">
-        <div className="discovery-feed-heading">
-          <div>
-            <span>TRENDING NOW</span>
-            <h2 id="popular-title">지금 가장 많이 보는 이야기</h2>
-          </div>
-          <Link href="/search">
-            전체 탐색 <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-        <FeedList
-          type="popular"
-          initialItems={page.items}
-          initialCursor={page.nextCursor}
-          priorityFirst={false}
-        />
-      </section>
+      <DiscoveryStoryShelves items={page.items} />
     </>
   )
 }
