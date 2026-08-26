@@ -35,6 +35,37 @@ www.{$DOMAIN} {
 	redir https://{$DOMAIN}{uri} permanent
 }
 
+# 이 VPS의 공용 Caddy는 DreamCine과 OneDayTrading의 TLS를 함께 종료한다.
+# OneDayTrading 배포는 기존 aidream_default 네트워크에 oneday-web 별칭으로
+# 참여하므로, 이 라우트도 Caddy의 영구 원본에 있어야 Caddy 재생성 뒤 유지된다.
+www.onedaytrading.kr {
+	import security_headers
+	redir https://onedaytrading.kr{uri} permanent
+}
+
+onedaytrading.kr {
+	encode zstd gzip
+	import security_headers
+
+	@oneday_api path /api/*
+	header @oneday_api Cache-Control "no-store"
+
+	@oneday_static path /_next/static/*
+	header @oneday_static Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy oneday-web:3000 {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+		health_uri /api/health
+		health_interval 10s
+	}
+
+	handle_errors {
+		import security_headers
+		respond "Service temporarily unavailable" {http.error.status_code}
+	}
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 	import security_headers

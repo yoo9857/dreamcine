@@ -32,6 +32,9 @@ const REQUIRED_PUBLIC_MEDIA_ROUTES = [
   { path: '/thumbs/*', bucket: 'S3_BUCKET_THUMBS' },
 ] as const
 
+const ONEDAY_SITE_DIRECTIVE = /^\s*onedaytrading\.kr\s*\{\s*$/mu
+const ONEDAY_UPSTREAM_DIRECTIVE = /^\s*reverse_proxy\s+oneday-web:3000\s*\{/mu
+
 interface Block {
   readonly startLine: number
   readonly body: string
@@ -149,6 +152,17 @@ export async function checkProxy(
         `${CADDYFILE_PATH}: ${route.path} must map through ${route.bucket}.`,
       )
     }
+  }
+
+  if (!ONEDAY_SITE_DIRECTIVE.test(source)) {
+    problems.push(
+      `${CADDYFILE_PATH}: shared proxy route onedaytrading.kr is missing.`,
+    )
+  }
+  if (!blocks.some((block) => ONEDAY_UPSTREAM_DIRECTIVE.test(block.body))) {
+    problems.push(
+      `${CADDYFILE_PATH}: onedaytrading.kr must proxy to oneday-web:3000.`,
+    )
   }
 
   return { ok: problems.length === 0, problems }

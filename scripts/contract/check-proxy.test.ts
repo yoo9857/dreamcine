@@ -47,6 +47,11 @@ const GOOD = `example.com {
 \t\t}
 \t}
 }
+onedaytrading.kr {
+\treverse_proxy oneday-web:3000 {
+\t\theader_up X-Forwarded-For {remote_host}
+\t}
+}
 `
 
 describe('checkProxy', () => {
@@ -74,6 +79,17 @@ describe('checkProxy', () => {
     const result = await checkProxy(root)
     expect(result.ok).toBe(false)
     expect(result.problems.join('\n')).toContain('/hls/*')
+  })
+
+  it('공유 OneDayTrading 라우트가 빠지면 실패한다', async () => {
+    const root = await createRoot(
+      GOOD.replace(/onedaytrading\.kr \{[\s\S]*?\n\}\n/u, ''),
+    )
+
+    const result = await checkProxy(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems.join('\n')).toContain('onedaytrading.kr')
+    expect(result.problems.join('\n')).toContain('oneday-web:3000')
   })
 
   it('XFF 덮어쓰기가 없으면 신고한다', async () => {
