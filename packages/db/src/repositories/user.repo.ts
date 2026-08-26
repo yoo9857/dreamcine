@@ -46,6 +46,30 @@ export function findUserByHandle(handle: string): Promise<User | null> {
   })
 }
 
+export function listRelatedCreators(
+  userId: string,
+  limit: number,
+): Promise<readonly User[]> {
+  return executeDb(async () => {
+    const rows = await db.user.findMany({
+      where: {
+        id: { not: userId },
+        deletedAt: null,
+        status: 'ACTIVE',
+        series: {
+          some: {
+            deletedAt: null,
+            episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+          },
+        },
+      },
+      orderBy: [{ followerCount: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    })
+    return rows.map(mapUser)
+  })
+}
+
 export function listUsersForAdmin(options: {
   limit: number
   cursor?: string

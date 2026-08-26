@@ -10,10 +10,12 @@ export function RouteTransition({
 }): ReactNode {
   const pathname = usePathname()
   const isDiscoveryHome = pathname === '/'
+  const isProfileShowcase = pathname.startsWith('/u/')
+  const isWorkShowcase = pathname.startsWith('/series/')
 
   return (
     <div
-      className={`aidream-route-view${isDiscoveryHome ? ' is-discovery-home' : ''}`}
+      className={`aidream-route-view${isDiscoveryHome ? ' is-discovery-home' : ''}${isProfileShowcase ? ' is-profile-showcase' : ''}${isWorkShowcase ? ' is-work-showcase' : ''}`}
     >
       {children}
     </div>

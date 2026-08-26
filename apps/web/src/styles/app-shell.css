@@ -256,3 +256,67 @@
     transition: none;
   }
 }
+/* Showcase theme changes use a diagonal liquid-like reveal. The page-level
+   color transitions remain as the fallback for browsers without View
+   Transitions support. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 860ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  mix-blend-mode: normal;
+}
+
+::view-transition-group(root) {
+  animation: none;
+}
+
+::view-transition-old(root) {
+  animation-name: none;
+}
+
+:root[data-theme-transition='dark']::view-transition-new(root) {
+  animation-name: aidream-theme-ripple;
+}
+
+:root[data-theme-transition='light']::view-transition-new(root) {
+  animation-name: aidream-theme-ripple;
+}
+
+:root[data-theme-transition] .profile-showcase,
+:root[data-theme-transition] .profile-floating-header,
+:root[data-theme-transition] .profile-about-card,
+:root[data-theme-transition] .profile-link-stack > a,
+:root[data-theme-transition] .profile-section-bar,
+:root[data-theme-transition] .profile-work-label,
+:root[data-theme-transition] .profile-footer,
+:root[data-theme-transition] .series-showcase,
+:root[data-theme-transition] .series-floating-header,
+:root[data-theme-transition] .series-intro,
+:root[data-theme-transition] .series-facts > div,
+:root[data-theme-transition] .series-other-works,
+:root[data-theme-transition] .series-other-card > a,
+:root[data-theme-transition] .series-other-label,
+:root[data-theme-transition] .series-creator-card {
+  transition: none;
+}
+
+@keyframes aidream-theme-ripple {
+  from {
+    clip-path: circle(
+      0 at var(--theme-origin-x, 280px) var(--theme-origin-y, 28px)
+    );
+  }
+
+  to {
+    clip-path: circle(
+      150vmax at var(--theme-origin-x, 280px) var(--theme-origin-y, 28px)
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

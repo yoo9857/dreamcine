@@ -12,6 +12,8 @@ import '../src/styles/auth-login.css'
 import '../src/styles/cinematic-motion.css'
 import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
+import '../src/styles/profile-showcase.css'
+import '../src/styles/series-showcase.css'
 
 export const metadata: Metadata = {
   title: {

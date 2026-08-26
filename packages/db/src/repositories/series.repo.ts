@@ -37,6 +37,11 @@ export interface ListPublicSeriesOptions {
   readonly cursor?: string
 }
 
+export interface ListPublicSeriesByOwnerOptions {
+  readonly ownerId: string
+  readonly limit: number
+}
+
 export interface SeriesDetailRecord {
   readonly series: Series
   readonly episodes: readonly Episode[]
@@ -85,6 +90,23 @@ export function listPublicSeries(
           ? encodeCursor({ k: last.createdAt.toISOString(), id: last.id })
           : null,
     }
+  })
+}
+
+export function listPublicSeriesByOwner(
+  options: ListPublicSeriesByOwnerOptions,
+): Promise<Page<Series>> {
+  return executeDb(async () => {
+    const rows = await db.series.findMany({
+      where: {
+        ownerId: options.ownerId,
+        deletedAt: null,
+        episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: options.limit,
+    })
+    return { items: rows.map(mapSeries), nextCursor: null }
   })
 }
 
