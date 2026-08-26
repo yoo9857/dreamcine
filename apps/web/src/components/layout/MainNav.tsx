@@ -1,9 +1,9 @@
 import { Button } from '@aidream/ui'
-import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import type { RouteSession } from '@/src/auth/types'
+import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 import { NavigationLinks } from './NavigationLinks'
 
 export function MainNav({
@@ -15,13 +15,7 @@ export function MainNav({
     <>
       <aside className="aidream-rail" aria-label="주요 메뉴">
         <Link href="/" className="aidream-rail-brand" aria-label="ilog 홈">
-          <Image
-            src="/brand/ilog-app-icon.png"
-            alt=""
-            width={43}
-            height={43}
-            unoptimized
-          />
+          <LeftBrandLogo />
         </Link>
         <NavigationLinks authenticated={session !== null} />
       </aside>

@@ -1,0 +1,458 @@
+/* Cinematic sign-in surface, adapted to ilog's neon identity. */
+
+body:has(.ilog-login-page) .aidream-theme-control {
+  display: none;
+}
+
+.ilog-login-page,
+.ilog-login-page *,
+.ilog-login-page *::before,
+.ilog-login-page *::after {
+  box-sizing: border-box;
+}
+
+.ilog-login-page {
+  min-height: 100dvh;
+  overflow: hidden;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 88% 16%, rgb(139 0 0 / 18%), transparent 31%),
+    #050607;
+}
+
+.ilog-login-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(22px, 4vw, 64px);
+}
+
+.ilog-login-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-size: 25px;
+  font-weight: 900;
+  letter-spacing: -0.07em;
+}
+
+.ilog-login-brand img {
+  width: clamp(128px, 12vw, 160px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 22px rgb(255 30 30 / 23%));
+  mix-blend-mode: screen;
+}
+
+.ilog-login-brand b,
+.ilog-login-brand i {
+  color: #ff1e1e;
+  font-style: normal;
+}
+
+.ilog-login-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 999px;
+  color: #aeb8c0;
+  background: rgb(8 10 12 / 58%);
+  font-size: 12px;
+  font-weight: 750;
+  backdrop-filter: blur(16px);
+  transition:
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.ilog-login-home-link:hover {
+  border-color: rgb(255 30 30 / 46%);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.ilog-login-layout {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(460px, 0.92fr) minmax(520px, 1.08fr);
+}
+
+.ilog-login-form-panel {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 120px clamp(34px, 6vw, 100px) 70px;
+}
+
+.ilog-login-form-shell {
+  width: min(100%, 440px);
+}
+
+.ilog-login-form {
+  width: 100%;
+}
+
+.ilog-login-form-heading > span {
+  display: block;
+  margin-bottom: 13px;
+  color: #ff7474;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+}
+
+.ilog-login-form-heading h1 {
+  margin: 0;
+  color: white;
+  font-size: clamp(38px, 4vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.065em;
+}
+
+.ilog-login-form-heading p {
+  margin: 17px 0 0;
+  color: #84919b;
+  font-size: 14px;
+}
+
+.ilog-login-form label {
+  color: #e8edf0;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.ilog-login-form .ilog-login-input {
+  height: 54px;
+  border-color: rgb(255 255 255 / 11%);
+  border-radius: 14px;
+  color: white;
+  background: rgb(15 18 21 / 74%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.ilog-login-form .ilog-login-input::placeholder {
+  color: #56616a;
+}
+
+.ilog-login-form .ilog-login-input:focus {
+  border-color: rgb(255 30 30 / 70%);
+  background: #111519;
+  box-shadow:
+    0 0 0 4px rgb(255 30 30 / 9%),
+    0 14px 38px rgb(0 0 0 / 20%);
+}
+
+.ilog-login-form .ilog-login-submit {
+  min-height: 54px;
+  border: 1px solid #ff4545;
+  border-radius: 14px;
+  color: white;
+  background: #ff1e1e;
+  box-shadow: 0 15px 38px rgb(255 30 30 / 22%);
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.ilog-login-form .ilog-login-submit:hover {
+  background: #e31313;
+  box-shadow: 0 18px 44px rgb(255 30 30 / 30%);
+  transform: translateY(-2px);
+}
+
+.ilog-login-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 13px;
+  align-items: center;
+  color: #68747d;
+  font-size: 11px;
+}
+
+.ilog-login-divider::before,
+.ilog-login-divider::after {
+  height: 1px;
+  content: '';
+  background: rgb(255 255 255 / 9%);
+}
+
+.ilog-login-signup-link {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 14px;
+  color: #eef2f5;
+  background: rgb(255 255 255 / 2%);
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.ilog-login-signup-link:hover {
+  border-color: rgb(255 30 30 / 42%);
+  background: rgb(255 30 30 / 6%);
+}
+
+.ilog-login-visual {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  margin: 14px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 28px;
+  background: #020303;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 4%),
+    0 30px 90px rgb(0 0 0 / 38%);
+}
+
+.ilog-login-artwork {
+  object-fit: contain;
+  object-position: center;
+}
+
+.ilog-signup-page {
+  overflow: auto;
+}
+
+.ilog-signup-layout {
+  grid-template-columns: minmax(500px, 0.94fr) minmax(520px, 1.06fr);
+}
+
+.ilog-signup-page .ilog-login-form-panel {
+  padding-top: 108px;
+  padding-bottom: 44px;
+}
+
+.ilog-signup-form-shell {
+  width: min(100%, 480px);
+}
+
+.ilog-signup-form .ilog-login-form-heading h1 {
+  font-size: clamp(36px, 3.4vw, 52px);
+}
+
+.ilog-signup-form > div {
+  gap: 1.15rem;
+}
+
+.ilog-signup-form .ilog-login-form-heading p {
+  margin-top: 12px;
+}
+
+.ilog-signup-form .ilog-login-input {
+  height: 50px;
+}
+
+.ilog-signup-form .ilog-login-submit {
+  min-height: 50px;
+}
+
+.ilog-signup-selected-plan {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 18px;
+  padding: 15px 17px;
+  border: 1px solid rgb(255 30 30 / 24%);
+  border-radius: 14px;
+  background: rgb(255 30 30 / 6%);
+}
+
+.ilog-signup-selected-plan span {
+  grid-column: 1 / -1;
+  color: #ff7474;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.ilog-signup-selected-plan strong {
+  color: white;
+  font-size: 13px;
+}
+
+.ilog-signup-selected-plan small {
+  align-self: center;
+  color: rgb(255 255 255 / 55%);
+  font-size: 11px;
+}
+
+.ilog-signup-visual {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 68%, rgb(255 30 30 / 22%), transparent 35%),
+    #030405;
+}
+
+.ilog-signup-visual::before {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  content: '';
+  opacity: 0.26;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 3%) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(180deg, black, transparent 82%);
+}
+
+.ilog-signup-visual-copy {
+  position: absolute;
+  top: clamp(76px, 11vh, 120px);
+  left: clamp(34px, 5vw, 76px);
+  z-index: 4;
+}
+
+.ilog-signup-visual-copy > span {
+  color: #ff7474;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+}
+
+.ilog-signup-visual-copy h2 {
+  margin: 14px 0 0;
+  color: white;
+  font-size: clamp(38px, 4.3vw, 68px);
+  line-height: 1.03;
+  letter-spacing: -0.065em;
+}
+
+.ilog-signup-visual-copy p {
+  margin: 17px 0 0;
+  color: rgb(255 255 255 / 54%);
+  font-size: 13px;
+}
+
+.ilog-signup-poster-stack {
+  position: absolute;
+  right: clamp(24px, 6vw, 86px);
+  bottom: clamp(28px, 7vh, 70px);
+  left: clamp(24px, 6vw, 86px);
+  height: min(48vh, 440px);
+  z-index: 1;
+}
+
+.ilog-signup-poster-stack img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(31%, 230px);
+  height: auto;
+  aspect-ratio: 0.72;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 28px 65px rgb(0 0 0 / 58%);
+}
+
+.ilog-signup-poster-stack img:first-child {
+  transform: translateX(-116%) rotate(-8deg) translateY(18px);
+}
+
+.ilog-signup-poster-stack img:nth-child(2) {
+  z-index: 2;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+.ilog-signup-poster-stack img:last-child {
+  transform: translateX(16%) rotate(8deg) translateY(18px);
+}
+
+.ilog-signup-visual-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(180deg, transparent 55%, rgb(2 3 3 / 48%));
+  pointer-events: none;
+}
+
+.ilog-signup-sent {
+  width: 100%;
+  padding: 34px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 22px;
+  background: rgb(14 18 21 / 78%);
+}
+
+@media (max-width: 980px) {
+  .ilog-login-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ilog-login-form-panel {
+    min-height: 100dvh;
+  }
+
+  .ilog-login-visual {
+    display: none;
+  }
+
+  .ilog-signup-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .ilog-login-header {
+    min-height: 74px;
+    padding-inline: 16px;
+  }
+
+  .ilog-login-brand img {
+    width: 128px;
+    height: auto;
+  }
+
+  .ilog-login-brand {
+    font-size: 22px;
+  }
+
+  .ilog-login-home-link {
+    padding: 9px 11px;
+    font-size: 11px;
+  }
+
+  .ilog-login-form-panel {
+    align-items: start;
+    padding: 126px 20px 48px;
+  }
+
+  .ilog-login-form-heading h1 {
+    font-size: 43px;
+  }
+
+  .ilog-signup-page .ilog-login-form-panel {
+    padding-top: 108px;
+  }
+
+  .ilog-signup-form .ilog-login-form-heading h1 {
+    font-size: 39px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ilog-login-home-link,
+  .ilog-login-form .ilog-login-submit {
+    transition: none;
+  }
+}

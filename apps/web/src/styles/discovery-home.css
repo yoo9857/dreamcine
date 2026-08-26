@@ -37,6 +37,12 @@
   font-weight: 850;
   letter-spacing: -0.07em;
 }
+.discovery-wordmark .brand-left-logo {
+  width: clamp(122px, 10vw, 150px);
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: screen;
+}
 .discovery-wordmark .brand-app-icon {
   flex: none;
   border-radius: 9px;

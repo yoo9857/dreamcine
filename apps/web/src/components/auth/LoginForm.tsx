@@ -5,16 +5,57 @@ import { Button, Input, Stack } from '@aidream/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { useState, type ReactNode } from 'react'
+import React, { useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { staticMessageFor } from '@/src/lib/error-messages'
 import { messages } from '@/src/lib/messages'
 import { zodResolver } from '@/src/lib/zod-resolver'
 
-export function LoginForm(): ReactNode {
+export function LoginForm({
+  locale = 'ko',
+  nextPath,
+}: {
+  readonly locale?: 'ko' | 'en'
+  readonly nextPath?: string
+}): ReactNode {
   const text = messages()
+  const copy =
+    locale === 'en'
+      ? {
+          title: 'Sign in',
+          subtitle: 'Pick up right where your story left off.',
+          email: 'Email address',
+          password: 'Password',
+          passwordPlaceholder: 'Enter your password',
+          submitting: 'Signing in…',
+          submit: 'Sign in',
+          noAccount: 'New to ilog?',
+          toSignup: 'Create an account',
+          invalid: 'The email or password you entered is incorrect.',
+        }
+      : {
+          title: text.auth.loginTitle,
+          subtitle: '다시, 당신의 취향이 이어지는 곳으로.',
+          email: text.auth.email,
+          password: text.auth.password,
+          passwordPlaceholder: '비밀번호를 입력하세요',
+          submitting: text.auth.loginSubmitting,
+          submit: text.auth.loginSubmit,
+          noAccount: text.auth.noAccount,
+          toSignup: text.auth.toSignup,
+          invalid: staticMessageFor('E_AUTH_INVALID_CREDENTIALS'),
+        }
   const router = useRouter()
+  const safeNextPath =
+    nextPath?.startsWith('/') === true && !nextPath.startsWith('//')
+      ? nextPath
+      : undefined
+  const signupHref = `${locale === 'en' ? '/signup?lang=en' : '/signup'}${
+    safeNextPath === undefined
+      ? ''
+      : `${locale === 'en' ? '&' : '?'}next=${encodeURIComponent(safeNextPath)}`
+  }`
   const [failure, setFailure] = useState<string | null>(null)
   const {
     register,
@@ -36,7 +77,7 @@ export function LoginForm(): ReactNode {
     })
 
     if (!result.ok || result.error !== undefined) {
-      setFailure(staticMessageFor('E_AUTH_INVALID_CREDENTIALS'))
+      setFailure(copy.invalid)
       return
     }
 
@@ -61,12 +102,14 @@ export function LoginForm(): ReactNode {
       onSubmit={(event) => {
         void handleSubmit(submit)(event)
       }}
-      className="w-full max-w-md rounded-lg border border-border-subtle bg-bg-elevated p-8"
+      className="ilog-login-form"
     >
       <Stack gap={6}>
-        <h1 className="text-xl font-semibold text-fg">
-          {text.auth.loginTitle}
-        </h1>
+        <header className="ilog-login-form-heading">
+          <span>MEMBER ACCESS</span>
+          <h1>{copy.title}</h1>
+          <p>{copy.subtitle}</p>
+        </header>
 
         {failure === null ? null : (
           <p
@@ -80,18 +123,24 @@ export function LoginForm(): ReactNode {
 
         <Stack gap={4}>
           <Input
-            label={text.auth.email}
+            label={copy.email}
             type="email"
+            size="lg"
             autoComplete="email"
+            placeholder="you@example.com"
+            className="ilog-login-input"
             {...(errors.email?.message === undefined
               ? {}
               : { error: errors.email.message })}
             {...register('email')}
           />
           <Input
-            label={text.auth.password}
+            label={copy.password}
             type="password"
+            size="lg"
             autoComplete="current-password"
+            placeholder={copy.passwordPlaceholder}
+            className="ilog-login-input"
             {...(errors.password?.message === undefined
               ? {}
               : { error: errors.password.message })}
@@ -99,16 +148,23 @@ export function LoginForm(): ReactNode {
           />
         </Stack>
 
-        <Button type="submit" loading={isSubmitting} fullWidth>
-          {isSubmitting ? text.auth.loginSubmitting : text.auth.loginSubmit}
+        <Button
+          type="submit"
+          size="lg"
+          loading={isSubmitting}
+          fullWidth
+          className="ilog-login-submit"
+        >
+          {isSubmitting ? copy.submitting : copy.submit}
         </Button>
 
-        <p className="text-center text-sm text-fg-secondary">
-          {text.auth.noAccount}{' '}
-          <Link href="/signup" className="font-medium text-accent">
-            {text.auth.toSignup}
-          </Link>
-        </p>
+        <div className="ilog-login-divider">
+          <span>{copy.noAccount}</span>
+        </div>
+
+        <Link href={signupHref} className="ilog-login-signup-link">
+          {copy.toSignup} <span aria-hidden="true">→</span>
+        </Link>
       </Stack>
     </form>
   )

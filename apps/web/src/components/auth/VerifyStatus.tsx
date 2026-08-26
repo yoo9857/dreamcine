@@ -18,7 +18,25 @@ interface Outcome {
 
 export function VerifyStatus(): ReactNode {
   const text = messages()
-  const token = useSearchParams().get('token')
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
+  const plan =
+    searchParams.get('plan') === 'ads-standard' ? 'ads-standard' : null
+  const locale = searchParams.get('lang') === 'en' ? 'en' : 'ko'
+  const market = searchParams.get('market') === 'us' ? 'us' : 'kr'
+  const planReturnPath = `/ads-plan?lang=${locale}&market=${market}#join`
+  const loginHref =
+    plan === null
+      ? locale === 'en'
+        ? '/login?lang=en'
+        : '/login'
+      : `/login?lang=${locale}&next=${encodeURIComponent(planReturnPath)}`
+  const retryHref =
+    plan === null
+      ? locale === 'en'
+        ? '/signup?lang=en'
+        : '/signup'
+      : `/signup?plan=${plan}&lang=${locale}&market=${market}`
   const [outcome, setOutcome] = useState<Outcome>({
     state: 'checking',
     message: null,
@@ -87,7 +105,7 @@ export function VerifyStatus(): ReactNode {
           description={text.auth.verifySuccessBody}
           action={
             <Button asChild>
-              <Link href="/login" data-testid="verify-success">
+              <Link href={loginHref} data-testid="verify-success">
                 {text.auth.toLogin}
               </Link>
             </Button>
@@ -108,7 +126,7 @@ export function VerifyStatus(): ReactNode {
         description={outcome.message ?? staticMessageFor('E_INTERNAL')}
         retryLabel={text.auth.resendVerification}
         onRetry={() => {
-          window.location.assign('/signup')
+          window.location.assign(retryHref)
         }}
       />
     </div>

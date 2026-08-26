@@ -2,6 +2,7 @@ import { cdnOrigin, objectStorageOrigin } from '@aidream/storage/cdn'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { SESSION_COOKIE_NAMES } from '@/src/auth/types'
+import { getPlanVariantByRoute } from '@/src/config/plan-markets'
 
 /**
  * 08_UIUX_SPEC.md §1 에서 인증이 필요한 최상위 경로.
@@ -35,6 +36,12 @@ export function contentSecurityPolicy(nonce: string): string {
   */
   const cdn = cdnOrigin()
   const storage = objectStorageOrigin()
+  // Next 개발 번들의 소스맵/HMR 런타임만 eval을 사용한다. 운영 정책은 기존처럼
+  // nonce 기반으로 유지해 `unsafe-eval`을 절대 포함하지 않는다.
+  const scriptSource =
+    process.env.NODE_ENV === 'development'
+      ? `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`
+      : `script-src 'self' 'nonce-${nonce}'`
   const withSources = (
     base: string,
     sources: readonly (string | null)[],
@@ -46,7 +53,7 @@ export function contentSecurityPolicy(nonce: string): string {
   }
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
+    scriptSource,
     "style-src 'self' 'unsafe-inline'",
     withSources("img-src 'self' data: blob:", [cdn]),
     withSources("media-src 'self' blob:", [cdn]),
@@ -92,6 +99,11 @@ export function middleware(req: NextRequest): NextResponse {
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-nonce', nonce)
   requestHeaders.set('content-security-policy', csp)
+  const planVariant = getPlanVariantByRoute(req.nextUrl.pathname)
+  const isEnglish =
+    planVariant?.language === 'en' ||
+    req.nextUrl.searchParams.get('lang') === 'en'
+  requestHeaders.set('x-ilog-locale', isEnglish ? 'en' : 'ko')
 
   const hasSessionCookie = SESSION_COOKIE_NAMES.some((name) =>
     req.cookies.has(name),
@@ -105,6 +117,14 @@ export function middleware(req: NextRequest): NextResponse {
       `${req.nextUrl.pathname}${req.nextUrl.search}`,
     )
     response = NextResponse.redirect(loginUrl)
+  } else if (planVariant !== null && planVariant.route !== '/ads-plan') {
+    const planUrl = req.nextUrl.clone()
+    planUrl.pathname = '/ads-plan'
+    planUrl.searchParams.set('lang', planVariant.language)
+    planUrl.searchParams.set('market', planVariant.region.toLowerCase())
+    response = NextResponse.rewrite(planUrl, {
+      request: { headers: requestHeaders },
+    })
   } else {
     response = NextResponse.next({ request: { headers: requestHeaders } })
   }

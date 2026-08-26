@@ -4,7 +4,7 @@ import { SignupSchema, type SignupInput } from '@aidream/core'
 import { Button, EmptyState, Input, Stack } from '@aidream/ui'
 import { MailCheck } from 'lucide-react'
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import React, { useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { readApiError, staticMessageFor } from '@/src/lib/error-messages'
@@ -15,10 +15,56 @@ interface SentState {
   email: string
 }
 
-export function SignupForm(): ReactNode {
+export function SignupForm({
+  initialEmail = '',
+  locale = 'ko',
+  market = 'kr',
+  plan,
+}: {
+  readonly initialEmail?: string
+  readonly locale?: 'ko' | 'en'
+  readonly market?: 'kr' | 'us'
+  readonly plan?: 'ads-standard'
+}): ReactNode {
   const text = messages()
+  const copy =
+    locale === 'en'
+      ? {
+          signupTitle: 'Create your ilog account',
+          subtitle: 'Create an account and begin your first scene.',
+          email: 'Email address',
+          handle: 'Username',
+          handleHint: 'Use letters, numbers, periods, or underscores.',
+          handlePlaceholder: 'Your ilog username',
+          displayName: 'Display name',
+          displayNamePlaceholder: 'The name people will see',
+          password: 'Password',
+          passwordPlaceholder: 'Create a secure password',
+          signupSubmitting: 'Creating your account…',
+          signupSubmit: 'Create account',
+          hasAccount: 'Already have an account?',
+          loginTitle: 'Sign in',
+          toLogin: 'Go to sign in',
+          signupSentTitle: 'Check your inbox',
+          signupSentBody: (email: string) =>
+            `We sent a verification link to ${email}.`,
+        }
+      : {
+          ...text.auth,
+          subtitle: '계정을 만들고, 첫 번째 장면을 시작하세요.',
+          handlePlaceholder: 'ilog에서 사용할 아이디',
+          displayNamePlaceholder: '사람들에게 보여질 이름',
+          passwordPlaceholder: '안전한 비밀번호를 입력하세요',
+        }
   const [sent, setSent] = useState<SentState | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
+  const planReturnPath = `/ads-plan?lang=${locale}&market=${market}#join`
+  const loginHref =
+    plan === undefined
+      ? locale === 'en'
+        ? '/login?lang=en'
+        : '/login'
+      : `/login?lang=${locale}&next=${encodeURIComponent(planReturnPath)}`
   const {
     register,
     handleSubmit,
@@ -26,7 +72,12 @@ export function SignupForm(): ReactNode {
     formState: { errors, isSubmitting },
   } = useForm<SignupInput>({
     resolver: zodResolver(SignupSchema),
-    defaultValues: { email: '', password: '', handle: '', displayName: '' },
+    defaultValues: {
+      email: initialEmail,
+      password: '',
+      handle: '',
+      displayName: '',
+    },
   })
 
   async function submit(values: SignupInput): Promise<void> {
@@ -35,7 +86,12 @@ export function SignupForm(): ReactNode {
     const response = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        ...values,
+        ...(plan === undefined ? {} : { plan }),
+        lang: locale,
+        market,
+      }),
     })
 
     if (response.ok) {
@@ -60,15 +116,15 @@ export function SignupForm(): ReactNode {
 
   if (sent !== null) {
     return (
-      <div className="w-full max-w-md">
+      <div className="ilog-signup-sent">
         <EmptyState
           icon={<MailCheck aria-hidden="true" className="size-8" />}
-          title={text.auth.signupSentTitle}
-          description={text.auth.signupSentBody(sent.email)}
+          title={copy.signupSentTitle}
+          description={copy.signupSentBody(sent.email)}
           action={
             <Button variant="secondary" asChild>
-              <Link href="/login" data-testid="signup-sent">
-                {text.auth.toLogin}
+              <Link href={loginHref} data-testid="signup-sent">
+                {copy.toLogin}
               </Link>
             </Button>
           }
@@ -91,12 +147,27 @@ export function SignupForm(): ReactNode {
       onSubmit={(event) => {
         void handleSubmit(submit)(event)
       }}
-      className="w-full max-w-md rounded-lg border border-border-subtle bg-bg-elevated p-8"
+      className="ilog-login-form ilog-signup-form"
     >
       <Stack gap={6}>
-        <h1 className="text-xl font-semibold text-fg">
-          {text.auth.signupTitle}
-        </h1>
+        <header className="ilog-login-form-heading">
+          <span>CREATOR ENTRY</span>
+          <h1>{copy.signupTitle}</h1>
+          <p>{copy.subtitle}</p>
+        </header>
+
+        {plan === undefined ? null : (
+          <div
+            className="ilog-signup-selected-plan"
+            data-testid="selected-plan"
+          >
+            <span>{locale === 'en' ? 'SELECTED PLAN' : '선택한 멤버십'}</span>
+            <strong>
+              {locale === 'en' ? 'Standard with ads' : '광고형 스탠다드'}
+            </strong>
+            <small>{market === 'us' ? '$4.99 / month' : '월 6,900원'}</small>
+          </div>
+        )}
 
         {failure === null ? null : (
           <p
@@ -110,35 +181,47 @@ export function SignupForm(): ReactNode {
 
         <Stack gap={4}>
           <Input
-            label={text.auth.email}
+            label={copy.email}
             type="email"
+            size="lg"
             autoComplete="email"
+            placeholder="you@example.com"
+            className="ilog-login-input"
             {...(errors.email?.message === undefined
               ? {}
               : { error: errors.email.message })}
             {...register('email')}
           />
           <Input
-            label={text.auth.handle}
-            hint={text.auth.handleHint}
+            label={copy.handle}
+            hint={copy.handleHint}
+            size="lg"
             autoComplete="username"
+            placeholder={copy.handlePlaceholder}
+            className="ilog-login-input"
             {...(errors.handle?.message === undefined
               ? {}
               : { error: errors.handle.message })}
             {...register('handle')}
           />
           <Input
-            label={text.auth.displayName}
+            label={copy.displayName}
+            size="lg"
             autoComplete="nickname"
+            placeholder={copy.displayNamePlaceholder}
+            className="ilog-login-input"
             {...(errors.displayName?.message === undefined
               ? {}
               : { error: errors.displayName.message })}
             {...register('displayName')}
           />
           <Input
-            label={text.auth.password}
+            label={copy.password}
             type="password"
+            size="lg"
             autoComplete="new-password"
+            placeholder={copy.passwordPlaceholder}
+            className="ilog-login-input"
             {...(errors.password?.message === undefined
               ? {}
               : { error: errors.password.message })}
@@ -146,16 +229,23 @@ export function SignupForm(): ReactNode {
           />
         </Stack>
 
-        <Button type="submit" loading={isSubmitting} fullWidth>
-          {isSubmitting ? text.auth.signupSubmitting : text.auth.signupSubmit}
+        <Button
+          type="submit"
+          size="lg"
+          loading={isSubmitting}
+          fullWidth
+          className="ilog-login-submit"
+        >
+          {isSubmitting ? copy.signupSubmitting : copy.signupSubmit}
         </Button>
 
-        <p className="text-center text-sm text-fg-secondary">
-          {text.auth.hasAccount}{' '}
-          <Link href="/login" className="font-medium text-accent">
-            {text.auth.loginTitle}
-          </Link>
-        </p>
+        <div className="ilog-login-divider">
+          <span>{copy.hasAccount}</span>
+        </div>
+
+        <Link href={loginHref} className="ilog-login-signup-link">
+          {copy.loginTitle} <span aria-hidden="true">→</span>
+        </Link>
       </Stack>
     </form>
   )

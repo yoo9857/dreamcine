@@ -8,6 +8,12 @@ export interface MailRecipientToken {
   token: string
 }
 
+interface VerificationMailInput extends MailRecipientToken {
+  readonly plan?: 'ads-standard'
+  readonly lang?: 'ko' | 'en'
+  readonly market?: 'kr' | 'us'
+}
+
 interface MailMessage {
   to: string
   subject: string
@@ -55,8 +61,14 @@ async function send(message: MailMessage): Promise<void> {
   }
 }
 
-export function sendVerificationMail(input: MailRecipientToken): Promise<void> {
-  const link = `${appUrl()}/verify?token=${encodeURIComponent(input.token)}`
+export function sendVerificationMail(
+  input: VerificationMailInput,
+): Promise<void> {
+  const link = new URL('/verify', `${appUrl()}/`)
+  link.searchParams.set('token', input.token)
+  if (input.plan !== undefined) link.searchParams.set('plan', input.plan)
+  if (input.lang !== undefined) link.searchParams.set('lang', input.lang)
+  if (input.market !== undefined) link.searchParams.set('market', input.market)
   return send({
     to: input.to,
     subject: '[AIDREAM] 이메일 인증을 완료해 주세요',
@@ -64,7 +76,7 @@ export function sendVerificationMail(input: MailRecipientToken): Promise<void> {
       'AIDREAM 가입을 환영합니다.',
       '',
       '아래 주소에서 이메일 인증을 완료해 주세요. 링크는 24시간 동안 유효합니다.',
-      link,
+      link.toString(),
       '',
       '직접 가입하지 않았다면 이 메일을 무시하세요.',
     ].join('\n'),

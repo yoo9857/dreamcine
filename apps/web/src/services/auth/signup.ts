@@ -24,6 +24,12 @@ export interface SignupResult {
   emailVerified: null
 }
 
+export interface SignupIntent {
+  readonly plan?: 'ads-standard'
+  readonly lang?: 'ko' | 'en'
+  readonly market?: 'kr' | 'us'
+}
+
 /** 인증 토큰 수명. 재설정(1시간)보다 길게 잡는다 — 메일함 확인이 늦을 수 있다. */
 export const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -73,7 +79,10 @@ async function createAccount(input: SignupInput): Promise<User> {
  * 메일 발송 실패는 가입을 되돌리지 않는다. 계정은 이미 만들어졌고 사용자는
  * 재발송을 요청할 수 있다. (O02 §1 원칙 5 — 부수기능은 본기능을 막지 않는다)
  */
-export async function signup(input: SignupInput): Promise<SignupResult> {
+export async function signup(
+  input: SignupInput,
+  intent: SignupIntent = {},
+): Promise<SignupResult> {
   const reserved: readonly string[] = RESERVED_HANDLES
   if (reserved.includes(input.handle)) {
     throw new AppError('E_USER_HANDLE_TAKEN', { reason: 'reserved' })
@@ -96,7 +105,7 @@ export async function signup(input: SignupInput): Promise<SignupResult> {
   })
 
   try {
-    await sendVerificationMail({ to: user.email, token })
+    await sendVerificationMail({ to: user.email, token, ...intent })
   } catch (error: unknown) {
     getLogger().error(
       { err: error, userId: user.id },

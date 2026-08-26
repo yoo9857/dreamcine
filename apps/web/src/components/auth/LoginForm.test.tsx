@@ -1,0 +1,54 @@
+// @vitest-environment jsdom
+
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import React from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { LoginForm } from './LoginForm'
+
+const navigation = vi.hoisted(() => ({
+  push: vi.fn(),
+  refresh: vi.fn(),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => navigation,
+}))
+
+vi.mock('next-auth/react', () => ({
+  signIn: vi.fn(),
+}))
+
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
+
+describe('LoginForm', () => {
+  it('keeps validation feedback connected to the redesigned fields', async () => {
+    render(<LoginForm />)
+
+    fireEvent.change(screen.getByLabelText('이메일'), {
+      target: { value: 'not-an-email' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('이메일').getAttribute('aria-invalid')).toBe(
+        'true',
+      )
+    })
+    expect(
+      screen.getByLabelText('이메일').getAttribute('aria-describedby'),
+    ).toBeTruthy()
+    expect(
+      screen.getByLabelText('비밀번호').getAttribute('aria-describedby'),
+    ).toBeTruthy()
+  })
+})

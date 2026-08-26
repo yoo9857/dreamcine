@@ -1,6 +1,6 @@
 import { THEMES, themeTokens } from '@aidream/ui'
 import type { Metadata, Viewport } from 'next'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import type { ReactNode } from 'react'
 
 import { ThemeToggle } from '@/src/components/ThemeToggle'
@@ -8,6 +8,7 @@ import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 
 import './globals.css'
 import '../src/styles/app-shell.css'
+import '../src/styles/auth-login.css'
 import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
 
@@ -49,11 +50,12 @@ export default async function RootLayout({
 }: {
   readonly children: ReactNode
 }): Promise<ReactNode> {
-  const store = await cookies()
+  const [store, requestHeaders] = await Promise.all([cookies(), headers()])
   const theme = parseTheme(store.get(THEME_COOKIE)?.value)
+  const language = requestHeaders.get('x-ilog-locale') === 'en' ? 'en' : 'ko'
 
   return (
-    <html lang="ko" {...(theme === null ? {} : { 'data-theme': theme })}>
+    <html lang={language} {...(theme === null ? {} : { 'data-theme': theme })}>
       <body>
         {/*
             08_UIUX_SPEC.md §7 은 시스템 설정 외에 수동 토글도 요구한다.
