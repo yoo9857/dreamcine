@@ -132,8 +132,7 @@ export default async function SeriesPage({
   const cookieStore = await cookies()
   const currentTheme =
     parseTheme(cookieStore.get(THEME_COOKIE)?.value) ?? 'dark'
-  const isDevelopmentPreview =
-    process.env.NODE_ENV === 'development' && /^preview-[1-5]$/u.test(seriesId)
+  const isPortfolioPreview = /^preview-[1-5]$/u.test(seriesId)
 
   let detail: SeriesDetailResponse
   let creator: SeriesCreator
@@ -141,7 +140,7 @@ export default async function SeriesPage({
   let playback: PlaybackResponse | null = null
   let authenticated = false
 
-  if (isDevelopmentPreview) {
+  if (isPortfolioPreview) {
     const selected = PREVIEW_WORKS.find((series) => series.id === seriesId)
     if (selected === undefined) notFound()
     detail = { series: selected, episodes: [] }
@@ -233,16 +232,7 @@ export default async function SeriesPage({
 
           <section className="series-video-section" id="watch">
             <div className="series-video-frame">
-              {isDevelopmentPreview ? (
-                <video
-                  src="/dev-media/profile-film"
-                  poster={posterFor(detail.series)}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  aria-label={`${detail.series.title} 영상`}
-                />
-              ) : playback === null ? (
+              {playback === null ? (
                 <div className="series-video-unavailable">
                   <Play aria-hidden="true" />
                   <p>현재 재생 가능한 영상이 없습니다.</p>

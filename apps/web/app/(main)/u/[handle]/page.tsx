@@ -176,9 +176,8 @@ export default async function ProfilePage({
     parseTheme(cookieStore.get(THEME_COOKIE)?.value) ?? 'dark'
 
   try {
-    const isDevelopmentPreview =
-      process.env.NODE_ENV === 'development' && handle === 'hanbin'
-    const [profile, series, relatedCreators] = isDevelopmentPreview
+    const isPortfolioPreview = handle === 'hanbin'
+    const [profile, series, relatedCreators] = isPortfolioPreview
       ? [PREVIEW_PROFILE, PREVIEW_SERIES, PREVIEW_RELATED_CREATORS]
       : await Promise.all([
           getProfile(handle, session),
