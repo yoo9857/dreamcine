@@ -7,6 +7,9 @@ import { ThemeToggle } from '@/src/components/ThemeToggle'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 
 import './globals.css'
+import '../src/styles/app-shell.css'
+import '../src/styles/discovery-home.css'
+import '../src/styles/guest-landing.css'
 
 export const metadata: Metadata = {
   title: {

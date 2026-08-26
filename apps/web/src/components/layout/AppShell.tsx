@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { MainNav } from './MainNav'
+import { RouteTransition } from './RouteTransition'
 
 async function SessionMainNav(): Promise<ReactNode> {
   const session = await getServerSession()
@@ -23,7 +24,9 @@ export function AppShell({
       <Suspense fallback={<MainNav session={null} />}>
         <SessionMainNav />
       </Suspense>
-      <main className="aidream-main">{children}</main>
+      <main className="aidream-main">
+        <RouteTransition>{children}</RouteTransition>
+      </main>
     </div>
   )
 }

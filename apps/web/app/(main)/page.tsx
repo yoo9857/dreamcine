@@ -1,8 +1,13 @@
 import { EmptyState } from '@aidream/ui'
+import Form from 'next/form'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, type ReactNode } from 'react'
 
+import { getServerSession } from '@/src/auth/server-session'
+import type { RouteSession } from '@/src/auth/types'
+import { DiscoveryBackdrop } from '@/src/components/discovery/DiscoveryBackdrop'
+import { HeroLikeButton } from '@/src/components/discovery/HeroLikeButton'
 import { FeedList } from '@/src/components/feed/FeedList'
 import { FeedSkeleton } from '@/src/components/feed/FeedSkeleton'
 import { getFeed } from '@/src/services/feed/get-feed'
@@ -51,10 +56,12 @@ function DiscoveryFallback(): ReactNode {
   )
 }
 
-async function PopularDiscovery(): Promise<ReactNode> {
-  // 공개 피드는 세션과 분리해 스트리밍한다. 히어로와 피드 모두 같은 조회를
-  // 사용해 첫 화면 때문에 DB를 한 번 더 읽거나 개인화 캐시를 깨지 않는다.
-  const page = await getFeed({ type: 'popular', limit: 20 }, null)
+async function PopularDiscovery({
+  session,
+}: {
+  readonly session: RouteSession
+}): Promise<ReactNode> {
+  const page = await getFeed({ type: 'popular', limit: 20 }, session)
   const lead = page.items[0]
   if (lead === undefined) {
     return (
@@ -95,43 +102,51 @@ async function PopularDiscovery(): Promise<ReactNode> {
             className="discovery-hero-image"
           />
         )}
+        <DiscoveryBackdrop episodeId={lead.episodeId} />
         <div className="discovery-hero-shade" />
         <div className="discovery-hero-copy">
           <p className="discovery-kicker">
-            <span /> AIDREAM ORIGINALS
+            <span /> FEATURED ON ILOG
           </p>
-          <h1 id="discovery-title">
-            취향이 열리는
-            <br />
-            순간, <em>ilog.</em>
-          </h1>
+          <p className="discovery-hero-byline">
+            {lead.series.title} · {lead.creator.displayName}
+          </p>
+          <h1 id="discovery-title">{lead.title}</h1>
           <p>
-            크리에이터의 새로운 시선과 당신이 오래 기억할 장면을 한곳에서. 지금
-            가장 주목받는 이야기를 만나보세요.
+            지금 가장 주목받는 장면을 만나보세요. 보고 난 뒤의 감상은 리뷰로,
+            마음에 남은 순간은 하트로 기록할 수 있습니다.
           </p>
+          <div className="discovery-hero-meta" aria-label="콘텐츠 정보">
+            <span>{lead.ageRating}</span>
+            <span>{formatDuration(lead.durationSec)}</span>
+            <span>조회 {lead.viewCount}</span>
+          </div>
           <div className="discovery-hero-actions">
             <Link href={`/watch/${lead.episodeId}`}>
-              지금 재생 <span aria-hidden="true">▶</span>
+              <span aria-hidden="true">▶</span> 지금 재생
             </Link>
-            <Link href="/search">더 둘러보기</Link>
+            <Link href={`/watch/${lead.episodeId}#reviews`}>
+              리뷰 보기 <span aria-hidden="true">↗</span>
+            </Link>
+            <HeroLikeButton
+              episodeId={lead.episodeId}
+              initialLiked={lead.isLiked}
+              initialCount={lead.likeCount}
+              authenticated
+            />
           </div>
         </div>
-        <article className="discovery-feature-card">
-          <div>
-            <span>지금 뜨는 에피소드</span>
-            <h2>{lead.title}</h2>
-            <p>
-              {lead.series.title} · {lead.creator.displayName}
-            </p>
+        <aside className="discovery-review-panel" aria-label="커뮤니티 리뷰">
+          <div className="discovery-review-label">
+            <span>COMMUNITY REVIEW</span>
+            <small>감상과 대화</small>
           </div>
-          <Link
-            href={`/watch/${lead.episodeId}`}
-            aria-label={`${lead.title} 재생`}
-          >
-            <span>{formatDuration(lead.durationSec)}</span>
-            <b aria-hidden="true">▶</b>
+          <blockquote>“당신은 이 장면을 어떻게 보셨나요?”</blockquote>
+          <p>짧은 한 줄도 좋은 리뷰가 됩니다.</p>
+          <Link href={`/watch/${lead.episodeId}#reviews`}>
+            감상 남기기 <span aria-hidden="true">→</span>
           </Link>
-        </article>
+        </aside>
       </section>
 
       <nav className="discovery-tabs" aria-label="콘텐츠 탐색">
@@ -145,62 +160,6 @@ async function PopularDiscovery(): Promise<ReactNode> {
           </Link>
         ))}
       </nav>
-
-      <section className="discovery-pathways" aria-label="추천 탐색 경로">
-        <Link
-          href={`/watch/${lead.episodeId}`}
-          className="discovery-pathway discovery-pathway-featured"
-        >
-          {lead.thumbUrl === null ? null : (
-            <Image
-              src={lead.thumbUrl}
-              alt=""
-              fill
-              unoptimized
-              sizes="(max-width: 767px) 84vw, 40vw"
-            />
-          )}
-          <span className="discovery-pathway-shade" />
-          <span className="discovery-pathway-index">01</span>
-          <span className="discovery-pathway-copy">
-            <small>EDITOR&apos;S PICK</small>
-            <strong>{lead.title}</strong>
-            <em>
-              바로 재생 <b aria-hidden="true">↗</b>
-            </em>
-          </span>
-        </Link>
-        <Link
-          href="/search"
-          className="discovery-pathway discovery-pathway-new"
-        >
-          <span className="discovery-pathway-orbit" aria-hidden="true" />
-          <span className="discovery-pathway-index">02</span>
-          <span className="discovery-pathway-copy">
-            <small>FIND SOMETHING NEW</small>
-            <strong>새로운 장면을 발견하세요.</strong>
-            <em>
-              전체 콘텐츠 탐색 <b aria-hidden="true">→</b>
-            </em>
-          </span>
-        </Link>
-        <Link
-          href="/studio"
-          className="discovery-pathway discovery-pathway-studio"
-        >
-          <span className="discovery-pathway-play" aria-hidden="true">
-            ▶
-          </span>
-          <span className="discovery-pathway-index">03</span>
-          <span className="discovery-pathway-copy">
-            <small>CREATE ON ILOG</small>
-            <strong>당신의 이야기를 시작하세요.</strong>
-            <em>
-              크리에이터 스튜디오 <b aria-hidden="true">→</b>
-            </em>
-          </span>
-        </Link>
-      </section>
 
       <section className="discovery-feed" aria-labelledby="popular-title">
         <div className="discovery-feed-heading">
@@ -223,14 +182,170 @@ async function PopularDiscovery(): Promise<ReactNode> {
   )
 }
 
-export default function HomePage(): ReactNode {
+async function GuestLanding(): Promise<ReactNode> {
+  const page = await getFeed({ type: 'popular', limit: 10 }, null)
+  const lead = page.items[0]
+
+  return (
+    <div className="guest-landing-content">
+      <section className="guest-hero" aria-labelledby="guest-title">
+        {lead?.thumbUrl === undefined || lead.thumbUrl === null ? (
+          <div className="guest-hero-art" aria-hidden="true" />
+        ) : (
+          <Image
+            src={lead.thumbUrl}
+            alt=""
+            fill
+            priority
+            unoptimized
+            sizes="100vw"
+            className="guest-hero-image"
+          />
+        )}
+        {lead === undefined ? null : (
+          <DiscoveryBackdrop episodeId={lead.episodeId} />
+        )}
+        <div className="guest-hero-shade" />
+        <header className="guest-header">
+          <Link href="/" className="guest-wordmark" aria-label="ilog 홈">
+            <b>i</b>log<span>.</span>
+          </Link>
+          <nav aria-label="회원 메뉴">
+            <Link href="/login">로그인</Link>
+            <Link href="/signup">무료로 시작하기</Link>
+          </nav>
+        </header>
+        <div className="guest-hero-copy">
+          <p>WATCH · CREATE · CONNECT</p>
+          <h1 id="guest-title">
+            이야기가 시작되고,
+            <br />
+            취향이 연결되는 곳.
+          </h1>
+          <p>
+            새로운 영상을 발견하고, 크리에이터를 팔로우하고,
+            <br />
+            당신만의 이야기도 세상에 공개하세요.
+          </p>
+          <div className="guest-hero-actions">
+            <Link href="/signup">
+              지금 무료로 시작하기 <span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/login">이미 계정이 있어요</Link>
+          </div>
+          <small>가입은 무료이며 언제든 바로 시작할 수 있습니다.</small>
+        </div>
+      </section>
+
+      {page.items.length === 0 ? null : (
+        <section
+          className="guest-trending"
+          aria-labelledby="guest-trending-title"
+        >
+          <div>
+            <p>EXPLORE BEFORE YOU JOIN</p>
+            <h2 id="guest-trending-title">지금 ilog에서 주목받는 이야기</h2>
+          </div>
+          <div className="guest-trending-row">
+            {page.items.slice(0, 6).map((item, index) => (
+              <article key={item.episodeId}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <Link href={`/watch/${item.episodeId}`}>
+                  <div>
+                    {item.thumbUrl === null ? null : (
+                      <Image
+                        src={item.thumbUrl}
+                        alt=""
+                        fill
+                        unoptimized
+                        sizes="(max-width: 767px) 70vw, 25vw"
+                      />
+                    )}
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.creator.displayName}</p>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section
+        className="guest-benefits"
+        aria-labelledby="guest-benefits-title"
+      >
+        <div>
+          <p>WHY ILOG</p>
+          <h2 id="guest-benefits-title">
+            보는 사람과 만드는 사람이 함께 자랍니다.
+          </h2>
+        </div>
+        <div className="guest-benefit-grid">
+          <article>
+            <span>01</span>
+            <h3>취향에 맞는 발견</h3>
+            <p>지금 뜨는 이야기부터 새로운 크리에이터까지 한곳에서 만나요.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>반응이 이어지는 감상</h3>
+            <p>좋아요와 리뷰로 마음에 남은 장면을 기록하고 나눠요.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>누구나 시작하는 창작</h3>
+            <p>당신의 첫 번째 에피소드를 업로드하고 팬을 만나보세요.</p>
+          </article>
+        </div>
+        <Link href="/signup">ilog 시작하기 →</Link>
+      </section>
+
+      <footer className="guest-footer">
+        <Link href="/" className="guest-wordmark">
+          <b>i</b>log<span>.</span>
+        </Link>
+        <p>이야기가 스크린이 되는 곳.</p>
+        <div>
+          <Link href="/login">로그인</Link>
+          <Link href="/signup">회원가입</Link>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+export default async function HomePage(): Promise<ReactNode> {
+  const session = await getServerSession()
+
+  if (session === null) {
+    return (
+      <div className="guest-landing">
+        <Suspense
+          fallback={
+            <section className="guest-hero guest-hero-loading">
+              <div className="guest-hero-art" aria-hidden="true" />
+              <div className="guest-hero-shade" />
+              <div className="guest-hero-copy">
+                <p>WATCH · CREATE · CONNECT</p>
+                <h1>이야기가 시작되는 곳.</h1>
+              </div>
+            </section>
+          }
+        >
+          <GuestLanding />
+        </Suspense>
+      </div>
+    )
+  }
+
   return (
     <div className="discovery-home">
       <header className="discovery-topbar">
         <Link href="/" className="discovery-wordmark" aria-label="ilog 홈">
           <b>i</b>log<span>.</span>
         </Link>
-        <form className="discovery-search" action="/search" role="search">
+        <Form className="discovery-search" action="/search" role="search">
           <SearchIcon />
           <label className="sr-only" htmlFor="discovery-query">
             에피소드 검색
@@ -241,13 +356,13 @@ export default function HomePage(): ReactNode {
             placeholder="제목, 시리즈, 크리에이터를 검색하세요"
           />
           <button type="submit">검색</button>
-        </form>
+        </Form>
         <div className="discovery-live" aria-label="새 콘텐츠 업데이트 중">
           <span /> LIVE
         </div>
       </header>
       <Suspense fallback={<DiscoveryFallback />}>
-        <PopularDiscovery />
+        <PopularDiscovery session={session} />
       </Suspense>
     </div>
   )

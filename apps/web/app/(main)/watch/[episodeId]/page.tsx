@@ -63,11 +63,13 @@ export default async function WatchPage(props: WatchPageProps) {
             )}
           </div>
         )}
-        <CommentThread
-          episodeId={episodeId}
-          initialItems={comments.items}
-          authenticated={session !== null}
-        />
+        <section id="reviews" aria-label="리뷰와 댓글">
+          <CommentThread
+            episodeId={episodeId}
+            initialItems={comments.items}
+            authenticated={session !== null}
+          />
+        </section>
       </main>
     )
   } catch (error: unknown) {

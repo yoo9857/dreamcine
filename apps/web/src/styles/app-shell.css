@@ -1,0 +1,276 @@
+/* Persistent application shell and navigation. */
+
+.aidream-app-shell {
+  min-height: 100dvh;
+  width: 100%;
+  background: #07131a;
+}
+
+.aidream-main {
+  min-width: 0;
+  width: 100%;
+}
+
+.aidream-route-view {
+  width: 100%;
+  min-height: 100dvh;
+  animation: aidream-route-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.aidream-route-view:not(.is-discovery-home) {
+  width: min(100%, 80rem);
+  margin-inline: auto;
+  padding: 24px 16px 104px;
+}
+
+@media (min-width: 768px) and (max-width: 1350px) {
+  .aidream-route-view:not(.is-discovery-home) {
+    padding-right: 24px;
+    padding-left: 104px;
+  }
+}
+
+@keyframes aidream-route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aidream-rail {
+  position: fixed;
+  top: 50%;
+  left: 18px;
+  z-index: 50;
+  width: 64px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: visible;
+  padding: 10px 0;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  color: #a7b2bc;
+  background: rgb(4 11 16 / 90%);
+  box-shadow: 16px 18px 55px rgb(0 0 0 / 36%);
+  backdrop-filter: blur(18px);
+  transform: translateY(-50%);
+}
+
+.aidream-rail-brand {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(145deg, #ff5ca0, #ed267f);
+  box-shadow:
+    0 0 0 5px rgb(237 38 127 / 9%),
+    0 9px 24px rgb(237 38 127 / 30%);
+}
+
+.aidream-rail-brand span {
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid currentcolor;
+}
+
+.aidream-rail-links {
+  position: relative;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 9px;
+  margin-left: 0;
+}
+.aidream-rail-bottom {
+  margin-top: auto;
+  margin-left: 0;
+}
+
+.aidream-rail-links a {
+  position: relative;
+  width: 48px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #9ca8b1;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.aidream-rail-indicator {
+  display: none;
+}
+
+.aidream-rail-links[data-has-active='false'] .aidream-rail-indicator {
+  opacity: 0;
+}
+
+.aidream-rail-links a::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 57px;
+  bottom: auto;
+  z-index: 80;
+  padding: 6px 9px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 7px;
+  color: white;
+  background: #17222c;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(5px);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.aidream-rail-links a:hover::after,
+.aidream-rail-links a:focus-visible::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+.aidream-rail-links a:hover,
+.aidream-rail-links a.is-active {
+  color: white;
+  background: rgb(237 38 127 / 16%);
+  transform: translateX(2px);
+}
+
+.aidream-rail-links a.is-destination svg {
+  animation: aidream-nav-destination 650ms ease-in-out infinite alternate;
+}
+.aidream-rail-links svg,
+.aidream-mobile-nav svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.aidream-session-actions {
+  position: fixed;
+  top: 48px;
+  right: 53px;
+  z-index: 45;
+  display: flex;
+  gap: 8px;
+}
+
+.aidream-session-actions a {
+  min-height: 40px;
+  border-radius: 999px;
+}
+.aidream-mobile-nav {
+  display: none;
+}
+
+.aidream-theme-control {
+  position: fixed;
+  right: 34px;
+  bottom: 34px;
+  z-index: 55;
+}
+
+@keyframes aidream-nav-destination {
+  from {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+}
+
+@media (max-width: 767px) {
+  .aidream-app-shell {
+    display: block;
+    width: 100%;
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom));
+    background: #07131a;
+  }
+  .aidream-rail,
+  .aidream-session-actions {
+    display: none;
+  }
+  .aidream-theme-control {
+    right: 14px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .aidream-route-view:not(.is-discovery-home) {
+    padding: 20px 16px;
+  }
+  .aidream-mobile-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 80;
+    min-height: calc(62px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 5px 8px env(safe-area-inset-bottom);
+    border-top: 1px solid rgb(255 255 255 / 10%);
+    color: #8f9ba5;
+    background: rgb(5 12 17 / 94%);
+    backdrop-filter: blur(18px);
+  }
+  .aidream-mobile-nav a {
+    min-width: 0;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 750;
+  }
+  .aidream-mobile-nav a {
+    transition:
+      color 240ms ease,
+      background 240ms ease,
+      transform 240ms ease;
+  }
+  .aidream-mobile-nav a.is-active {
+    color: #ff5ca0;
+    background: rgb(237 38 127 / 8%);
+  }
+  .aidream-mobile-nav a.is-destination {
+    color: white;
+    transform: translateY(-4px);
+  }
+  .aidream-mobile-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aidream-route-view {
+    animation: none;
+  }
+  .aidream-rail-links a {
+    transition: none;
+  }
+}
