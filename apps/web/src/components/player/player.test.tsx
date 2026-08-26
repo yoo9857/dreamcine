@@ -17,8 +17,9 @@ class MockHls {
     NETWORK_ERROR: 'networkError',
     MEDIA_ERROR: 'mediaError',
   }
+  static supported = true
   static isSupported(): boolean {
-    return true
+    return MockHls.supported
   }
   readonly handlers = new Map<string, (...args: never[]) => void>()
   readonly startLoad = vi.fn()
@@ -53,6 +54,7 @@ const STATE: PlayerState = {
 
 beforeEach(() => {
   hlsMocks.instances.length = 0
+  MockHls.supported = true
   vi.restoreAllMocks()
 })
 
@@ -90,6 +92,7 @@ describe('PlayerControls', () => {
 
 describe('HlsPlayer', () => {
   it('uses native HLS on Safari without creating hls.js', async () => {
+    MockHls.supported = false
     vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('maybe')
     render(
       <HlsPlayer
@@ -108,6 +111,27 @@ describe('HlsPlayer', () => {
       )
     })
     expect(hlsMocks.instances).toHaveLength(0)
+  })
+
+  it('prefers hls.js when native HLS and manual renditions are available', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('maybe')
+    render(
+      <HlsPlayer
+        masterUrl="https://cdn.example.com/master.m3u8"
+        startAtSec={0}
+        durationSec={120}
+        onProgress={vi.fn()}
+        onWatchedSeconds={vi.fn()}
+        onEnded={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    await waitFor(() => {
+      expect(hlsMocks.instances).toHaveLength(1)
+    })
+    expect(hlsMocks.instances[0]?.loadSource).toHaveBeenCalledWith(
+      'https://cdn.example.com/master.m3u8',
+    )
   })
 
   it('limits fatal network recovery to three retries', async () => {

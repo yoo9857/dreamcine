@@ -92,7 +92,7 @@ describe('getPlayback', () => {
     ).resolves.toEqual({
       episodeId: EPISODE.id,
       masterUrl: 'https://cdn.example.com/hls/asset_1/master.m3u8',
-      posterUrl: 'https://cdn.example.com/thumbs/asset_1/poster.jpg',
+      posterUrl: 'https://cdn.example.com/thumbs/asset_1/thumb.jpg',
       durationSec: 120,
       startAtSec: 45,
       renditions: EPISODE.asset.renditions,

@@ -4,7 +4,7 @@ import {
   findWatchProgress,
   hasBlockBetween,
 } from '@aidream/db'
-import { cdnUrl, masterUrl } from '@aidream/storage/cdn'
+import { masterUrl, thumbUrl } from '@aidream/storage/cdn'
 import type { RouteSession } from '@/src/auth/types'
 import { verifyAgeVerification } from '@/src/lib/age-verification'
 
@@ -73,7 +73,7 @@ export async function getPlayback(
   return {
     episodeId: episode.id,
     masterUrl: masterUrl(asset.id),
-    ...(asset.posterKey === null ? {} : { posterUrl: cdnUrl(asset.posterKey) }),
+    posterUrl: thumbUrl(asset.id),
     durationSec: asset.durationSec,
     startAtSec,
     renditions: [...asset.renditions],

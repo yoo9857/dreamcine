@@ -40,14 +40,14 @@ function HlsPlayerEngine(props: HlsPlayerProps): ReactNode {
       callbacks.current.onError(code)
     }
     const initialize = async (): Promise<void> => {
-      if (video.canPlayType('application/vnd.apple.mpegurl') !== '') {
-        video.src = props.masterUrl
-        return
-      }
       const module = await import('hls.js')
       if (cancelled) return
       const Hls = module.default
       if (!Hls.isSupported()) {
+        if (video.canPlayType('application/vnd.apple.mpegurl') !== '') {
+          video.src = props.masterUrl
+          return
+        }
         fail('E_PLAYER_UNSUPPORTED')
         return
       }
@@ -166,7 +166,7 @@ function HlsPlayerEngine(props: HlsPlayerProps): ReactNode {
     >
       <video
         ref={setVideo}
-        className="aspect-video w-full"
+        className="aspect-video w-full bg-black object-contain"
         poster={props.posterUrl}
         playsInline
         preload="metadata"
