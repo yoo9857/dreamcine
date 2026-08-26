@@ -10,6 +10,7 @@ import { getServerSession } from '@/src/auth/server-session'
 import { WatchPlayer } from '@/src/components/player/HlsPlayer'
 import { ShowcaseThemeToggle } from '@/src/components/showcase/ShowcaseThemeToggle'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
+import '@/src/styles/series-showcase.css'
 import { getPlayback } from '@/src/services/episode/get-playback'
 import {
   getSeries,

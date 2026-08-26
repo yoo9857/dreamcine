@@ -20,6 +20,7 @@ import { ProfilePopularCarousel } from '@/src/components/profile/ProfilePopularC
 import { ShowcaseThemeToggle } from '@/src/components/showcase/ShowcaseThemeToggle'
 import { FollowButton } from '@/src/components/social/FollowButton'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
+import '@/src/styles/profile-showcase.css'
 import { getProfile } from '@/src/services/user/get-profile'
 import { getProfileSeries } from '@/src/services/user/get-profile-series'
 import {
