@@ -31,6 +31,17 @@ export function CinematicHeroMotion({
     const precisePointer = window.matchMedia(
       '(hover: hover) and (pointer: fine)',
     )
+    const constrainedViewport = window.matchMedia('(max-width: 767px)')
+
+    // Touch devices do not benefit from pointer parallax. Avoid mutating the
+    // hero after hydration so the already-painted headline remains the LCP.
+    if (
+      reducedMotion.matches ||
+      constrainedViewport.matches ||
+      !precisePointer.matches
+    )
+      return
+
     let pointerFrame = 0
     let scrollFrame = 0
 

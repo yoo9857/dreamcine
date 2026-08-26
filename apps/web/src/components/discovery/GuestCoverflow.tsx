@@ -243,7 +243,7 @@ export function GuestCoverflow({ items }: GuestCoverflowProps): ReactNode {
                     src={item.thumbnailUrl}
                     alt=""
                     fill
-                    unoptimized
+                    unoptimized={!item.thumbnailUrl.startsWith('/')}
                     sizes="(max-width: 767px) 52vw, 20vw"
                     draggable={false}
                   />

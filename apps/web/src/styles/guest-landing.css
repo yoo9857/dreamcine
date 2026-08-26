@@ -227,7 +227,14 @@ body:has(.guest-landing) .aidream-theme-control {
   width: 100vw;
   height: clamp(250px, 34vh, 390px);
   overflow: hidden;
-  background: #000;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 5.5%,
+      rgb(255 30 30 / 9%) 5.8%,
+      transparent 6.2% 11%
+    ),
+    radial-gradient(ellipse at 50% 100%, rgb(255 30 30 / 34%), #000 68%);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -271,6 +278,8 @@ body:has(.guest-landing) .aidream-theme-control {
 .guest-benefits,
 .guest-path,
 .guest-perspectives {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 760px;
   width: min(100% - 48px, 1480px);
   margin-inline: auto;
   padding: clamp(82px, 10vw, 132px) 0;
@@ -922,6 +931,8 @@ body:has(.guest-landing) .aidream-theme-control {
 }
 
 .guest-final-cta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 470px;
   position: relative;
   width: min(100% - 48px, 1480px);
   min-height: 470px;
@@ -1001,6 +1012,8 @@ body:has(.guest-landing) .aidream-theme-control {
 }
 
 .guest-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
   width: min(100% - 48px, 1480px);
   margin-inline: auto;
   border-top: 1px solid rgb(255 255 255 / 9%);
@@ -1128,6 +1141,12 @@ body:has(.guest-landing) .aidream-theme-control {
 @media (max-width: 767px) {
   .guest-hero {
     min-height: max(680px, 100svh);
+  }
+  .guest-hero[data-motion-ready='true'] .guest-hero-copy,
+  .guest-hero[data-motion-ready='true'] .guest-hero-image,
+  .guest-hero[data-motion-ready='true'] .discovery-hero-video {
+    transform: none;
+    transition: none;
   }
   .guest-hero-image,
   .guest-hero .discovery-hero-video {
