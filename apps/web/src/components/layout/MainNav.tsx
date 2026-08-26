@@ -14,7 +14,11 @@ export function MainNav({
   return (
     <>
       <aside className="aidream-rail" aria-label="주요 메뉴">
-        <Link href="/" className="aidream-rail-brand" aria-label="ilog 홈">
+        <Link
+          href={session === null ? '/' : '/browse'}
+          className="aidream-rail-brand"
+          aria-label="ilog 홈"
+        >
           <LeftBrandLogo />
         </Link>
         <NavigationLinks authenticated={session !== null} />

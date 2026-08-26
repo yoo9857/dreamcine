@@ -9,7 +9,7 @@ export function RouteTransition({
   readonly children: ReactNode
 }): ReactNode {
   const pathname = usePathname()
-  const isDiscoveryHome = pathname === '/'
+  const isDiscoveryHome = pathname === '/' || pathname === '/browse'
   const isProfileShowcase = pathname.startsWith('/u/')
   const isWorkShowcase = pathname.startsWith('/series/')
 

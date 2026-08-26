@@ -83,9 +83,14 @@ export function NavigationLinks({
     setPendingHref(null)
   }, [pathname])
 
+  const homeItems = authenticated
+    ? primaryItems.map((item) =>
+        item.icon === 'home' ? { ...item, href: '/browse' } : item,
+      )
+    : primaryItems
   const items: readonly NavigationItem[] = mobile
     ? [
-        ...primaryItems,
+        ...homeItems,
         {
           href: authenticated ? '/studio' : '/login',
           label: authenticated ? '업로드' : '로그인',
@@ -93,7 +98,7 @@ export function NavigationLinks({
         },
       ]
     : [
-        ...primaryItems,
+        ...homeItems,
         ...(authenticated
           ? ([
               {

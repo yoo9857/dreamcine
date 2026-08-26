@@ -15,7 +15,7 @@ import { DiscoveryBackdrop } from './DiscoveryBackdrop'
 import { HeroLikeButton } from './HeroLikeButton'
 
 const discoveryTabs = [
-  { href: '/', label: '전체', active: true },
+  { href: '/browse', label: '전체', active: true },
   { href: '/search', label: '새로 올라온' },
   { href: '/following', label: '팔로잉' },
   { href: '/search?q=드라마', label: '드라마' },
@@ -199,7 +199,11 @@ export function AuthenticatedDiscoveryHome({
   return (
     <div className="discovery-home">
       <header className="discovery-topbar">
-        <Link href="/" className="discovery-wordmark" aria-label="ilog 홈">
+        <Link
+          href="/browse"
+          className="discovery-wordmark"
+          aria-label="ilog 홈"
+        >
           <LeftBrandLogo priority />
         </Link>
         <Form className="discovery-search" action="/search" role="search">

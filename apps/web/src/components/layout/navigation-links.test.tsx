@@ -18,6 +18,15 @@ afterEach(() => {
 })
 
 describe('NavigationLinks', () => {
+  it('links authenticated home navigation to browse', () => {
+    pathname = '/browse'
+    render(<NavigationLinks authenticated />)
+
+    const home = screen.getByRole('link', { name: '인기' })
+    expect(home.getAttribute('href')).toBe('/browse')
+    expect(home.getAttribute('aria-current')).toBe('page')
+  })
+
   it('marks the current route instead of permanently highlighting home', () => {
     pathname = '/search'
     render(<NavigationLinks authenticated={false} />)

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Clapperboard, Compass, Heart } from 'lucide-react'
+import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
@@ -222,16 +223,13 @@ function GuestLanding(): ReactNode {
 export default async function HomePage(): Promise<ReactNode> {
   const session = await getServerSession()
 
-  if (session === null) {
-    return (
-      <div className="guest-landing">
-        <GuestLanding />
-      </div>
-    )
+  if (session !== null) {
+    redirect('/browse')
   }
 
-  const { AuthenticatedDiscoveryHome } = await import(
-    '@/src/components/discovery/AuthenticatedDiscoveryHome'
+  return (
+    <div className="guest-landing">
+      <GuestLanding />
+    </div>
   )
-  return <AuthenticatedDiscoveryHome session={session} />
 }

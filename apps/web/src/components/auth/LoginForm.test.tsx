@@ -32,6 +32,30 @@ afterEach(() => {
 })
 
 describe('LoginForm', () => {
+  it('opens the browse home after a login without a next route', async () => {
+    vi.mocked(signIn).mockResolvedValue({
+      error: undefined,
+      code: undefined,
+      status: 200,
+      ok: true,
+      url: null,
+    })
+    render(<LoginForm />)
+
+    fireEvent.change(screen.getByLabelText('이메일 또는 아이디'), {
+      target: { value: 'admin@admin' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'test-password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await waitFor(() => {
+      expect(navigation.push).toHaveBeenCalledWith('/browse')
+    })
+    expect(navigation.refresh).toHaveBeenCalled()
+  })
+
   it('submits the local administrator email without browser email validation', async () => {
     vi.mocked(signIn).mockResolvedValue({
       error: 'CredentialsSignin',

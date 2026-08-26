@@ -85,7 +85,9 @@ export function LoginForm({
 
     const next = new URL(window.location.href).searchParams.get('next')
     const destination =
-      next?.startsWith('/') === true && !next.startsWith('//') ? next : '/'
+      next?.startsWith('/') === true && !next.startsWith('//')
+        ? next
+        : '/browse'
     router.push(destination)
     router.refresh()
   }

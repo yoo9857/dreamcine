@@ -375,7 +375,13 @@ test('홈이 열리고 로그인·가입으로 들어갈 수 있다', async ({ p
   await expect(page).toHaveURL(/\/login$/u)
 })
 
-test('로그인 성공 후 홈으로 돌아온다', async ({ page }) => {
+test('미인증 사용자는 browse 홈에서 로그인으로 이동한다', async ({ page }) => {
+  await page.goto('/browse')
+
+  await expect(page).toHaveURL(/\/login\?next=%2Fbrowse$/u)
+})
+
+test('로그인 성공 후 browse 홈으로 이동한다', async ({ page }) => {
   const user = account()
 
   await page.goto('/signup')
@@ -394,8 +400,10 @@ test('로그인 성공 후 홈으로 돌아온다', async ({ page }) => {
   await page.fill('input[name="password"]', user.password)
   await page.click('button[type="submit"]')
 
-  // 로그인 폼은 next 파라미터가 없으면 `/` 로 보낸다. 그 자리가 비어 있으면
-  // 인증을 마친 사용자가 404 를 만난다.
-  await expect(page).toHaveURL(/\/$/u)
+  // 로그인 전 랜딩(`/`)과 인증 홈(`/browse`)을 분리한다.
+  await expect(page).toHaveURL(/\/browse$/u)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+  await page.goto('/')
+  await expect(page).toHaveURL(/\/browse$/u)
 })

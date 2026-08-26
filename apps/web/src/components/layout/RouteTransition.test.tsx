@@ -13,6 +13,19 @@ vi.mock('next/navigation', () => ({
 }))
 
 describe('RouteTransition', () => {
+  it('treats the authenticated browse route as the discovery surface', () => {
+    route.pathname = '/browse'
+    const view = render(
+      <RouteTransition>
+        <span>홈</span>
+      </RouteTransition>,
+    )
+
+    expect(
+      view.container.firstElementChild?.classList.contains('is-discovery-home'),
+    ).toBe(true)
+  })
+
   it('keeps the page surface mounted while the pathname changes', () => {
     route.pathname = '/'
     const view = render(
