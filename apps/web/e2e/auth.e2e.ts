@@ -361,7 +361,10 @@ test('홈이 열리고 로그인·가입으로 들어갈 수 있다', async ({ p
   expect(response?.status()).toBe(200)
 
   await expect(
-    page.getByRole('heading', { level: 1, name: '인기 에피소드' }),
+    page.getByRole('heading', {
+      level: 1,
+      name: /취향이 열리는.*ilog/u,
+    }),
   ).toBeVisible()
   await expect(page.getByRole('link', { name: '회원가입' })).toBeVisible()
 
