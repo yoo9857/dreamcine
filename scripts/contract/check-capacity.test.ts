@@ -18,6 +18,7 @@ afterEach(async () => {
 
 async function createProjectFixture(
   composeTransform?: (source: string) => string,
+  deployTransform?: (source: string) => string,
 ) {
   const fixtureRoot = await mkdtemp(join(tmpdir(), 'aidream-capacity-'))
   temporaryRoots.push(fixtureRoot)
@@ -28,6 +29,7 @@ async function createProjectFixture(
       'infra/compose/docker-compose.t0.yml',
       'infra/compose/docker-compose.t0.yml',
     ],
+    ['scripts/ops/deploy.sh', 'scripts/ops/deploy.sh'],
   ] as const
 
   await Promise.all(
@@ -39,7 +41,9 @@ async function createProjectFixture(
         target,
         sourcePath.endsWith('.yml') && composeTransform !== undefined
           ? composeTransform(source)
-          : source,
+          : sourcePath.endsWith('deploy.sh') && deployTransform !== undefined
+            ? deployTransform(source)
+            : source,
       )
     }),
   )
@@ -64,5 +68,17 @@ describe('checkCapacity', () => {
     const result = await checkCapacity(root)
     expect(result.ok).toBe(false)
     expect(result.problems).toContain('T0 compose 불일치: WORKER_CONCURRENCY')
+  })
+
+  it('배포에서 용량 오버레이가 빠지면 검출한다', async () => {
+    const root = await createProjectFixture(undefined, (source) =>
+      source.replaceAll('capacity_overlay', 'capacity_profile_removed'),
+    )
+
+    const result = await checkCapacity(root)
+    expect(result.ok).toBe(false)
+    expect(result.problems).toContain(
+      '배포 스크립트가 capacity overlay를 적용하지 않습니다',
+    )
   })
 })

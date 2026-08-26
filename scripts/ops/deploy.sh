@@ -71,14 +71,32 @@ readonly WEB_IMAGE="${REGISTRY}/web:${SHA}"
 readonly WORKER_IMAGE="${REGISTRY}/worker:${SHA}"
 readonly DEPLOY_WORKER="${DEPLOY_WORKER:-0}"
 
-compose() {
+capacity_overlay() {
+  local tier
+  tier="$(sed -n 's/^[[:space:]]*CAPACITY_TIER[[:space:]]*=[[:space:]]*\([^#[:space:]]*\).*$/\1/p' "${ENV_FILE}" | tail -n 1)"
+  case "${tier}" in
+    T0) printf '%s' "${REPO_ROOT}/infra/compose/docker-compose.t0.yml" ;;
+    T1) printf '%s' "${REPO_ROOT}/infra/compose/docker-compose.t1.yml" ;;
+    *) fail "지원하지 않는 CAPACITY_TIER입니다: ${tier:-(없음)}" ;;
+  esac
+}
+
+compose_with_web_image() {
+  local web_image="$1"
+  shift
   local profile=()
+  local overlay
+  overlay="$(capacity_overlay)"
   if [[ "${DEPLOY_WORKER}" == '1' ]]; then
     profile=(--profile media)
   fi
-  env WEB_IMAGE="${WEB_IMAGE}" WORKER_IMAGE="${WORKER_IMAGE}" \
-    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" \
+  env WEB_IMAGE="${web_image}" WORKER_IMAGE="${WORKER_IMAGE}" \
+    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" -f "${overlay}" \
     "${profile[@]}" "$@"
+}
+
+compose() {
+  compose_with_web_image "${WEB_IMAGE}" "$@"
 }
 
 # 배포가 반복되면 immutable SHA 이미지가 서버에 쌓인다. 실행 중인 컨테이너가
@@ -111,6 +129,9 @@ preflight() {
   log '사전 확인'
   [[ -f "${COMPOSE_FILE}" ]] || fail "compose 파일이 없습니다: ${COMPOSE_FILE}"
   [[ -f "${ENV_FILE}" ]] || fail ".env 가 없습니다: ${ENV_FILE}"
+  local overlay
+  overlay="$(capacity_overlay)"
+  [[ -f "${overlay}" ]] || fail "capacity overlay가 없습니다: ${overlay}"
 
   command -v docker >/dev/null || fail 'docker 가 없습니다'
 
@@ -209,9 +230,7 @@ rollback() {
     return 1
   fi
   log "롤백 → ${previous}"
-  env WEB_IMAGE="${previous}" WORKER_IMAGE="${WORKER_IMAGE}" \
-    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" \
-    up -d --no-deps --wait web
+  compose_with_web_image "${previous}" up -d --no-deps --wait web
   printf 'ROLLED BACK: %s\n' "${previous}" >&2
 }
 

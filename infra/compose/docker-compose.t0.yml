@@ -32,7 +32,8 @@ services:
 
   redis:
     command: >-
-      redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save ""
+      redis-server --appendonly yes --maxmemory 96mb
+      --maxmemory-policy volatile-lru
     logging:
       <<: *t0-logging
 

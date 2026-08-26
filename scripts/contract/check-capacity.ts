@@ -181,11 +181,14 @@ export async function checkCapacity(
     'compose',
     'docker-compose.t0.yml',
   )
-  const [specSource, codeSource, composeSource] = await Promise.all([
-    readRequired(specPath),
-    readRequired(codePath),
-    readRequired(composePath),
-  ])
+  const deployPath = join(absoluteRoot, 'scripts', 'ops', 'deploy.sh')
+  const [specSource, codeSource, composeSource, deploySource] =
+    await Promise.all([
+      readRequired(specPath),
+      readRequired(codePath),
+      readRequired(composePath),
+      readRequired(deployPath),
+    ])
   const expected = parseSpecProfiles(specSource)
   const actual = parseCodeProfiles(codeSource)
   const problems: string[] = []
@@ -227,6 +230,13 @@ export async function checkCapacity(
     if (!pattern.test(composeSource)) {
       problems.push(`T0 compose 불일치: ${label}`)
     }
+  }
+
+  if (
+    !deploySource.includes('capacity_overlay') ||
+    !/-f\s+"\$\{overlay\}"/u.test(deploySource)
+  ) {
+    problems.push('배포 스크립트가 capacity overlay를 적용하지 않습니다')
   }
 
   return { ok: problems.length === 0, problems: problems.sort() }

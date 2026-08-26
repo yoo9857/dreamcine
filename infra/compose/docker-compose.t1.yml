@@ -24,4 +24,5 @@ services:
 
   redis:
     command: >-
-      redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save ""
+      redis-server --appendonly yes --maxmemory 512mb
+      --maxmemory-policy volatile-lru

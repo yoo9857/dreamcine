@@ -109,7 +109,7 @@ T0 은 여유가 없다. 아래는 **선택이 아니라 필수**다.
 | 3 | **워커 `mem_limit: 700m`** | ffmpeg 메모리 폭주가 호스트 전체를 끌고 내려간다 |
 | 4 | **`WORKER_CONCURRENCY=1`** | 2건 동시 인코딩 = 디스크·RAM·CPU 동시 고갈 |
 | 5 | **Postgres 튜닝** (`shared_buffers=128MB`, `max_connections=20`) | 기본값이 2GB 환경에 과하다 |
-| 6 | **Redis `maxmemory 96mb` + `allkeys-lru`** | 캐시가 RAM 을 먹고 OOM |
+| 6 | **Redis `maxmemory 96mb` + `volatile-lru`** | TTL 캐시가 RAM 을 먹고 OOM 되는 것을 막되 큐 영속 키는 보존 |
 | 7 | **디스크 사전 검사** (원본×3 여유 없으면 잡 지연) | 인코딩 중 디스크 풀 → 잡 실패 + 잔존 파일 |
 | 8 | **로그 상한** (`max-size=20m, max-file=3`) | 50GB 디스크를 로그가 잠식 |
 | 9 | **`next build` 는 서버에서 하지 않는다** | 2GB 에서 모노레포 빌드는 OOM. CI 가 이미지를 만든다 (`O01` §1) |
@@ -131,7 +131,7 @@ services:
                -c effective_cache_size=512MB -c work_mem=4MB
                -c maintenance_work_mem=64MB
   redis:
-    command: redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save ""
+    command: redis-server --appendonly yes --maxmemory 96mb --maxmemory-policy volatile-lru
   web:
     mem_limit: 700m
     environment:
