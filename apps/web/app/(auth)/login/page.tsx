@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { LoginForm } from '@/src/components/auth/LoginForm'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
+import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 
 /**
  * CSP nonce 는 요청마다 달라지므로 HTML 을 빌드 시점에 미리 만들 수 없다.
@@ -52,8 +53,13 @@ export default async function LoginPage({
 
         <aside
           className="ilog-login-visual"
+          data-cinematic-hero
           aria-label={english ? 'Welcome back to ilog' : 'ilog 반가운 인사'}
         >
+          <CinematicHeroMotion
+            chapter="01 / RETURN"
+            label="THE JOURNEY CONTINUES"
+          />
           <Image
             src="/brand/login-welcome.png"
             alt="Welcome Back! The journey continues."

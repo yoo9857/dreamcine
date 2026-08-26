@@ -6,6 +6,7 @@ import { ArrowDown, ArrowRight, ArrowUpRight } from 'lucide-react'
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from 'react'
 
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
+import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 
 import styles from './about-ilog.module.css'
 
@@ -168,6 +169,7 @@ export function AboutIlogExperience() {
       <section
         ref={heroRef}
         className={styles.hero}
+        data-cinematic-hero
         onPointerMove={moveHero}
         onPointerLeave={() => {
           heroRef.current?.style.setProperty('--pointer-x', '0')
@@ -175,6 +177,11 @@ export function AboutIlogExperience() {
         }}
         aria-labelledby="about-hero-title"
       >
+        <CinematicHeroMotion
+          chapter="01 / MANIFESTO"
+          label="PEOPLE MAKE STORIES"
+          tone="silver"
+        />
         <div className={styles.stars} aria-hidden="true" />
         <div className={styles.heroRails} aria-hidden="true">
           <PortraitRail items={heroRailA} />

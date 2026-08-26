@@ -37,6 +37,27 @@ body:has(.guest-landing) .aidream-theme-control {
   filter: saturate(0.75) contrast(1.07);
 }
 
+.guest-hero[data-motion-ready='true'] .guest-hero-image,
+.guest-hero[data-motion-ready='true'] .discovery-hero-video {
+  transform: translate3d(
+      calc(var(--cinema-x) * -10px),
+      calc(var(--cinema-y) * -7px + var(--cinema-scroll) * 34px),
+      0
+    )
+    scale(calc(1.04 + var(--cinema-scroll) * 0.04));
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.guest-hero[data-motion-ready='true'] .guest-hero-copy {
+  transform: translate3d(
+    calc(var(--cinema-x) * 5px),
+    calc(var(--cinema-y) * 3px + var(--cinema-scroll) * -28px),
+    0
+  );
+  transition: transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .guest-hero .discovery-hero-video {
   z-index: -3;
   filter: saturate(0.72) contrast(1.08);
@@ -485,23 +506,33 @@ body:has(.guest-landing) .aidream-theme-control {
 .guest-coverflow-dots {
   display: flex;
   justify-content: center;
-  gap: 7px;
+  gap: 1px;
   margin-top: 20px;
 }
 
 .guest-coverflow-dots button {
-  width: 6px;
-  height: 6px;
+  align-items: center;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  background: transparent;
+}
+
+.guest-coverflow-dots button::before {
   background: rgb(255 255 255 / 24%);
+  border-radius: 999px;
+  content: '';
+  height: 6px;
   transition:
     width 180ms ease,
     background 180ms ease;
+  width: 6px;
 }
 
-.guest-coverflow-dots button[aria-current='true'] {
+.guest-coverflow-dots button[aria-current='true']::before {
   width: 23px;
   background: var(--guest-pink);
 }
@@ -877,6 +908,7 @@ body:has(.guest-landing) .aidream-theme-control {
   color: rgb(255 255 255 / 48%);
   font-size: 9px;
   font-weight: 750;
+  min-height: 24px;
 }
 
 .guest-perspective-card > a:hover {
@@ -1034,6 +1066,9 @@ body:has(.guest-landing) .aidream-theme-control {
 }
 
 .guest-footer-links a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 24px;
   position: relative;
   color: rgb(255 255 255 / 48%);
   font-size: 11px;

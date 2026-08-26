@@ -18,6 +18,7 @@ import {
 import type { ReactNode } from 'react'
 
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
+import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 import { getPlanVariant, PLAN_VARIANTS } from '@/src/config/plan-markets'
 
 import {
@@ -129,7 +130,12 @@ export default async function AdsPlanPage({
         </nav>
       </header>
 
-      <section className={styles.hero} aria-labelledby="plan-title">
+      <section
+        className={styles.hero}
+        aria-labelledby="plan-title"
+        data-cinematic-hero
+      >
+        <CinematicHeroMotion chapter="01 / PREMIERE" label="ILOG MEMBERSHIP" />
         <div className={styles.heroVisual} aria-hidden="true">
           <div className={[styles.poster, styles.posterOne].join(' ')}>
             <Image

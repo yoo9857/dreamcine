@@ -15,6 +15,7 @@ import { HeroLikeButton } from '@/src/components/discovery/HeroLikeButton'
 import { IndustryPerspectives } from '@/src/components/discovery/IndustryPerspectives'
 import { FeedList } from '@/src/components/feed/FeedList'
 import { FeedSkeleton } from '@/src/components/feed/FeedSkeleton'
+import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 import { getFeed } from '@/src/services/feed/get-feed'
 import { getLogger } from '@/src/lib/logger'
 
@@ -132,7 +133,15 @@ async function PopularDiscovery({
 
   return (
     <>
-      <section className="discovery-hero" aria-labelledby="discovery-title">
+      <section
+        className="discovery-hero"
+        aria-labelledby="discovery-title"
+        data-cinematic-hero
+      >
+        <CinematicHeroMotion
+          chapter="01 / DISCOVER"
+          label="ILOG ORIGINAL SIGNAL"
+        />
         {lead.thumbUrl === null ? (
           <div className="discovery-hero-art" aria-hidden="true" />
         ) : (
@@ -244,7 +253,16 @@ async function GuestLanding(): Promise<ReactNode> {
 
   return (
     <div className="guest-landing-content" id="guest-top">
-      <section className="guest-hero" aria-labelledby="guest-title">
+      <section
+        className="guest-hero"
+        aria-labelledby="guest-title"
+        data-cinematic-hero
+      >
+        <CinematicHeroMotion
+          chapter="01 / PREMIERE"
+          label="STORIES BEYOND THE FRAME"
+          tone="lime"
+        />
         {lead?.thumbUrl === undefined || lead.thumbUrl === null ? (
           <div className="guest-hero-art" aria-hidden="true" />
         ) : (

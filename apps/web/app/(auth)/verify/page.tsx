@@ -13,11 +13,12 @@ export const dynamic = 'force-dynamic'
 export default function VerifyPage(): ReactNode {
   return (
     <main className="auth-shell">
+      <h1 className="sr-only">이메일 인증</h1>
       {/* useSearchParams 를 쓰는 컴포넌트는 Suspense 경계가 필요하다. */}
       <Suspense
         fallback={
           <div className="auth-card">
-            <h1>인증 확인 중…</h1>
+            <p>인증 확인 중…</p>
           </div>
         }
       >

@@ -15,7 +15,9 @@
   display: grid;
   grid-template-columns: 160px 1fr auto;
   left: 0;
-  padding: 18px clamp(22px, 4vw, 64px);
+  padding: calc(18px + env(safe-area-inset-top))
+    max(clamp(22px, 4vw, 64px), env(safe-area-inset-right)) 18px
+    max(clamp(22px, 4vw, 64px), env(safe-area-inset-left));
   position: fixed;
   right: 0;
   top: 0;
@@ -43,6 +45,12 @@
   font-weight: 700;
   letter-spacing: 0.2em;
   text-decoration: none;
+}
+
+.header nav a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 32px;
 }
 
 .header nav a:hover {
@@ -132,12 +140,16 @@
   position: absolute;
   right: 7vw;
   transform: translate(
-      calc(var(--pointer-x) * 22px),
-      calc(var(--pointer-y) * 15px)
+      calc(var(--pointer-x) * 22px + var(--cinema-x) * 12px),
+      calc(var(--pointer-y) * 15px + var(--cinema-scroll) * 42px)
     )
     rotate(1.5deg);
   transition: transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
   width: min(34vw, 510px);
+}
+
+.hero[data-motion-ready='true'] .heroCopy {
+  transform: translate3d(0, calc(var(--cinema-scroll) * -30px), 0);
 }
 
 .railWindow {
@@ -733,8 +745,11 @@
   gap: 18px;
 }
 .footer div a {
+  align-items: center;
   color: #45443f;
+  display: inline-flex;
   font-size: 10px;
+  min-height: 24px;
   text-decoration: none;
 }
 

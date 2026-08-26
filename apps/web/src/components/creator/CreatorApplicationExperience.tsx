@@ -14,9 +14,10 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react'
-import { useEffect, useState, type SyntheticEvent } from 'react'
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
 
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
+import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 
 import styles from './creator-application.module.css'
 
@@ -77,17 +78,27 @@ type SubmitState =
   | { status: 'error'; message: string }
 
 function ScrollProgress() {
-  const [progress, setProgress] = useState(0)
+  const progressRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
+    let frame = 0
     const update = () => {
-      const height = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(height <= 0 ? 0 : window.scrollY / height)
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const height =
+          document.documentElement.scrollHeight - window.innerHeight
+        const progress = height <= 0 ? 0 : window.scrollY / height
+        progressRef.current?.style.setProperty(
+          'transform',
+          `scaleX(${String(progress)})`,
+        )
+      })
     }
     update()
     window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
     return () => {
+      window.cancelAnimationFrame(frame)
       window.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
     }
@@ -95,7 +106,7 @@ function ScrollProgress() {
 
   return (
     <div className={styles.progressTrack} aria-hidden="true">
-      <span style={{ transform: `scaleX(${String(progress)})` }} />
+      <span ref={progressRef} />
     </div>
   )
 }
@@ -179,7 +190,43 @@ export function CreatorApplicationExperience() {
         className={styles.hero}
         id="top"
         aria-labelledby="creator-call-title"
+        data-cinematic-hero
       >
+        <CinematicHeroMotion
+          chapter="01 / OPEN CALL"
+          label="FOUNDING CREATOR CLASS"
+          tone="silver"
+        />
+        <div className={styles.particles} aria-hidden="true" />
+        <div className={styles.heroRails} aria-hidden="true">
+          <div className={styles.railWindow}>
+            <div className={styles.rail}>
+              {[...tracks, ...tracks].map((track, index) => (
+                <div
+                  className={styles.railFrame}
+                  key={`rail-a-${String(index)}`}
+                >
+                  <Image src={track.image} alt="" fill sizes="20vw" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={styles.railWindow}>
+            <div className={styles.railReverse}>
+              {[...tracks.slice().reverse(), ...tracks.slice().reverse()].map(
+                (track, index) => (
+                  <div
+                    className={styles.railFrame}
+                    key={`rail-b-${String(index)}`}
+                  >
+                    <Image src={track.image} alt="" fill sizes="20vw" />
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        </div>
+        <div className={styles.railShade} aria-hidden="true" />
         <div className={styles.heroMeta}>
           <span>ILOG CREATOR CALL</span>
           <span>2026 · FOUNDING CLASS</span>

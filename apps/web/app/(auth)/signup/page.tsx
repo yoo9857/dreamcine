@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { SignupForm } from '@/src/components/auth/SignupForm'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
+import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 
 /**
  * CSP nonce 는 요청마다 달라지므로 HTML 을 빌드 시점에 미리 만들 수 없다.
@@ -66,8 +67,13 @@ export default async function SignupPage({
 
         <aside
           className="ilog-login-visual ilog-signup-visual"
+          data-cinematic-hero
           aria-label={english ? 'ilog creative preview' : 'ilog 창작 미리보기'}
         >
+          <CinematicHeroMotion
+            chapter="01 / BEGIN"
+            label="YOUR STORY STARTS HERE"
+          />
           <div className="ilog-signup-visual-copy">
             <span>WATCH · CREATE · CONNECT</span>
             <h2>

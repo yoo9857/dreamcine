@@ -24,11 +24,13 @@ body:has(.ilog-login-page) .aidream-theme-control {
   position: fixed;
   inset: 0 0 auto;
   z-index: 10;
-  min-height: 88px;
+  min-height: calc(88px + env(safe-area-inset-top));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 clamp(22px, 4vw, 64px);
+  padding: env(safe-area-inset-top)
+    max(clamp(22px, 4vw, 64px), env(safe-area-inset-right)) 0
+    max(clamp(22px, 4vw, 64px), env(safe-area-inset-left));
 }
 
 .ilog-login-brand {
@@ -227,6 +229,35 @@ body:has(.ilog-login-page) .aidream-theme-control {
 .ilog-login-artwork {
   object-fit: contain;
   object-position: center;
+  transform: translate3d(
+      calc(var(--cinema-x) * -10px),
+      calc(var(--cinema-y) * -7px),
+      0
+    )
+    scale(1.025);
+  transition: transform 750ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.ilog-login-visual::after {
+  background: linear-gradient(
+    105deg,
+    transparent 28%,
+    rgb(255 255 255 / 7%) 48%,
+    transparent 68%
+  );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(calc(var(--cinema-x) * 16%));
+  z-index: 5;
+}
+
+.ilog-login-visual .cinematic-hero-motion__chapter,
+.ilog-login-visual .cinematic-hero-motion__label,
+.ilog-login-visual .cinematic-hero-motion__coordinates {
+  display: none;
 }
 
 .ilog-signup-page {
@@ -453,6 +484,12 @@ body:has(.ilog-login-page) .aidream-theme-control {
 @media (prefers-reduced-motion: reduce) {
   .ilog-login-home-link,
   .ilog-login-form .ilog-login-submit {
+    transition: none;
+  }
+
+  .ilog-login-artwork,
+  .ilog-login-visual::after {
+    transform: none;
     transition: none;
   }
 }

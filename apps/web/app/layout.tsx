@@ -9,6 +9,7 @@ import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import './globals.css'
 import '../src/styles/app-shell.css'
 import '../src/styles/auth-login.css'
+import '../src/styles/cinematic-motion.css'
 import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
 

@@ -35,7 +35,9 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   left: 0;
-  padding: 24px clamp(22px, 4vw, 72px);
+  padding: calc(24px + env(safe-area-inset-top))
+    max(clamp(22px, 4vw, 72px), env(safe-area-inset-right)) 24px
+    max(clamp(22px, 4vw, 72px), env(safe-area-inset-left));
   position: absolute;
   right: 0;
   top: 0;
@@ -68,6 +70,12 @@
   text-decoration: none;
   text-transform: uppercase;
   transition: color 180ms ease;
+}
+
+.header nav a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 32px;
 }
 
 .header nav a:hover {
@@ -120,7 +128,28 @@
 }
 
 .particles {
+  background-image:
+    radial-gradient(
+      circle at 18% 28%,
+      rgb(255 255 255 / 45%) 0 1px,
+      transparent 1.5px
+    ),
+    radial-gradient(
+      circle at 72% 16%,
+      rgb(255 255 255 / 36%) 0 1px,
+      transparent 1.5px
+    ),
+    radial-gradient(
+      circle at 84% 72%,
+      rgb(255 255 255 / 30%) 0 1px,
+      transparent 1.5px
+    );
+  background-size:
+    260px 220px,
+    340px 290px,
+    410px 360px;
   inset: 0;
+  opacity: 0.34;
   pointer-events: none;
   position: absolute;
   z-index: 5;
@@ -135,9 +164,19 @@
   overflow: hidden;
   position: absolute;
   right: clamp(10px, 5vw, 80px);
-  transform: rotate(5deg);
+  transform: translate3d(
+      calc(var(--cinema-x) * 20px),
+      calc(var(--cinema-y) * 12px + var(--cinema-scroll) * 48px),
+      0
+    )
+    rotate(calc(5deg + var(--cinema-x) * 1deg));
+  transition: transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
   width: min(39vw, 560px);
   z-index: 2;
+}
+
+.hero[data-motion-ready='true'] .heroContent {
+  transform: translate3d(0, calc(var(--cinema-scroll) * -32px), 0);
 }
 
 .railWindow {
@@ -319,6 +358,7 @@
   font-size: 9px;
   gap: 13px;
   letter-spacing: 0.25em;
+  min-height: 24px;
   position: absolute;
   right: clamp(22px, 3vw, 60px);
   text-decoration: none;
@@ -1047,8 +1087,11 @@
 }
 
 .footer > div a {
+  align-items: center;
   color: #393934;
+  display: inline-flex;
   font-size: 12px;
+  min-height: 24px;
   text-decoration: none;
 }
 

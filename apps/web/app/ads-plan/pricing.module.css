@@ -26,8 +26,12 @@
   top: 0;
   left: 50%;
   z-index: 20;
-  width: min(calc(100% - 80px), 1480px);
-  min-height: 92px;
+  width: min(
+    calc(100% - 80px - env(safe-area-inset-left) - env(safe-area-inset-right)),
+    1480px
+  );
+  min-height: calc(92px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -38,7 +42,7 @@
   position: fixed;
   inset: 0 0 auto;
   z-index: -1;
-  height: 92px;
+  height: calc(92px + env(safe-area-inset-top));
   content: '';
   border-bottom: 1px solid rgb(255 255 255 / 7%);
   background: linear-gradient(180deg, rgb(7 7 8 / 92%), rgb(7 7 8 / 62%));
@@ -98,6 +102,7 @@
   font: inherit;
   font-size: 9px;
   font-weight: 800;
+  min-height: 38px;
   outline: 0;
   cursor: pointer;
 }
@@ -292,7 +297,12 @@
   width: 38%;
   aspect-ratio: 0.7;
   opacity: 0.56;
-  transform: rotateY(28deg) rotateZ(-9deg) scale(0.92);
+  transform: translate3d(
+      calc(var(--cinema-x) * -18px),
+      calc(var(--cinema-y) * -9px + var(--cinema-scroll) * 38px),
+      0
+    )
+    rotateY(calc(28deg + var(--cinema-x) * 3deg)) rotateZ(-9deg) scale(0.92);
 }
 
 .posterTwo {
@@ -301,7 +311,12 @@
   z-index: 2;
   width: 42%;
   aspect-ratio: 0.7;
-  transform: rotateZ(2deg);
+  transform: translate3d(
+      calc(var(--cinema-x) * 8px),
+      calc(var(--cinema-y) * 7px + var(--cinema-scroll) * -22px),
+      0
+    )
+    rotateZ(calc(2deg + var(--cinema-x) * 0.8deg));
   animation: poster-float 7s ease-in-out infinite;
 }
 
@@ -311,7 +326,12 @@
   width: 37%;
   aspect-ratio: 0.7;
   opacity: 0.6;
-  transform: rotateY(-28deg) rotateZ(10deg) scale(0.9);
+  transform: translate3d(
+      calc(var(--cinema-x) * 22px),
+      calc(var(--cinema-y) * 10px + var(--cinema-scroll) * 30px),
+      0
+    )
+    rotateY(calc(-28deg + var(--cinema-x) * 3deg)) rotateZ(10deg) scale(0.9);
 }
 
 .heroGlow {
@@ -327,8 +347,21 @@
 
 @keyframes poster-float {
   50% {
-    transform: rotateZ(1deg) translateY(-12px);
+    transform: translate3d(
+        calc(var(--cinema-x) * 8px),
+        calc(var(--cinema-y) * 7px + var(--cinema-scroll) * -22px - 12px),
+        0
+      )
+      rotateZ(calc(1deg + var(--cinema-x) * 0.8deg));
   }
+}
+
+.hero[data-motion-ready='true'] .heroCopy {
+  transform: translate3d(0, calc(var(--cinema-scroll) * -26px), 0);
+}
+
+.hero :global(.cinematic-hero-motion__coordinates) {
+  display: none;
 }
 
 .priceCard {
@@ -483,6 +516,7 @@
   font-size: 8px;
   font-weight: 850;
   letter-spacing: 0.16em;
+  min-height: 24px;
 }
 
 .scrollHint span {
@@ -1128,6 +1162,12 @@
 .footer > div {
   display: flex;
   gap: 22px;
+}
+
+.footer a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 24px;
 }
 
 .footer button {
