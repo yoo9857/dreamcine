@@ -12,6 +12,7 @@ import { getFeed } from '@/src/services/feed/get-feed'
 
 import { DiscoveryBackdrop } from './DiscoveryBackdrop'
 import { BrowseAccountMenu } from './BrowseAccountMenu'
+import { DiscoveryFooter } from './DiscoveryFooter'
 import { DiscoveryStoryShelves } from './DiscoveryStoryShelves'
 import { HeroLikeButton } from './HeroLikeButton'
 
@@ -185,7 +186,7 @@ export function AuthenticatedDiscoveryHome({
   readonly session: RouteSession
 }): ReactNode {
   return (
-    <div className="discovery-home">
+    <div className="discovery-home" id="discovery-top">
       <header className="discovery-topbar">
         <Link
           href="/browse"
@@ -216,6 +217,7 @@ export function AuthenticatedDiscoveryHome({
       <Suspense fallback={<DiscoveryFallback />}>
         <PopularDiscovery session={session} />
       </Suspense>
+      <DiscoveryFooter handle={session.user.handle} />
     </div>
   )
 }
