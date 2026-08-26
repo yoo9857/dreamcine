@@ -1,4 +1,4 @@
-import { THEMES } from '@aidream/ui'
+import { THEMES, themeTokens } from '@aidream/ui'
 import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
@@ -17,12 +17,20 @@ export const metadata: Metadata = {
     template: '%s | ilog',
   },
   description: '새로운 이야기와 크리에이터를 발견하는 영상 플랫폼 ilog',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/icon.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: themeTokens('dark').color.bg.base,
 }
 
 /**

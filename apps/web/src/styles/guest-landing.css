@@ -8,8 +8,8 @@ body:has(.guest-landing) .aidream-theme-control {
 }
 
 .guest-landing {
-  --guest-pink: #f02b7f;
-  --guest-lime: #d9ff4f;
+  --guest-pink: #ff1e1e;
+  --guest-lime: #ff7474;
   min-height: 100dvh;
   overflow: hidden;
   color: white;
@@ -40,7 +40,7 @@ body:has(.guest-landing) .aidream-theme-control {
   inset: 0;
   z-index: -4;
   background:
-    radial-gradient(circle at 70% 30%, #83274f, transparent 30%),
+    radial-gradient(circle at 70% 30%, #8b0000, transparent 30%),
     linear-gradient(140deg, #121d27, #05090c 65%);
 }
 
@@ -65,18 +65,31 @@ body:has(.guest-landing) .aidream-theme-control {
 }
 
 .guest-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: white;
   font-size: 30px;
   font-weight: 900;
   letter-spacing: -0.075em;
 }
 
-.guest-wordmark b {
+.guest-wordmark .brand-app-icon {
+  flex: none;
+  border-radius: 10px;
+}
+
+.guest-wordmark .brand-wordmark-label {
+  color: white;
+}
+
+.guest-wordmark .brand-wordmark-label b {
   color: var(--guest-pink);
 }
 
-.guest-wordmark span {
+.guest-wordmark .brand-wordmark-label i {
   color: var(--guest-lime);
+  font-style: normal;
 }
 
 .guest-header nav {
@@ -257,7 +270,7 @@ body:has(.guest-landing) .aidream-theme-control {
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: 20px;
   background:
-    radial-gradient(circle at 90% 0%, rgb(240 43 127 / 16%), transparent 35%),
+    radial-gradient(circle at 90% 0%, rgb(255 30 30 / 16%), transparent 35%),
     #0d151b;
 }
 

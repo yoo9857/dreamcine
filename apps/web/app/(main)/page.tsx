@@ -208,7 +208,17 @@ async function GuestLanding(): Promise<ReactNode> {
         <div className="guest-hero-shade" />
         <header className="guest-header">
           <Link href="/" className="guest-wordmark" aria-label="ilog 홈">
-            <b>i</b>log<span>.</span>
+            <Image
+              src="/brand/ilog-app-icon.png"
+              alt=""
+              width={36}
+              height={36}
+              unoptimized
+              className="brand-app-icon"
+            />
+            <span className="brand-wordmark-label">
+              <b>i</b>log<i>.</i>
+            </span>
           </Link>
           <nav aria-label="회원 메뉴">
             <Link href="/login">로그인</Link>
@@ -303,7 +313,17 @@ async function GuestLanding(): Promise<ReactNode> {
 
       <footer className="guest-footer">
         <Link href="/" className="guest-wordmark">
-          <b>i</b>log<span>.</span>
+          <Image
+            src="/brand/ilog-app-icon.png"
+            alt=""
+            width={36}
+            height={36}
+            unoptimized
+            className="brand-app-icon"
+          />
+          <span className="brand-wordmark-label">
+            <b>i</b>log<i>.</i>
+          </span>
         </Link>
         <p>이야기가 스크린이 되는 곳.</p>
         <div>
@@ -343,7 +363,17 @@ export default async function HomePage(): Promise<ReactNode> {
     <div className="discovery-home">
       <header className="discovery-topbar">
         <Link href="/" className="discovery-wordmark" aria-label="ilog 홈">
-          <b>i</b>log<span>.</span>
+          <Image
+            src="/brand/ilog-app-icon.png"
+            alt=""
+            width={34}
+            height={34}
+            unoptimized
+            className="brand-app-icon"
+          />
+          <span className="brand-wordmark-label">
+            <b>i</b>log<i>.</i>
+          </span>
         </Link>
         <Form className="discovery-search" action="/search" role="search">
           <SearchIcon />
