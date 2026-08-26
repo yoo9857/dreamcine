@@ -22,7 +22,7 @@ export function EpisodeCard({
   readonly priority?: boolean
 }): ReactNode {
   return (
-    <article className="episode-card overflow-hidden rounded-xl border border-border bg-bg-elevated">
+    <article className="episode-card overflow-hidden rounded-xl border border-transparent bg-bg-elevated">
       <Link
         href={`/watch/${item.episodeId}`}
         className="block"

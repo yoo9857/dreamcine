@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 
 export function RouteTransition({
   children,
@@ -13,7 +13,6 @@ export function RouteTransition({
 
   return (
     <div
-      key={pathname}
       className={`aidream-route-view${isDiscoveryHome ? ' is-discovery-home' : ''}`}
     >
       {children}
