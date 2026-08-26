@@ -28,6 +28,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=node:node /app/apps/web/public ./apps/web/public
+COPY --from=build --chown=node:node /app/apps/web/scripts ./apps/web/scripts
 # 배포 전 `prisma migrate deploy`를 같은 불변 이미지에서 실행한다.
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/prisma ./prisma
