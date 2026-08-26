@@ -13,6 +13,7 @@ export interface FeedListProps {
   readonly initialItems: readonly FeedItem[]
   readonly initialCursor: string | null
   readonly endpoint?: string
+  readonly priorityFirst?: boolean
 }
 
 export function FeedList(props: FeedListProps): ReactNode {
@@ -42,13 +43,16 @@ export function FeedList(props: FeedListProps): ReactNode {
   }
 
   return (
-    <section aria-label="에피소드 피드" className="flex flex-col gap-6">
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <section
+      aria-label="에피소드 피드"
+      className="episode-feed flex flex-col gap-6"
+    >
+      <div className="episode-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {feed.items.map((item, index) => (
           <EpisodeCard
             key={item.episodeId}
             item={item}
-            priority={index === 0}
+            priority={(props.priorityFirst ?? true) && index === 0}
           />
         ))}
       </div>

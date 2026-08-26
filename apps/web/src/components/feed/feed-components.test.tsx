@@ -91,6 +91,30 @@ describe('feed components', () => {
     expect(images[1]?.getAttribute('loading')).toBe('lazy')
   })
 
+  it('does not reprioritize cards below the homepage hero', () => {
+    const imageItem = {
+      ...item,
+      thumbUrl: 'https://cdn.example/next.jpg',
+    }
+    render(
+      providers(
+        <FeedList
+          type="popular"
+          initialItems={[imageItem]}
+          initialCursor={null}
+          priorityFirst={false}
+        />,
+      ),
+    )
+
+    expect(screen.getByRole('img').getAttribute('loading')).toBe('lazy')
+  })
+
+  it('shows an honest placeholder when media duration is unavailable', () => {
+    render(<EpisodeCard item={{ ...item, durationSec: null }} />)
+    expect(screen.getByText('--:--')).toBeTruthy()
+  })
+
   it('remembers the feed position before opening an episode', () => {
     Object.defineProperty(window, 'scrollY', {
       configurable: true,

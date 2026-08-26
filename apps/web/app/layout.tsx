@@ -1,5 +1,5 @@
 import { THEMES } from '@aidream/ui'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
@@ -9,8 +9,17 @@ import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AIDREAM',
-  description: 'AI로 제작된 드라마를 공유하는 소셜 네트워크',
+  title: {
+    default: 'ilog',
+    template: '%s | ilog',
+  },
+  description: '새로운 이야기와 크리에이터를 발견하는 영상 플랫폼 ilog',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 /**
@@ -40,7 +49,7 @@ export default async function RootLayout({
             상단바(T09)가 생기면 그쪽으로 옮긴다. 그때까지 화면 어디서든
             닿을 수 있게 고정해 둔다.
           */}
-        <div className="fixed right-4 top-4 z-10">
+        <div className="aidream-theme-control">
           <ThemeToggle current={theme ?? 'dark'} />
         </div>
         {children}

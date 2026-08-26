@@ -14,7 +14,7 @@ export function AppShell({
   readonly children: ReactNode
 }): ReactNode {
   return (
-    <div className="min-h-dvh bg-bg pb-16 sm:pb-0">
+    <div className="aidream-app-shell">
       {/*
         공개 본문은 세션 DB 조회와 무관하다. 내비게이션만 스트리밍 경계에 두어
         홈의 제목과 피드 스켈레톤이 세션 확인을 기다리지 않게 한다.
@@ -23,7 +23,7 @@ export function AppShell({
       <Suspense fallback={<MainNav session={null} />}>
         <SessionMainNav />
       </Suspense>
-      <main className="mx-auto w-full max-w-7xl px-4 py-8">{children}</main>
+      <main className="aidream-main">{children}</main>
     </div>
   )
 }
