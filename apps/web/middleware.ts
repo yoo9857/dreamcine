@@ -9,6 +9,7 @@ import { getPlanVariantByRoute } from '@/src/config/plan-markets'
  * 이 목록은 **UX 용 리다이렉트 기준**일 뿐이며 보안 경계가 아니다.
  */
 const PROTECTED_PREFIXES = [
+  '/account',
   '/browse',
   '/studio',
   '/admin',

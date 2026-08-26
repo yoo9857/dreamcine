@@ -12,6 +12,7 @@ import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion
 import { getFeed } from '@/src/services/feed/get-feed'
 
 import { DiscoveryBackdrop } from './DiscoveryBackdrop'
+import { BrowseAccountMenu } from './BrowseAccountMenu'
 import { HeroLikeButton } from './HeroLikeButton'
 
 const discoveryTabs = [
@@ -218,8 +219,11 @@ export function AuthenticatedDiscoveryHome({
           />
           <button type="submit">검색</button>
         </Form>
-        <div className="discovery-live" aria-label="새 콘텐츠 업데이트 중">
-          <span /> LIVE
+        <div className="discovery-top-actions">
+          <div className="discovery-live" aria-label="새 콘텐츠 업데이트 중">
+            <span /> LIVE
+          </div>
+          <BrowseAccountMenu user={session.user} />
         </div>
       </header>
       <Suspense fallback={<DiscoveryFallback />}>

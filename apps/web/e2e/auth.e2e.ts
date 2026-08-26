@@ -404,6 +404,22 @@ test('로그인 성공 후 browse 홈으로 이동한다', async ({ page }) => {
   await expect(page).toHaveURL(/\/browse$/u)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
+  await page.locator('.browse-account-trigger').click()
+  await expect(page.getByRole('menu', { name: '계정 바로가기' })).toBeVisible()
+  await expect(
+    page.getByRole('menuitem', { name: /프로필 관리/u }),
+  ).toHaveAttribute('href', '/account#profile')
+  await expect(page.getByRole('menuitem', { name: /^계정/u })).toHaveAttribute(
+    'href',
+    '/account#account',
+  )
+
+  await page.getByRole('menuitem', { name: /^계정/u }).click()
+  await expect(page).toHaveURL(/\/account#account$/u)
+  await expect(
+    page.getByRole('heading', { level: 1, name: '내 계정, 한눈에.' }),
+  ).toBeVisible()
+
   await page.goto('/')
   await expect(page).toHaveURL(/\/browse$/u)
 })
