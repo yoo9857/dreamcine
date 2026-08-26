@@ -1,9 +1,5 @@
 /* Cinematic sign-in surface, adapted to ilog's neon identity. */
 
-body:has(.ilog-login-page) .aidream-theme-control {
-  display: none;
-}
-
 .ilog-login-page,
 .ilog-login-page *,
 .ilog-login-page *::before,

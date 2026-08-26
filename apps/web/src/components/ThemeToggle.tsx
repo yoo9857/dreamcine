@@ -35,6 +35,7 @@ export function ThemeToggle({ current }: ThemeToggleProps): ReactNode {
       }
       onClick={() => {
         document.cookie = themeCookie(next)
+        document.documentElement.dataset.theme = next
         startTransition(() => {
           router.refresh()
         })
