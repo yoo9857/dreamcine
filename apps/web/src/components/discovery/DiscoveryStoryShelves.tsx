@@ -1,7 +1,16 @@
+'use client'
+
 import type { FeedItem } from '@aidream/core'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import React, { type ReactNode } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 interface ShelfCard {
   readonly id: string
@@ -113,6 +122,118 @@ function cardsFrom(items: readonly FeedItem[]): readonly ShelfCard[] {
   return [...liveCards, ...curatedCards].slice(0, 8)
 }
 
+function ShelfTrack({
+  cards,
+  rowId,
+  ranked,
+}: {
+  readonly cards: readonly ShelfCard[]
+  readonly rowId: string
+  readonly ranked: boolean
+}): ReactNode {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [canPrevious, setCanPrevious] = useState(false)
+  const [canNext, setCanNext] = useState(true)
+
+  const updateEdges = useCallback(() => {
+    const track = trackRef.current
+    if (track === null) return
+    setCanPrevious(track.scrollLeft > 4)
+    setCanNext(track.scrollLeft + track.clientWidth < track.scrollWidth - 4)
+  }, [])
+
+  useEffect(() => {
+    const track = trackRef.current
+    if (track === null) return
+    updateEdges()
+    track.addEventListener('scroll', updateEdges, { passive: true })
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updateEdges)
+    observer?.observe(track)
+    return () => {
+      track.removeEventListener('scroll', updateEdges)
+      observer?.disconnect()
+    }
+  }, [updateEdges])
+
+  function move(direction: -1 | 1): void {
+    const track = trackRef.current
+    if (track === null) return
+    track.scrollBy({
+      left: direction * Math.max(track.clientWidth * 0.82, 240),
+      behavior: 'smooth',
+    })
+  }
+
+  return (
+    <div className="discovery-shelf-stage">
+      <div
+        className="discovery-shelf-track"
+        ref={trackRef}
+        id={`shelf-track-${rowId}`}
+      >
+        {cards.map((card, index) => (
+          <article className="discovery-shelf-card" key={`${rowId}-${card.id}`}>
+            <Link href={card.href} aria-label={`${card.title} 보기`}>
+              {ranked ? (
+                <strong className="discovery-shelf-rank" aria-hidden="true">
+                  {index + 1}
+                </strong>
+              ) : null}
+              <div className="discovery-shelf-visual">
+                <Image
+                  src={card.imageUrl}
+                  alt=""
+                  width={480}
+                  height={270}
+                  unoptimized={card.imageUrl.startsWith('http')}
+                  sizes="(max-width: 767px) 54vw, (max-width: 1200px) 25vw, 18vw"
+                />
+                <span className="discovery-shelf-play" aria-hidden="true">
+                  ▶
+                </span>
+                {card.viewCount === undefined ? null : (
+                  <small>조회 {card.viewCount}</small>
+                )}
+              </div>
+              <div className="discovery-shelf-copy">
+                <h3>{card.title}</h3>
+                <p>{card.subtitle}</p>
+              </div>
+            </Link>
+          </article>
+        ))}
+      </div>
+      <div className="discovery-shelf-arrows" aria-label="선반 이동">
+        <button
+          type="button"
+          aria-label="이전 작품"
+          aria-controls={`shelf-track-${rowId}`}
+          disabled={!canPrevious}
+          onClick={() => {
+            move(-1)
+          }}
+        >
+          <ChevronLeft aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label="다음 작품"
+          aria-controls={`shelf-track-${rowId}`}
+          disabled={!canNext}
+          onClick={() => {
+            move(1)
+          }}
+        >
+          <ChevronRight aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function DiscoveryStoryShelves({
   items,
 }: {
@@ -132,46 +253,17 @@ export function DiscoveryStoryShelves({
               <span>{row.eyebrow}</span>
               <h2 id={`shelf-${row.id}`}>{row.title}</h2>
             </div>
-            <Link href={row.href}>
-              모두 보기 <span aria-hidden="true">→</span>
-            </Link>
+            <div className="discovery-shelf-header-actions">
+              <Link href={row.href}>
+                모두 보기 <span aria-hidden="true">→</span>
+              </Link>
+            </div>
           </header>
-          <div className="discovery-shelf-track">
-            {rotate(cards, row.offset).map((card, index) => (
-              <article
-                className="discovery-shelf-card"
-                key={`${row.id}-${card.id}`}
-              >
-                <Link href={card.href} aria-label={`${card.title} 보기`}>
-                  {'ranked' in row ? (
-                    <strong className="discovery-shelf-rank" aria-hidden="true">
-                      {index + 1}
-                    </strong>
-                  ) : null}
-                  <div className="discovery-shelf-visual">
-                    <Image
-                      src={card.imageUrl}
-                      alt=""
-                      width={480}
-                      height={270}
-                      unoptimized={card.imageUrl.startsWith('http')}
-                      sizes="(max-width: 767px) 54vw, (max-width: 1200px) 25vw, 18vw"
-                    />
-                    <span className="discovery-shelf-play" aria-hidden="true">
-                      ▶
-                    </span>
-                    {card.viewCount === undefined ? null : (
-                      <small>조회 {card.viewCount}</small>
-                    )}
-                  </div>
-                  <div className="discovery-shelf-copy">
-                    <h3>{card.title}</h3>
-                    <p>{card.subtitle}</p>
-                  </div>
-                </Link>
-              </article>
-            ))}
-          </div>
+          <ShelfTrack
+            cards={rotate(cards, row.offset)}
+            rowId={row.id}
+            ranked={'ranked' in row}
+          />
         </section>
       ))}
     </div>

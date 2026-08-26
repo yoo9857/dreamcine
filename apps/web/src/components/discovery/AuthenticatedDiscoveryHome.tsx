@@ -1,4 +1,3 @@
-import { EmptyState } from '@aidream/ui'
 import Form from 'next/form'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -12,6 +11,7 @@ import { getFeed } from '@/src/services/feed/get-feed'
 
 import { DiscoveryBackdrop } from './DiscoveryBackdrop'
 import { BrowseAccountMenu } from './BrowseAccountMenu'
+import { DiscoveryCreatorCta } from './DiscoveryCreatorCta'
 import { DiscoveryFooter } from './DiscoveryFooter'
 import { DiscoveryStoryShelves } from './DiscoveryStoryShelves'
 import { HeroLikeButton } from './HeroLikeButton'
@@ -59,6 +59,22 @@ function DiscoveryFallback(): ReactNode {
   )
 }
 
+function DiscoveryTabs(): ReactNode {
+  return (
+    <nav className="discovery-tabs" aria-label="콘텐츠 탐색">
+      {discoveryTabs.map((tab) => (
+        <Link
+          href={tab.href}
+          className={'active' in tab ? 'is-active' : undefined}
+          key={tab.label}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
 async function PopularDiscovery({
   session,
 }: {
@@ -69,24 +85,61 @@ async function PopularDiscovery({
   if (lead === undefined) {
     return (
       <>
-        <div className="discovery-empty-hero">
-          <div>
-            <span>YOUR STORY STARTS HERE</span>
-            <h1>
-              첫 번째 이야기를
-              <br />
-              기다리고 있어요.
-            </h1>
-            <p>새로운 에피소드가 공개되면 가장 먼저 이곳에서 소개합니다.</p>
-            <Link href="/studio">
-              첫 작품 업로드하기 <b>↗</b>
-            </Link>
-          </div>
-          <EmptyState
-            title="아직 공개된 에피소드가 없습니다"
-            description="새로운 이야기가 공개되면 이곳에 표시됩니다."
+        <section
+          className="discovery-hero"
+          aria-labelledby="curated-discovery-title"
+          data-cinematic-hero
+        >
+          <CinematicHeroMotion
+            chapter="01 / CURATED PREMIERE"
+            label="ILOG EDITOR'S PICK"
           />
-        </div>
+          <Image
+            src="/brand/posters/memory.png"
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, (max-width: 1536px) 92vw, 1400px"
+            className="discovery-hero-image"
+          />
+          <div className="discovery-hero-shade" />
+          <div className="discovery-hero-copy">
+            <p className="discovery-kicker">
+              <span /> CURATED ON ILOG
+            </p>
+            <p className="discovery-hero-byline">한빈 · AI FILM</p>
+            <h1 id="curated-discovery-title">내일의 기억</h1>
+            <p>
+              기억을 영상으로 보관하는 가까운 미래. 사라져 가는 장면을
+              붙잡으려는 세 사람의 선택이 서로의 내일을 바꾸기 시작합니다.
+            </p>
+            <div className="discovery-hero-meta" aria-label="콘텐츠 정보">
+              <span>12+</span>
+              <span>DRAMA</span>
+              <span>ILOG PREMIERE</span>
+            </div>
+            <div className="discovery-hero-actions">
+              <Link href="/series/preview-1">
+                <span aria-hidden="true">▶</span> 작품 보기
+              </Link>
+              <Link href="/u/hanbin">
+                작가 프로필 <span aria-hidden="true">↗</span>
+              </Link>
+            </div>
+          </div>
+          <aside className="discovery-review-panel" aria-label="큐레이션 노트">
+            <div className="discovery-review-label">
+              <span>EDITOR'S NOTE</span>
+              <small>이번 주의 선택</small>
+            </div>
+            <blockquote>“기억은 사라져도, 장면은 우리 곁에 남는다.”</blockquote>
+            <p>한빈의 시네마틱 AI 드라마를 만나보세요.</p>
+            <Link href="/series/preview-1">
+              작품 자세히 보기 <span aria-hidden="true">→</span>
+            </Link>
+          </aside>
+        </section>
+        <DiscoveryTabs />
         <DiscoveryStoryShelves items={[]} />
       </>
     )
@@ -163,17 +216,7 @@ async function PopularDiscovery({
         </aside>
       </section>
 
-      <nav className="discovery-tabs" aria-label="콘텐츠 탐색">
-        {discoveryTabs.map((tab) => (
-          <Link
-            href={tab.href}
-            className={'active' in tab ? 'is-active' : undefined}
-            key={tab.label}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <DiscoveryTabs />
 
       <DiscoveryStoryShelves items={page.items} />
     </>
@@ -217,6 +260,7 @@ export function AuthenticatedDiscoveryHome({
       <Suspense fallback={<DiscoveryFallback />}>
         <PopularDiscovery session={session} />
       </Suspense>
+      <DiscoveryCreatorCta />
       <DiscoveryFooter handle={session.user.handle} />
     </div>
   )
