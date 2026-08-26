@@ -221,3 +221,9 @@ export {
   type AutoAction,
   type AutoActionInput,
 } from './rules/moderation.js'
+export {
+  CREATOR_TRACKS,
+  CreateCreatorApplicationSchema,
+  type CreatorTrack,
+  type CreateCreatorApplicationInput,
+} from './schemas/creator-application.schema.js'

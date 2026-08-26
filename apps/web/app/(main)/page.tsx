@@ -404,6 +404,8 @@ async function GuestLanding(): Promise<ReactNode> {
             </section>
             <section>
               <h3>크리에이터</h3>
+              <Link href="/about">About ilog</Link>
+              <Link href="/creator-apply">크리에이터 모집</Link>
               <Link href="/studio">스튜디오</Link>
               <Link href="/studio/series/new">새 시리즈 만들기</Link>
               <Link href="/studio/upload">에피소드 업로드</Link>
