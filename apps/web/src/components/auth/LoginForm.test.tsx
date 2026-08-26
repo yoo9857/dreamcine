@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import React from 'react'
+import { signIn } from 'next-auth/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { LoginForm } from './LoginForm'
@@ -31,21 +32,52 @@ afterEach(() => {
 })
 
 describe('LoginForm', () => {
-  it('keeps validation feedback connected to the redesigned fields', async () => {
+  it('submits the local administrator email without browser email validation', async () => {
+    vi.mocked(signIn).mockResolvedValue({
+      error: 'CredentialsSignin',
+      code: 'credentials',
+      status: 401,
+      ok: false,
+      url: null,
+    })
     render(<LoginForm />)
 
-    fireEvent.change(screen.getByLabelText('이메일'), {
-      target: { value: 'not-an-email' },
+    fireEvent.change(screen.getByLabelText('이메일 또는 아이디'), {
+      target: { value: 'admin@admin' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'test-password' },
     })
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     await waitFor(() => {
-      expect(screen.getByLabelText('이메일').getAttribute('aria-invalid')).toBe(
-        'true',
-      )
+      expect(signIn).toHaveBeenCalledWith('credentials', {
+        email: 'admin@admin',
+        password: 'test-password',
+        redirect: false,
+      })
+    })
+  })
+
+  it('keeps validation feedback connected to the redesigned fields', async () => {
+    render(<LoginForm />)
+
+    fireEvent.change(screen.getByLabelText('이메일 또는 아이디'), {
+      target: { value: '!' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getByLabelText('이메일 또는 아이디')
+          .getAttribute('aria-invalid'),
+      ).toBe('true')
     })
     expect(
-      screen.getByLabelText('이메일').getAttribute('aria-describedby'),
+      screen
+        .getByLabelText('이메일 또는 아이디')
+        .getAttribute('aria-describedby'),
     ).toBeTruthy()
     expect(
       screen.getByLabelText('비밀번호').getAttribute('aria-describedby'),

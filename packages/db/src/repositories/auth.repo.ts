@@ -47,6 +47,66 @@ export interface VerificationTokenRow {
   expires: Date
 }
 
+export interface BootstrapAdminInput {
+  passwordHash: string
+}
+
+export interface BootstrapAdminResult {
+  created: boolean
+  userId: string
+}
+
+const ADMIN_HANDLE = 'admin'
+const ADMIN_EMAIL = 'admin@admin'
+
+/**
+ * Creates the reserved local administrator or rotates its password.
+ * `admin@admin` is a deliberately local administrator identifier. It is not a
+ * routable recovery address, so password recovery remains an operator action.
+ */
+export function bootstrapAdmin(
+  input: BootstrapAdminInput,
+): Promise<BootstrapAdminResult> {
+  return withTransaction(async (tx) => {
+    const existing = await tx.user.findUnique({
+      where: { handle: ADMIN_HANDLE },
+    })
+
+    if (existing !== null && existing.role !== 'ADMIN') {
+      throw new Error(
+        'The reserved admin handle belongs to a non-admin account; refusing automatic elevation.',
+      )
+    }
+
+    const user =
+      existing === null
+        ? await tx.user.create({
+            data: {
+              handle: ADMIN_HANDLE,
+              email: ADMIN_EMAIL,
+              emailVerified: new Date(),
+              passwordHash: input.passwordHash,
+              displayName: 'Administrator',
+              role: 'ADMIN',
+              status: 'ACTIVE',
+            },
+          })
+        : await tx.user.update({
+            where: { id: existing.id },
+            data: {
+              email: ADMIN_EMAIL,
+              passwordHash: input.passwordHash,
+              emailVerified: existing.emailVerified ?? new Date(),
+              status: 'ACTIVE',
+              deletedAt: null,
+            },
+          })
+
+    await tx.session.deleteMany({ where: { userId: user.id } })
+    return { created: existing === null, userId: user.id }
+  })
+}
+
 function mapSession(row: PrismaSession): AuthSessionRow {
   return {
     sessionToken: row.sessionToken,

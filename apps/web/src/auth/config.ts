@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
 import { AppError, LoginSchema } from '@aidream/core'
-import { createAuthSession, findUserByEmail } from '@aidream/db'
+import {
+  createAuthSession,
+  findUserByEmail,
+  findUserByHandle,
+} from '@aidream/db'
 import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import Google from 'next-auth/providers/google'
@@ -15,7 +19,7 @@ function credentialsProvider(): NextAuthConfig['providers'][number] {
     id: 'credentials',
     name: '이메일',
     credentials: {
-      email: { label: '이메일', type: 'email' },
+      email: { label: '이메일 또는 아이디', type: 'text' },
       password: { label: '비밀번호', type: 'password' },
     },
     /**
@@ -31,8 +35,10 @@ function credentialsProvider(): NextAuthConfig['providers'][number] {
       if (!parsed.success) {
         return null
       }
-      const { email, password } = parsed.data
-      const user = await findUserByEmail(email)
+      const { email: identifier, password } = parsed.data
+      const user = identifier.includes('@')
+        ? await findUserByEmail(identifier)
+        : await findUserByHandle(identifier)
       const valid = await verifyPassword(user?.passwordHash ?? null, password)
       if (user === null || !valid || user.status !== 'ACTIVE') {
         return null

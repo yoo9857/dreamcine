@@ -54,6 +54,19 @@ export const HandleSchema = z
   .toLowerCase()
   .regex(/^[a-z0-9_]{3,20}$/u)
 
+/** 로그인에서는 이메일 또는 공개 핸들을 같은 식별자 입력으로 받는다. */
+export const LoginIdentifierSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .refine(
+    (value) =>
+      value === 'admin@admin' ||
+      EmailSchema.safeParse(value).success ||
+      HandleSchema.safeParse(value).success,
+    { message: 'Invalid email or username' },
+  )
+
 export const DisplayNameSchema = z
   .string()
   .transform(sanitizeText)
@@ -72,7 +85,7 @@ export const SignupSchema = z.object({
 })
 
 export const LoginSchema = z.object({
-  email: EmailSchema,
+  email: LoginIdentifierSchema,
   password: z.string().min(1),
 })
 

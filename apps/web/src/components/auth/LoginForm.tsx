@@ -25,7 +25,8 @@ export function LoginForm({
       ? {
           title: 'Sign in',
           subtitle: 'Pick up right where your story left off.',
-          email: 'Email address',
+          email: 'Email or username',
+          identifierPlaceholder: 'Email or username',
           password: 'Password',
           passwordPlaceholder: 'Enter your password',
           submitting: 'Signing in…',
@@ -37,7 +38,8 @@ export function LoginForm({
       : {
           title: text.auth.loginTitle,
           subtitle: '다시, 당신의 취향이 이어지는 곳으로.',
-          email: text.auth.email,
+          email: '이메일 또는 아이디',
+          identifierPlaceholder: '이메일 또는 아이디',
           password: text.auth.password,
           passwordPlaceholder: '비밀번호를 입력하세요',
           submitting: text.auth.loginSubmitting,
@@ -124,10 +126,10 @@ export function LoginForm({
         <Stack gap={4}>
           <Input
             label={copy.email}
-            type="email"
+            type="text"
             size="lg"
-            autoComplete="email"
-            placeholder="you@example.com"
+            autoComplete="username"
+            placeholder={copy.identifierPlaceholder}
             className="ilog-login-input"
             {...(errors.email?.message === undefined
               ? {}
