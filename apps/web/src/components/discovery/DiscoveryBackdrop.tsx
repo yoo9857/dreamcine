@@ -14,7 +14,14 @@ export function DiscoveryBackdrop({
   const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    const constrainedViewport = window.matchMedia('(max-width: 767px)').matches
+
+    // The backdrop is decorative. On small screens, loading HLS alongside the
+    // priority hero image delays the useful first paint and spends mobile data.
+    if (reduceMotion || constrainedViewport) return
 
     const controller = new AbortController()
     void fetch(`/api/episodes/${episodeId}/playback`, {

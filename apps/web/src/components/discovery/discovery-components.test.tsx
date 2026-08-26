@@ -78,4 +78,20 @@ describe('discovery home controls', () => {
     expect(fetchMock).not.toHaveBeenCalled()
     expect(container.querySelector('video')).toBeNull()
   })
+
+  it('does not load decorative video on a constrained viewport', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query === '(max-width: 767px)',
+      })),
+    )
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { container } = render(<DiscoveryBackdrop episodeId="episode_1" />)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(container.querySelector('video')).toBeNull()
+  })
 })
