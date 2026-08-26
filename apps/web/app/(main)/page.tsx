@@ -79,8 +79,6 @@ async function PopularDiscovery(): Promise<ReactNode> {
     )
   }
 
-  const feedItems = page.items.slice(1)
-
   return (
     <>
       <section className="discovery-hero" aria-labelledby="discovery-title">
@@ -148,6 +146,62 @@ async function PopularDiscovery(): Promise<ReactNode> {
         ))}
       </nav>
 
+      <section className="discovery-pathways" aria-label="추천 탐색 경로">
+        <Link
+          href={`/watch/${lead.episodeId}`}
+          className="discovery-pathway discovery-pathway-featured"
+        >
+          {lead.thumbUrl === null ? null : (
+            <Image
+              src={lead.thumbUrl}
+              alt=""
+              fill
+              unoptimized
+              sizes="(max-width: 767px) 84vw, 40vw"
+            />
+          )}
+          <span className="discovery-pathway-shade" />
+          <span className="discovery-pathway-index">01</span>
+          <span className="discovery-pathway-copy">
+            <small>EDITOR&apos;S PICK</small>
+            <strong>{lead.title}</strong>
+            <em>
+              바로 재생 <b aria-hidden="true">↗</b>
+            </em>
+          </span>
+        </Link>
+        <Link
+          href="/search"
+          className="discovery-pathway discovery-pathway-new"
+        >
+          <span className="discovery-pathway-orbit" aria-hidden="true" />
+          <span className="discovery-pathway-index">02</span>
+          <span className="discovery-pathway-copy">
+            <small>FIND SOMETHING NEW</small>
+            <strong>새로운 장면을 발견하세요.</strong>
+            <em>
+              전체 콘텐츠 탐색 <b aria-hidden="true">→</b>
+            </em>
+          </span>
+        </Link>
+        <Link
+          href="/studio"
+          className="discovery-pathway discovery-pathway-studio"
+        >
+          <span className="discovery-pathway-play" aria-hidden="true">
+            ▶
+          </span>
+          <span className="discovery-pathway-index">03</span>
+          <span className="discovery-pathway-copy">
+            <small>CREATE ON ILOG</small>
+            <strong>당신의 이야기를 시작하세요.</strong>
+            <em>
+              크리에이터 스튜디오 <b aria-hidden="true">→</b>
+            </em>
+          </span>
+        </Link>
+      </section>
+
       <section className="discovery-feed" aria-labelledby="popular-title">
         <div className="discovery-feed-heading">
           <div>
@@ -158,16 +212,12 @@ async function PopularDiscovery(): Promise<ReactNode> {
             전체 탐색 <span aria-hidden="true">→</span>
           </Link>
         </div>
-        {feedItems.length === 0 && page.nextCursor === null ? (
-          <p className="discovery-feed-coming">다음 이야기가 곧 이어집니다.</p>
-        ) : (
-          <FeedList
-            type="popular"
-            initialItems={feedItems}
-            initialCursor={page.nextCursor}
-            priorityFirst={false}
-          />
-        )}
+        <FeedList
+          type="popular"
+          initialItems={page.items}
+          initialCursor={page.nextCursor}
+          priorityFirst={false}
+        />
       </section>
     </>
   )
