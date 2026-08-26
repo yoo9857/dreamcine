@@ -81,6 +81,28 @@ compose() {
     "${profile[@]}" "$@"
 }
 
+# 배포가 반복되면 immutable SHA 이미지가 서버에 쌓인다. 실행 중인 컨테이너가
+# 참조하는 이미지는 Docker 가 제거하지 않으며, 나머지는 레지스트리에서 다시
+# 받을 수 있으므로 pull 공간이 부족할 때만 안전하게 회수한다. 볼륨·DB·업로드
+# 데이터와 컨테이너 자체는 이 정리 대상에 포함하지 않는다.
+ensure_pull_space() {
+  local free_kb
+  free_kb="$(df -Pk "${REPO_ROOT}" | awk 'NR==2 {print $4}')"
+  if ((free_kb >= 3 * 1024 * 1024)); then
+    return 0
+  fi
+
+  printf 'WARN: pull 공간이 부족해 사용되지 않는 Docker 이미지를 정리합니다 (%sKiB)\n' \
+    "${free_kb}"
+  docker image prune --all --force
+
+  free_kb="$(df -Pk "${REPO_ROOT}" | awk 'NR==2 {print $4}')"
+  if ((free_kb < 3 * 1024 * 1024)); then
+    fail "사용하지 않는 이미지를 정리한 뒤에도 디스크 여유가 3GiB 미만입니다 (${free_kb}KiB)"
+  fi
+  printf 'PASS: 이미지 정리 후 디스크 여유 %sKiB\n' "${free_kb}"
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 0. 사전 확인 — O01 §3-0 "정상이 아닌 상태에서 배포하지 않는다.
 #    장애 중 배포는 원인을 두 배로 만든다."
@@ -107,12 +129,10 @@ preflight() {
     docker image inspect "${WORKER_IMAGE}" >/dev/null 2>&1 || needs_pull=1
   fi
 
-  local free_kb
-  free_kb="$(df -Pk "${REPO_ROOT}" | awk 'NR==2 {print $4}')"
   # 새 이미지 레이어를 받아야 할 때만 pull 여유를 요구한다. 대상 이미지가 이미
   # 로컬에 있으면 레지스트리 확인만 수행하므로 저용량 상태의 안전한 재배포를 막지 않는다.
-  if ((needs_pull == 1 && free_kb < 3 * 1024 * 1024)); then
-    fail "새 이미지를 받을 디스크 여유가 3GiB 미만입니다 (${free_kb}KiB)"
+  if ((needs_pull == 1)); then
+    ensure_pull_space
   fi
 
   printf 'PASS: %s\n' "${WEB_IMAGE}"
