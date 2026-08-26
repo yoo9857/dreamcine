@@ -239,7 +239,7 @@ async function PopularDiscovery({
  * 비회원 공개 랜딩은 `/` 하나만 유지한다. 검수용 또는 캠페인용 화면도 별도
  * 랜딩 라우트로 복제하지 않고 이 컴포넌트의 섹션으로 통합한다.
  */
-async function GuestLanding(): Promise<ReactNode> {
+async function GuestTrendingCoverflow(): Promise<ReactNode> {
   const page = await getFeed({ type: 'popular', limit: 10 }, null).catch(
     (error: unknown) => {
       getLogger().warn(
@@ -249,8 +249,24 @@ async function GuestLanding(): Promise<ReactNode> {
       return { items: [], nextCursor: null }
     },
   )
-  const lead = page.items[0]
 
+  return (
+    <GuestCoverflow
+      items={
+        page.items.length === 0
+          ? landingPreviewItems
+          : page.items.map((item) => ({
+              episodeId: item.episodeId,
+              title: item.title,
+              creatorName: item.creator.displayName,
+              thumbnailUrl: item.thumbUrl,
+            }))
+      }
+    />
+  )
+}
+
+function GuestLanding(): ReactNode {
   return (
     <div className="guest-landing-content" id="guest-top">
       <section
@@ -263,22 +279,14 @@ async function GuestLanding(): Promise<ReactNode> {
           label="STORIES BEYOND THE FRAME"
           tone="lime"
         />
-        {lead?.thumbUrl === undefined || lead.thumbUrl === null ? (
-          <div className="guest-hero-art" aria-hidden="true" />
-        ) : (
-          <Image
-            src={lead.thumbUrl}
-            alt=""
-            fill
-            priority
-            unoptimized
-            sizes="100vw"
-            className="guest-hero-image"
-          />
-        )}
-        {lead === undefined ? null : (
-          <DiscoveryBackdrop episodeId={lead.episodeId} />
-        )}
+        <Image
+          src="/brand/posters/memory.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="guest-hero-image"
+        />
         <div className="guest-hero-shade" />
         <header className="guest-header">
           <Link href="/" className="guest-wordmark" aria-label="ilog 홈">
@@ -370,18 +378,9 @@ async function GuestLanding(): Promise<ReactNode> {
             만나보세요.
           </p>
         </div>
-        <GuestCoverflow
-          items={
-            page.items.length === 0
-              ? landingPreviewItems
-              : page.items.map((item) => ({
-                  episodeId: item.episodeId,
-                  title: item.title,
-                  creatorName: item.creator.displayName,
-                  thumbnailUrl: item.thumbUrl,
-                }))
-          }
-        />
+        <Suspense fallback={<GuestCoverflow items={landingPreviewItems} />}>
+          <GuestTrendingCoverflow />
+        </Suspense>
       </section>
 
       <IndustryPerspectives />
@@ -457,20 +456,7 @@ export default async function HomePage(): Promise<ReactNode> {
   if (session === null) {
     return (
       <div className="guest-landing">
-        <Suspense
-          fallback={
-            <section className="guest-hero guest-hero-loading">
-              <div className="guest-hero-art" aria-hidden="true" />
-              <div className="guest-hero-shade" />
-              <div className="guest-hero-copy">
-                <p>WATCH · CREATE · CONNECT</p>
-                <h1>이야기가 시작되는 곳.</h1>
-              </div>
-            </section>
-          }
-        >
-          <GuestLanding />
-        </Suspense>
+        <GuestLanding />
       </div>
     )
   }
