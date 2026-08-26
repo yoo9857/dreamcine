@@ -278,6 +278,7 @@ body:has(.guest-landing) .aidream-theme-control {
 .guest-benefits,
 .guest-path,
 .guest-perspectives {
+  /* Keep below-the-fold editorial sections out of the initial paint. */
   content-visibility: auto;
   contain-intrinsic-size: auto 760px;
   width: min(100% - 48px, 1480px);

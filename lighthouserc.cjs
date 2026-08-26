@@ -8,6 +8,10 @@ module.exports = {
       settings: {
         chromeFlags: '--headless --no-sandbox',
         formFactor: 'mobile',
+        // Apply Lighthouse's mobile CPU/network limits directly in Chrome so
+        // the budget reflects observed paint events instead of Lantern's
+        // synthetic estimate. The 2.5 s Core Web Vital target is unchanged.
+        throttlingMethod: 'devtools',
         screenEmulation: { mobile: true, width: 390, height: 844 },
       },
     },
