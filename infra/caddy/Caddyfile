@@ -125,6 +125,9 @@ onedaytrading.kr {
 			# 여기서 **덮어써서** "첫 값 = 실제 접속 IP" 를 성립시킨다. (OBS-006)
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Real-IP {remote_host}
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto {scheme}
 			health_uri /api/health
 			health_interval 10s
 		}

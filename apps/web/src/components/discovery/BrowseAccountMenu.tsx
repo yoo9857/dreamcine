@@ -2,6 +2,7 @@
 
 import { CircleHelp, LogOut, Settings, Sparkles, UserRound } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import React, { useEffect, useRef, useState, type ReactNode } from 'react'
 
@@ -16,6 +17,8 @@ interface BrowseAccountMenuProps {
 export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
   const [open, setOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState<string | null>(null)
+  const router = useRouter()
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -43,10 +46,16 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
   async function logout(): Promise<void> {
     if (signingOut) return
     setSigningOut(true)
+    setSignOutError(null)
     try {
-      await signOut({ redirectTo: '/' })
+      // Auth.js가 반환하는 절대 URL은 사용하지 않는다. 브라우저의 현재 origin에서
+      // 상대 경로로 이동해 프록시 내부 주소(0.0.0.0)가 노출될 여지를 없앤다.
+      await signOut({ redirect: false, redirectTo: '/' })
+      router.replace('/')
+      router.refresh()
     } catch {
       setSigningOut(false)
+      setSignOutError('로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.')
     }
   }
 
@@ -208,6 +217,11 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
             <LogOut aria-hidden="true" />
             {signingOut ? '로그아웃 중…' : '로그아웃'}
           </button>
+          {signOutError === null ? null : (
+            <p className="browse-account-error" role="alert">
+              {signOutError}
+            </p>
+          )}
         </div>
       ) : null}
     </div>

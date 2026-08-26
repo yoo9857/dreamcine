@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   revokeSessionFromRequest: vi.fn<(request: Request) => Promise<void>>(),
+  warn: vi.fn(),
+  error: vi.fn(),
 }))
 
 vi.mock('./session', () => ({
   revokeSessionFromRequest: mocks.revokeSessionFromRequest,
+}))
+vi.mock('../lib/logger', () => ({
+  getLogger: () => ({ warn: mocks.warn, error: mocks.error }),
 }))
 
 const { withSessionRevocation } = await import('./signout')
@@ -27,6 +32,8 @@ function wrap(response: Response): (request: Request) => Promise<Response> {
 beforeEach(() => {
   mocks.revokeSessionFromRequest.mockReset()
   mocks.revokeSessionFromRequest.mockResolvedValue(undefined)
+  mocks.warn.mockReset()
+  mocks.error.mockReset()
 })
 
 describe('withSessionRevocation', () => {
@@ -95,5 +102,31 @@ describe('withSessionRevocation', () => {
     await expect(
       wrap(response)(new Request(SIGNOUT_URL, { method: 'POST' })),
     ).resolves.toBe(response)
+  })
+
+  it('일시적인 DB 실패는 멱등 세션 삭제를 재시도한다', async () => {
+    mocks.revokeSessionFromRequest
+      .mockRejectedValueOnce(new Error('db reconnecting'))
+      .mockResolvedValueOnce(undefined)
+
+    await wrap(responseWith('authjs.session-token=; Max-Age=0'))(
+      new Request(SIGNOUT_URL, { method: 'POST' }),
+    )
+
+    expect(mocks.revokeSessionFromRequest).toHaveBeenCalledTimes(2)
+    expect(mocks.warn).toHaveBeenCalledOnce()
+  })
+
+  it('세션 폐기를 끝내 실패하면 성공 응답을 내보내지 않는다', async () => {
+    const error = new Error('database unavailable')
+    mocks.revokeSessionFromRequest.mockRejectedValue(error)
+
+    await expect(
+      wrap(responseWith('authjs.session-token=; Max-Age=0'))(
+        new Request(SIGNOUT_URL, { method: 'POST' }),
+      ),
+    ).rejects.toBe(error)
+    expect(mocks.revokeSessionFromRequest).toHaveBeenCalledTimes(3)
+    expect(mocks.error).toHaveBeenCalledOnce()
   })
 })

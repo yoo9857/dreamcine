@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 
 import { createAuthConfig } from '@/src/auth/config'
+import { withCredentialLoginRateLimit } from '@/src/auth/guard'
 import { withSessionRevocation } from '@/src/auth/signout'
 
 /**
@@ -13,4 +14,6 @@ import { withSessionRevocation } from '@/src/auth/signout'
 const { handlers } = NextAuth(createAuthConfig())
 
 export const { GET } = handlers
-export const POST = withSessionRevocation(handlers.POST)
+export const POST = withSessionRevocation(
+  withCredentialLoginRateLimit(handlers.POST),
+)

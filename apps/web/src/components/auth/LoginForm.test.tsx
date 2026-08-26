@@ -107,4 +107,45 @@ describe('LoginForm', () => {
       screen.getByLabelText('비밀번호').getAttribute('aria-describedby'),
     ).toBeTruthy()
   })
+
+  it('shows a stable error when the authentication service is unavailable', async () => {
+    vi.mocked(signIn).mockRejectedValue(new Error('network unavailable'))
+    render(<LoginForm />)
+
+    fireEvent.change(screen.getByLabelText('이메일 또는 아이디'), {
+      target: { value: 'hanbin@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'test-password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      '이메일 또는 비밀번호가 올바르지 않습니다.',
+    )
+    expect(navigation.push).not.toHaveBeenCalled()
+  })
+
+  it('explains when simultaneous login attempts exceed the limit', async () => {
+    vi.mocked(signIn).mockResolvedValue({
+      error: 'CredentialsSignin',
+      code: 'credentials',
+      status: 429,
+      ok: false,
+      url: null,
+    })
+    render(<LoginForm />)
+
+    fireEvent.change(screen.getByLabelText('이메일 또는 아이디'), {
+      target: { value: 'hanbin@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'test-password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      '요청이 너무 많습니다.',
+    )
+  })
 })

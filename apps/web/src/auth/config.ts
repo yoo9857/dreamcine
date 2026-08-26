@@ -63,6 +63,39 @@ function googleProvider(): NextAuthConfig['providers'][number] | null {
 }
 
 /**
+ * 인증 공급자가 돌려준 URL을 운영 공개 origin 안으로 제한한다.
+ *
+ * 리버스 프록시 뒤에서는 요청 객체의 origin이 컨테이너 바인딩 주소
+ * (`0.0.0.0:3000`)일 수 있다. APP_URL을 기준으로 삼으면 그 내부 주소가
+ * 로그인·로그아웃 응답에 노출되지 않고, 외부 callback URL을 이용한 open
+ * redirect도 함께 차단된다.
+ */
+export function safeAuthRedirect({
+  url,
+  baseUrl,
+}: {
+  readonly url: string
+  readonly baseUrl: string
+}): string {
+  const configured = process.env.APP_URL
+  let publicOrigin: string
+  try {
+    publicOrigin = new URL(configured ?? baseUrl).origin
+  } catch {
+    publicOrigin = new URL(baseUrl).origin
+  }
+
+  try {
+    const destination = new URL(url, publicOrigin)
+    return destination.origin === publicOrigin
+      ? destination.toString()
+      : publicOrigin
+  } catch {
+    return publicOrigin
+  }
+}
+
+/**
  * Auth.js v5 는 Credentials 공급자를 JWT 세션에서만 지원한다. 그러나 이 서비스는
  * **DB 세션이 필수**다 — 신고→차단이 즉시 효력을 가져야 하기 때문이다.
  * (07_AUTH_SECURITY.md §1)
@@ -134,6 +167,7 @@ export function createAuthConfig(): NextAuthConfig {
     },
     jwt: databaseSessionBridge(),
     pages: { signIn: '/login', error: '/login' },
+    callbacks: { redirect: safeAuthRedirect },
     trustHost: true,
     ...(process.env.AUTH_SECRET === undefined
       ? {}

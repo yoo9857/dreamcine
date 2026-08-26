@@ -40,6 +40,7 @@ export interface RedisTarget {
 
 const CONNECT_TIMEOUT_MS = 2000
 const COMMAND_TIMEOUT_MS = 1000
+const MAX_PENDING_COMMANDS = 1024
 const CRLF = '\r\n'
 
 export function parseRedisUrl(raw: string): RedisTarget {
@@ -147,6 +148,9 @@ class RedisConnection {
 
   async command(args: readonly string[]): Promise<RedisReply> {
     const socket = await this.#connect()
+    if (this.#pending.length >= MAX_PENDING_COMMANDS) {
+      throw new AppError('E_QUEUE_UNAVAILABLE', { reason: 'overloaded' })
+    }
     return new Promise<RedisReply>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#fail(new AppError('E_QUEUE_UNAVAILABLE', { reason: 'timeout' }))

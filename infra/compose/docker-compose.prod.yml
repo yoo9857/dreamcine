@@ -36,6 +36,10 @@ services:
     image: ${WEB_IMAGE:?WEB_IMAGE with an immutable tag is required}
     env_file:
       - ../../.env
+    environment:
+      # Auth.js가 컨테이너 바인딩 주소(0.0.0.0:3000)를 callback origin으로
+      # 사용하지 않도록 공개 canonical URL을 명시한다.
+      AUTH_URL: ${APP_URL:?APP_URL is required}
     depends_on:
       postgres:
         condition: service_healthy
@@ -118,6 +122,16 @@ services:
 
   redis:
     image: redis:7.4.5-alpine3.21
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '${REDIS_MAXMEMORY:-256mb}',
+        '--maxmemory-policy',
+        'volatile-lru',
+      ]
     volumes:
       - redis-data:/data
     healthcheck:

@@ -34,6 +34,7 @@ export function LoginForm({
           noAccount: 'New to ilog?',
           toSignup: 'Create an account',
           invalid: 'The email or password you entered is incorrect.',
+          limited: 'Too many attempts. Please try again in a few minutes.',
         }
       : {
           title: text.auth.loginTitle,
@@ -47,6 +48,7 @@ export function LoginForm({
           noAccount: text.auth.noAccount,
           toSignup: text.auth.toSignup,
           invalid: staticMessageFor('E_AUTH_INVALID_CREDENTIALS'),
+          limited: staticMessageFor('E_RATE_LIMITED'),
         }
   const router = useRouter()
   const safeNextPath =
@@ -71,25 +73,30 @@ export function LoginForm({
   async function submit(values: LoginInput): Promise<void> {
     setFailure(null)
 
-    // 실패 사유를 구분하지 않는다. 서버도 동일 메시지를 쓴다. (07 §11)
-    const result = await signIn('credentials', {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    })
+    try {
+      // 실패 사유를 구분하지 않는다. 서버도 동일 메시지를 쓴다. (07 §11)
+      const result = await signIn('credentials', {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      })
 
-    if (!result.ok || result.error !== undefined) {
+      if (!result.ok || result.error !== undefined) {
+        setFailure(result.status === 429 ? copy.limited : copy.invalid)
+        return
+      }
+
+      const next = new URL(window.location.href).searchParams.get('next')
+      const destination =
+        next?.startsWith('/') === true && !next.startsWith('//')
+          ? next
+          : '/browse'
+      router.push(destination)
+      router.refresh()
+    } catch {
+      // 네트워크·인증 서버 장애도 계정 존재 여부를 드러내지 않는 같은 문구로 처리한다.
       setFailure(copy.invalid)
-      return
     }
-
-    const next = new URL(window.location.href).searchParams.get('next')
-    const destination =
-      next?.startsWith('/') === true && !next.startsWith('//')
-        ? next
-        : '/browse'
-    router.push(destination)
-    router.refresh()
   }
 
   return (

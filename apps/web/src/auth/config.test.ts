@@ -5,7 +5,7 @@ vi.hoisted(() => {
   process.env.DATABASE_URL ??= 'postgresql://user:pass@127.0.0.1:5432/unused'
 })
 
-const { createAuthConfig } = await import('./config')
+const { createAuthConfig, safeAuthRedirect } = await import('./config')
 const { SESSION_MAX_AGE_SEC, SESSION_UPDATE_AGE_SEC } = await import(
   './session'
 )
@@ -13,6 +13,7 @@ const { SESSION_MAX_AGE_SEC, SESSION_UPDATE_AGE_SEC } = await import(
 const originalGoogleId = process.env.AUTH_GOOGLE_ID
 const originalGoogleSecret = process.env.AUTH_GOOGLE_SECRET
 const originalSecret = process.env.AUTH_SECRET
+const originalAppUrl = process.env.APP_URL
 
 function providerIds(config: ReturnType<typeof createAuthConfig>): string[] {
   return config.providers.map((provider) =>
@@ -55,6 +56,7 @@ afterEach(() => {
     ['AUTH_GOOGLE_ID', originalGoogleId],
     ['AUTH_GOOGLE_SECRET', originalGoogleSecret],
     ['AUTH_SECRET', originalSecret],
+    ['APP_URL', originalAppUrl],
   ] as const) {
     if (value === undefined) {
       Reflect.deleteProperty(process.env, key)
@@ -154,6 +156,31 @@ describe('createAuthConfig', () => {
     const config = createAuthConfig()
 
     expect(config.pages?.signIn).toBe('/login')
+  })
+
+  it('운영 공개 URL을 인증 리다이렉트 기준으로 사용한다', () => {
+    process.env.APP_URL = 'https://ilog.info'
+
+    expect(safeAuthRedirect({ url: '/', baseUrl: 'http://0.0.0.0:3000' })).toBe(
+      'https://ilog.info/',
+    )
+    expect(
+      safeAuthRedirect({
+        url: '/browse?from=login',
+        baseUrl: 'http://0.0.0.0:3000',
+      }),
+    ).toBe('https://ilog.info/browse?from=login')
+  })
+
+  it('외부 인증 리다이렉트를 공개 홈으로 제한한다', () => {
+    process.env.APP_URL = 'https://ilog.info'
+
+    expect(
+      safeAuthRedirect({
+        url: 'https://evil.example/steal',
+        baseUrl: 'http://0.0.0.0:3000',
+      }),
+    ).toBe('https://ilog.info')
   })
 
   it('AUTH_SECRET 이 있으면 넘긴다', () => {

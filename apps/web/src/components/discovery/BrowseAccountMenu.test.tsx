@@ -15,6 +15,15 @@ import { BrowseAccountMenu } from './BrowseAccountMenu'
 
 vi.mock('next-auth/react', () => ({ signOut: vi.fn() }))
 
+const navigation = vi.hoisted(() => ({
+  replace: vi.fn(),
+  refresh: vi.fn(),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => navigation,
+}))
+
 const user = {
   handle: 'hanbin',
   displayName: '한빈',
@@ -24,6 +33,7 @@ const user = {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  vi.mocked(signOut).mockResolvedValue({ url: '/' })
 })
 
 describe('BrowseAccountMenu', () => {
@@ -64,7 +74,21 @@ describe('BrowseAccountMenu', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '로그아웃' }))
 
     await waitFor(() => {
-      expect(signOut).toHaveBeenCalledWith({ redirectTo: '/' })
+      expect(signOut).toHaveBeenCalledWith({ redirect: false, redirectTo: '/' })
     })
+    expect(navigation.replace).toHaveBeenCalledWith('/')
+    expect(navigation.refresh).toHaveBeenCalled()
+  })
+
+  it('keeps the session UI available when logout fails', async () => {
+    vi.mocked(signOut).mockRejectedValue(new Error('auth unavailable'))
+    render(<BrowseAccountMenu user={user} />)
+    fireEvent.click(screen.getByRole('button', { name: '한빈 계정 메뉴' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '로그아웃' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      '로그아웃하지 못했습니다.',
+    )
+    expect(navigation.replace).not.toHaveBeenCalled()
   })
 })

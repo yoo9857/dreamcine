@@ -342,9 +342,16 @@ test('로그아웃하면 훔친 쿠키로도 다시 들어올 수 없다', async
   }
   const signedOut = await page.request.post('/api/auth/signout', {
     form: { csrfToken: csrf.csrfToken, callbackUrl: '/login' },
-    headers: { origin: baseURL ?? '' },
+    headers: {
+      origin: baseURL ?? '',
+      'x-auth-return-redirect': '1',
+    },
   })
   expect(signedOut.status()).toBeLessThan(400)
+  const signedOutBody = (await signedOut.json()) as { url: string }
+  const publicOrigin = new URL(baseURL ?? 'http://127.0.0.1:3000').origin
+  expect(new URL(signedOutBody.url).origin).toBe(publicOrigin)
+  expect(signedOutBody.url).not.toContain('0.0.0.0')
   expect((await page.request.get('/api/me')).status()).toBe(401)
 
   // 핵심: 쿠키를 되돌려 놓아도 들어올 수 없어야 한다. 쿠키만 지우고 DB 세션

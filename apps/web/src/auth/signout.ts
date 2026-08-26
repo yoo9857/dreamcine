@@ -1,6 +1,8 @@
 import { revokeSessionFromRequest } from './session'
 import { SESSION_COOKIE_NAMES } from './types'
 
+import { getLogger } from '../lib/logger'
+
 /** Auth.js 의 라우트 핸들러와 같은 모양. */
 type Handler<R extends Request> = (request: R) => Promise<Response>
 
@@ -35,6 +37,30 @@ function clearedSessionCookie(response: Response): boolean {
   return false
 }
 
+const REVOCATION_ATTEMPTS = 3
+
+/** 멱등 delete를 짧게 재시도해 순간적인 DB 연결 교체에도 로그아웃을 완주한다. */
+async function revokeWithRetry(request: Request): Promise<void> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= REVOCATION_ATTEMPTS; attempt += 1) {
+    try {
+      await revokeSessionFromRequest(request)
+      return
+    } catch (error: unknown) {
+      lastError = error
+      getLogger().warn(
+        { err: error, attempt, attempts: REVOCATION_ATTEMPTS },
+        'session revocation failed; retrying',
+      )
+    }
+  }
+  getLogger().error(
+    { err: lastError, attempts: REVOCATION_ATTEMPTS },
+    'session revocation exhausted retries',
+  )
+  throw lastError
+}
+
 /**
  * 로그아웃이 **서버의 세션을 실제로 취소하게** 만든다.
  *
@@ -54,7 +80,7 @@ export function withSessionRevocation<R extends Request>(
   return async (request: R): Promise<Response> => {
     const response = await handler(request)
     if (isSignOut(request) && clearedSessionCookie(response)) {
-      await revokeSessionFromRequest(request)
+      await revokeWithRetry(request)
     }
     return response
   }
