@@ -19,6 +19,24 @@ export interface ColorTokens {
   readonly danger: { readonly base: string; readonly subtle: string }
   readonly warning: { readonly base: string; readonly subtle: string }
   readonly success: { readonly base: string; readonly subtle: string }
+  /**
+   * 회원 등급 색. `warning` · `success` 를 재사용하지 않는 이유: 그것들은
+   * **상태** 색이다. 나중에 warning 을 더 경고답게 붉히면 골드 배지가 조용히
+   * 따라 변한다. 등급은 상태가 아니므로 자기 색을 가진다. (ISS-020)
+   *
+   * `BRONZE` 가 없는 것은 누락이 아니다 — 배지가 없는 등급이다. 전원이 배지를
+   * 달면 배지가 신호가 아니게 된다.
+   */
+  readonly tier: {
+    readonly silver: string
+    readonly silverSubtle: string
+    readonly gold: string
+    readonly goldSubtle: string
+    readonly platinum: string
+    readonly platinumSubtle: string
+    readonly diamond: string
+    readonly diamondSubtle: string
+  }
   readonly border: { readonly base: string; readonly subtle: string }
 }
 
@@ -91,6 +109,16 @@ export const darkTokens: Tokens = {
     danger: { base: '#ff7a7a', subtle: '#3a1620' },
     warning: { base: '#f0b849', subtle: '#3a2c12' },
     success: { base: '#4ade80', subtle: '#12301f' },
+    tier: {
+      silver: '#c8c8d4',
+      silverSubtle: '#26262f',
+      gold: '#e8b93f',
+      goldSubtle: '#332708',
+      platinum: '#7fd4e8',
+      platinumSubtle: '#0d2b33',
+      diamond: '#a78bfa',
+      diamondSubtle: '#221a3f',
+    },
     // border.base 는 **컨트롤 경계**다. WCAG 1.4.11 의 3:1 을 만족해야 하므로
     // 장식용 구분선보다 훨씬 밝다. 구분선에는 border.subtle 을 쓴다.
     border: { base: '#71717f', subtle: '#2a2a35' },
@@ -106,6 +134,16 @@ export const lightTokens: Tokens = {
     danger: { base: '#c2261f', subtle: '#fdeceb' },
     warning: { base: '#8a5a00', subtle: '#fdf3e0' },
     success: { base: '#1a7a45', subtle: '#e7f6ed' },
+    tier: {
+      silver: '#6b6b7d',
+      silverSubtle: '#eeeef2',
+      gold: '#8a6100',
+      goldSubtle: '#fdf2dc',
+      platinum: '#0f6b80',
+      platinumSubtle: '#e3f4f8',
+      diamond: '#6d3fd6',
+      diamondSubtle: '#f0eaff',
+    },
     border: { base: '#86869a', subtle: '#e4e4ea' },
   },
   ...SHARED,
@@ -141,6 +179,14 @@ export const COLOR_VARIABLE_NAMES = [
   'warning-subtle',
   'success',
   'success-subtle',
+  'tier-silver',
+  'tier-silver-subtle',
+  'tier-gold',
+  'tier-gold-subtle',
+  'tier-platinum',
+  'tier-platinum-subtle',
+  'tier-diamond',
+  'tier-diamond-subtle',
   'border',
   'border-subtle',
 ] as const
@@ -165,6 +211,14 @@ function colorValues(tokens: Tokens): readonly string[] {
     color.warning.subtle,
     color.success.base,
     color.success.subtle,
+    color.tier.silver,
+    color.tier.silverSubtle,
+    color.tier.gold,
+    color.tier.goldSubtle,
+    color.tier.platinum,
+    color.tier.platinumSubtle,
+    color.tier.diamond,
+    color.tier.diamondSubtle,
     color.border.base,
     color.border.subtle,
   ]

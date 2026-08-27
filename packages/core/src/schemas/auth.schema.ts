@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { LIMITS } from '../limits.js'
+import { Gender, SignupPurpose } from '../enums.js'
 
 /**
  * 라우트 경로와 충돌하거나 신뢰를 오인시키는 핸들. (07_AUTH_SECURITY.md §5)
@@ -77,12 +78,42 @@ export const BioSchema = z
   .transform(sanitizeText)
   .pipe(z.string().max(LIMITS.BIO_MAX_LEN))
 
-export const SignupSchema = z.object({
-  email: EmailSchema,
-  password: PasswordSchema,
-  handle: HandleSchema,
-  displayName: DisplayNameSchema,
-})
+export const SignupSchema = z
+  .object({
+    email: EmailSchema,
+    emailConfirmation: EmailSchema,
+    password: PasswordSchema,
+    handle: HandleSchema,
+    displayName: DisplayNameSchema,
+    birthDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/u, { message: 'Invalid birth date' })
+      .refine(
+        (value) => {
+          const date = new Date(`${value}T00:00:00.000Z`)
+          const oldest = new Date()
+          oldest.setUTCFullYear(oldest.getUTCFullYear() - 120)
+          return (
+            !Number.isNaN(date.getTime()) &&
+            date.toISOString().startsWith(value) &&
+            date <= new Date() &&
+            date >= oldest
+          )
+        },
+        { message: 'Invalid birth date' },
+      ),
+    gender: z.enum(Gender),
+    signupPurpose: z.enum(SignupPurpose),
+    country: z.enum(['KR', 'US', 'CN', 'JP']),
+    acceptTerms: z.boolean().refine((value) => value, {
+      message: 'Terms and privacy consent is required',
+    }),
+    marketingConsent: z.boolean(),
+  })
+  .refine((input) => input.email === input.emailConfirmation, {
+    path: ['emailConfirmation'],
+    message: 'Email addresses do not match',
+  })
 
 export const LoginSchema = z.object({
   email: LoginIdentifierSchema,

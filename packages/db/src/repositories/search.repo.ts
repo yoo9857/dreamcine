@@ -1,4 +1,11 @@
-import type { AgeRating, Page, TrendingTag } from '@aidream/core'
+import type {
+  AgeRating,
+  ContentLicense,
+  MemberTier,
+  Page,
+  TrendingTag,
+  Visibility,
+} from '@aidream/core'
 import { AppError } from '@aidream/core'
 import { Prisma } from '@prisma/client'
 
@@ -23,6 +30,8 @@ export interface SeriesSearchRow {
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
+  readonly creatorTier: MemberTier
+  readonly creatorVerifiedAt: Date | null
 }
 
 export interface EpisodeSearchRow {
@@ -37,6 +46,8 @@ export interface UserSearchRow {
   readonly displayName: string
   readonly avatarKey: string | null
   readonly followerCount: number
+  readonly tier: MemberTier
+  readonly verifiedAt: Date | null
 }
 
 export type SearchCatalogRow =
@@ -57,6 +68,8 @@ interface SeriesRawRow extends ScoredRow {
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
+  readonly creatorTier: MemberTier
+  readonly creatorVerifiedAt: Date | null
 }
 
 interface UserRawRow extends ScoredRow {
@@ -64,6 +77,8 @@ interface UserRawRow extends ScoredRow {
   readonly displayName: string
   readonly avatarKey: string | null
   readonly followerCount: number
+  readonly tier: MemberTier
+  readonly verifiedAt: Date | null
 }
 
 interface EpisodeRawRow extends ScoredRow {
@@ -76,12 +91,35 @@ interface EpisodeRawRow extends ScoredRow {
   readonly thumbKey: string | null
   readonly status: 'PUBLISHED'
   readonly ageRating: AgeRating
+  readonly visibility: Visibility
+  readonly language: string
+  readonly categoryId: string | null
+  readonly keywords: readonly string[]
+  readonly allowEmbed: boolean
+  readonly allowDownload: boolean
+  readonly recordedAt: Date | null
+  readonly metaTitle: string | null
+  readonly metaDescription: string | null
+  readonly ogImageKey: string | null
+  readonly canonicalPath: string | null
+  readonly madeForKids: boolean
+  readonly license: ContentLicense
+  readonly contentWarnings: readonly string[]
+  readonly regionsAllowed: readonly string[]
+  readonly regionsBlocked: readonly string[]
   readonly aiDisclosure: string | null
+  readonly aiModels: readonly string[]
+  readonly aiTools: readonly string[]
+  readonly aiHumanRole: string | null
+  readonly aiGeneratedPct: number | null
   readonly publishAt: Date | null
   readonly publishedAt: Date
   readonly viewCount: bigint
   readonly likeCount: number
   readonly commentCount: number
+  readonly shareCount: number
+  readonly impressionCount: bigint
+  readonly avgWatchSec: number
   readonly rankScore: number
   readonly createdAt: Date
   readonly updatedAt: Date
@@ -92,6 +130,8 @@ interface EpisodeRawRow extends ScoredRow {
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
+  readonly creatorTier: MemberTier
+  readonly creatorVerifiedAt: Date | null
   readonly durationSec: number | null
 }
 
@@ -227,14 +267,29 @@ function episodeSelect(query: string): Prisma.Sql {
   return Prisma.sql`e.id, e.series_id AS "seriesId", e.season_id AS "seasonId",
     e.asset_id AS "assetId", e.number, e.title, e.description,
     e.thumb_key AS "thumbKey", e.status, e.age_rating AS "ageRating",
-    e.ai_disclosure AS "aiDisclosure", e.publish_at AS "publishAt",
+    e.visibility, e.language, e.category_id AS "categoryId", e.keywords,
+    e.allow_embed AS "allowEmbed", e.allow_download AS "allowDownload",
+    e.recorded_at AS "recordedAt", e.meta_title AS "metaTitle",
+    e.meta_description AS "metaDescription", e.og_image_key AS "ogImageKey",
+    e.canonical_path AS "canonicalPath", e.made_for_kids AS "madeForKids",
+    e.license, e.content_warnings AS "contentWarnings",
+    e.regions_allowed AS "regionsAllowed", e.regions_blocked AS "regionsBlocked",
+    e.ai_disclosure AS "aiDisclosure", e.ai_models AS "aiModels",
+    e.ai_tools AS "aiTools", e.ai_human_role AS "aiHumanRole",
+    e.ai_generated_pct AS "aiGeneratedPct",
+    e.publish_at AS "publishAt",
     e.published_at AS "publishedAt", e.view_count AS "viewCount",
     e.like_count AS "likeCount", e.comment_count AS "commentCount",
+    e.share_count AS "shareCount", e.impression_count AS "impressionCount",
+    e.avg_watch_sec AS "avgWatchSec",
     e.rank_score AS "rankScore", e.created_at AS "createdAt",
     e.updated_at AS "updatedAt", e.deleted_at AS "deletedAt",
     s.owner_id AS "creatorId", s.title AS "seriesTitle", s.slug AS "seriesSlug",
     creator.handle AS "creatorHandle", creator.display_name AS "creatorDisplayName",
-    creator.avatar_key AS "creatorAvatarKey", asset.duration_sec AS "durationSec",
+    creator.avatar_key AS "creatorAvatarKey",
+    creator.tier AS "creatorTier",
+    creator.verified_at AS "creatorVerifiedAt",
+    COALESCE(e.duration_sec, asset.duration_sec) AS "durationSec",
     similarity(e.title, ${query}) AS "searchScore"`
 }
 
@@ -242,6 +297,7 @@ function mapEpisode(row: EpisodeRawRow): FeedRow {
   return {
     ...row,
     viewCount: row.viewCount.toString(),
+    impressionCount: row.impressionCount.toString(),
     publishedAt: row.publishedAt,
   }
 }

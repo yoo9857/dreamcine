@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { RouteSession } from '@/src/auth/types'
 import { unblockUser, type UnblockUserDependencies } from './unblock-user'
+import { userFixture } from '@/src/test-support/entity-fixtures'
 
 const session = {
   userId: 'viewer',
@@ -14,11 +15,14 @@ const session = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: new Date(),
 } satisfies RouteSession
 
 const target = {
+  ...userFixture(),
   id: 'creator',
   handle: 'creator',
   email: 'c@example.com',

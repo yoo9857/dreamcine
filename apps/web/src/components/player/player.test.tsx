@@ -165,21 +165,22 @@ describe('HlsPlayer', () => {
 })
 
 describe('AgeGate', () => {
-  it('requires a birth year for A19 and shows a safe failure message', async () => {
+  it('uses the stored birth date for A19 and shows a safe failure message', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({ ok: false, status: 403 }),
     )
     render(<AgeGate episodeId="episode_1" rating="A19" authenticated />)
-    expect(screen.getByRole('spinbutton', { name: '출생 연도' })).toBeDefined()
-    fireEvent.change(screen.getByRole('spinbutton'), {
-      target: { value: '2000' },
-    })
+    expect(screen.queryByRole('spinbutton')).toBeNull()
+    expect(screen.getByText(/가입 시 등록한 생년월일/u)).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: '확인하고 재생' }))
     expect(await screen.findByRole('alert')).toBeDefined()
     expect(fetch).toHaveBeenCalledWith(
       '/api/episodes/episode_1/age-confirm',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ confirmed: true }),
+      }),
     )
   })
 })

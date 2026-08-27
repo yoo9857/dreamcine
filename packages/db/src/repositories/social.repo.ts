@@ -1,4 +1,4 @@
-import type { Comment, Notification, Page } from '@aidream/core'
+import type { Comment, MemberTier, Notification, Page } from '@aidream/core'
 import { AppError } from '@aidream/core'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
@@ -282,9 +282,24 @@ export interface CommentThreadRow {
     readonly handle: string
     readonly displayName: string
     readonly avatarKey: string | null
+    readonly tier: MemberTier
+    readonly verifiedAt: Date | null
   }
   readonly replies: readonly Omit<CommentThreadRow, 'replies'>[]
 }
+
+/**
+ * 댓글 작성자 조회 컬럼. 본문과 대댓글이 **같은 목록**을 써야 한다.
+ * 예전에는 두 곳에 따로 적혀 있어서, 한쪽만 컬럼을 늘리면 대댓글에만 배지가
+ * 빠지는 상태가 됐다.
+ */
+const COMMENT_AUTHOR_SELECT = {
+  handle: true,
+  displayName: true,
+  avatarKey: true,
+  tier: true,
+  verifiedAt: true,
+} as const
 
 export function listCommentThreadsByEpisode(options: {
   readonly episodeId: string
@@ -312,16 +327,12 @@ export function listCommentThreadsByEpisode(options: {
             }),
       },
       include: {
-        user: { select: { handle: true, displayName: true, avatarKey: true } },
+        user: { select: COMMENT_AUTHOR_SELECT },
         replies: {
           where: { deletedAt: null, isHidden: false },
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           take: 3,
-          include: {
-            user: {
-              select: { handle: true, displayName: true, avatarKey: true },
-            },
-          },
+          include: { user: { select: COMMENT_AUTHOR_SELECT } },
         },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],

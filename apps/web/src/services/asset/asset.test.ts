@@ -38,6 +38,8 @@ const SESSION: RouteSession = {
     role: 'CREATOR',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: NOW,
 }

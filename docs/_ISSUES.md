@@ -62,6 +62,119 @@
 
 <!-- 여기 아래에 추가. 최신 항목을 위로. -->
 
+## [ISS-020] 역할 체계가 4단계 평면이고 GUEST·활동등급이 없다
+- 발견 단계: T16/S1 권한 체계 감사
+- 스펙 위치: `00_SPEC/07_AUTH_SECURITY.md` §2, `00_SPEC/04_DOMAIN_MODEL.md` §2,
+  `00_SPEC/11_CAPACITY_TIERS.md` §3
+- 문제:
+  1. **GUEST 가 1급 시민이 아니다.** `can()` 은 로그인한 사용자만 받는다.
+     비로그인 방문자 판정이 라우트마다 `session === null` 분기로 흩어져 있어,
+     "권한 판정 코드는 `can()` 밖에 존재하지 않는다" 는 §2 철칙이 이미 깨져 있다.
+  2. **이메일 인증 상태가 역할이 아니다.** 가입 직후와 인증 완료 계정이 같은
+     `VIEWER` 다. 그래서 `can()` 이 동작마다 `emailVerified` 를 따로 확인하고,
+     확인을 빠뜨리면 조용히 통과한다.
+  3. **크리에이터 우대 단계가 없다.** 정산·우대 한도 대상을 구분할 축이 없어
+     `11_CAPACITY_TIERS.md` 의 서버 용량을 사용자별로 배분할 수 없다.
+  4. **활동 등급이 없다.** 시청·업로드·팔로워 실적이 아무 데도 반영되지 않는다.
+  5. **역할 변경 이력이 없다.** `user.setRole` 은 ADMIN 이 할 수 있지만 누가
+     누구를 언제 어떤 역할로 바꿨는지 남지 않는다.
+- 재현/근거:
+  `packages/core/src/rules/permission.ts` — `Actor` 에 GUEST 표현 없음, 35·39행의
+  `isAuthor` · `isModerator` 가 문자열 비교로 하드코딩.
+  `grep -rn "'CREATOR'\|'MODERATOR'\|'ADMIN'" apps/web/src` →
+  `components/layout/MainNav.tsx:15`, `services/social/delete-comment.ts:30` 이
+  `can()` 을 우회해 역할을 직접 비교한다. §2 철칙 위반 2건.
+  `packages/core/src/capacity.ts` — 용량은 서버 티어(T0/T1/T2)뿐, 사용자 축 없음.
+- 결정 (2026-08-27, 소유자 승인): **7단계 역할 사다리 + 활동 등급을 함께 도입한다.**
+
+  ### 역할 사다리 (권한)
+  | 순위 | 역할 | 저장 | 의미 |
+  |---|---|---|---|
+  | 0 | `GUEST` | **저장 안 함** | 비로그인. 세션이 없을 때의 런타임 역할 |
+  | 1 | `VIEWER` | ○ | 가입 완료, 이메일 미인증 |
+  | 2 | `MEMBER` | ○ | 이메일 인증 완료. 댓글·좋아요·팔로우·신고 |
+  | 3 | `CREATOR` | ○ | 업로드·시리즈 운영 |
+  | 4 | `PARTNER` | ○ | CREATOR + 우대 한도, 정산 대상 |
+  | 5 | `MODERATOR` | ○ | 신고 심사·숨김·계정 제한 |
+  | 6 | `ADMIN` | ○ | 전관 + 역할 부여 |
+
+  **GUEST 를 DB 열거형에 넣지 않는 이유**: 게스트는 행이 없다. 저장 가능한
+  값으로 만들면 "GUEST 로 저장된 계정" 이라는 불가능한 상태가 타입상 표현
+  가능해진다. `ActorRole = UserRole | 'GUEST'` 를 판정 계층에만 둔다.
+
+  **VIEWER → MEMBER 는 저장하지 않고 유도한다**: `emailVerified` 가 이미 진실의
+  단일 출처다. 역할 컬럼에 또 적으면 두 값이 갈라질 수 있고, 갈라진 쪽이
+  권한 판정에 쓰이면 인증 게이트가 무력화된다. `resolveActorRole()` 이 매 판정마다
+  유도한다.
+
+  ### 활동 등급 (혜택)
+  `MemberTier`: `BRONZE` `SILVER` `GOLD` `PLATINUM` `DIAMOND`.
+  `User.tier` · `tierPoints` · `tierEvaluatedAt` 로 저장하고, 점수는 순수 함수
+  `computeTierPoints()` 가 시청 시간·공개 회차·팔로워·좋아요·댓글·계정 연령에서
+  산정한다. 배치가 재평가하며 **하락도 허용한다** (유령 등급 방지).
+
+  ### 한도 결정의 단일 지점
+  서버 용량은 고정이고 등급은 그것을 **배분**한다.
+  `resolveEntitlements({ capacity, role, tier })` 하나가 업로드 한도·길이·시리즈
+  개수·배지·정산 자격을 전부 돌려준다. 라우트가 용량과 등급을 각자 곱하지 않는다.
+
+  ### 역할 변경 감사
+  `RoleGrant(userId, fromRole, toRole, grantedBy, reason, createdAt)` 신설.
+  `AuthAuditLog.ROLE_CHANGED` 는 "무언가 바뀜" 만 알려주므로 전후 값을 남긴다.
+- 영향:
+  - `07_AUTH_SECURITY.md` §2 권한 매트릭스 전면 개정 (불변 계약 — 위 결정으로 승인)
+  - `04_DOMAIN_MODEL.md` §2 `UserRole` 열거형 + `User` 필드 + `RoleGrant` 추가
+  - `11_CAPACITY_TIERS.md` §3 에 사용자 축 배분 규칙 추가 필요
+  - `packages/core/src/rules/permission.ts` 재작성, `rules/roles.ts` ·
+    `rules/member-tier.ts` · `rules/entitlements.ts` 신설
+  - `packages/core/tests/permission.test.ts` 전조합 재생성 (7역할 × 동작 × 소유)
+  - `MainNav.tsx` · `delete-comment.ts` 의 직접 역할 비교를 `can()` 으로 회수
+  - `episode-state.ts` 의 역할 비교를 `rules/roles.ts` 헬퍼로 교체
+  - Prisma 마이그레이션: 열거형 값 추가는 기존 행에 영향 없음. `MEMBER` ·
+    `PARTNER` 로 자동 승급되는 기존 행은 **없다** (유도 또는 명시 부여만)
+- 상태: RESOLVED
+
+
+## [ISS-019] 회원 정보·콘텐츠 메타데이터가 YouTube급 유통에 미달한다
+- 발견 단계: T15/S1 사전 스키마 감사
+- 스펙 위치: `00_SPEC/04_DOMAIN_MODEL.md` §2, `00_SPEC/12_GLOBAL_EXPANSION.md` §4, `00_SPEC/08_UIUX_SPEC.md`
+- 문제: `User`(15필드) / `Series`(13필드) / `Episode`(21필드)가 최소 동작분만 보유한다.
+  그 결과 **이미 스펙에 존재하는 기능조차 근거 데이터가 없다.**
+  1. `AgeRating.A19` 게이트가 있으나 `User`에 생년월일이 없다. `checkAgeGate`의
+     `viewer.birthYear`는 `AgeGate.tsx`의 매회 자기신고 입력이 유일한 출처이고 저장되지 않는다.
+  2. `UserStatus.SUSPENDED`가 있으나 정지 사유·해제 시각 필드가 없어 조치 이력이 남지 않는다.
+  3. 일반 회원의 약관·개인정보·마케팅 동의 이력이 없다.
+     `CreatorApplication.privacyConsentAt` 하나뿐이라 PIPA 열람·철회 요청에 응답할 수 없다.
+  4. `Episode.aiDisclosure`가 자유서술 1필드라, AI 드라마 플랫폼의 핵심 고지
+     (사용 모델·도구·인간 기여 범위)를 구조화 조회·필터링할 수 없다.
+  5. `12_GLOBAL_EXPANSION.md` §4 SEO 게이트가 요구하는 canonical·hreflang·구조화 데이터·
+     지역별 sitemap의 원천 데이터(로케일, 국가, 번역 제목/설명, 지역 제한)가 스키마에 없다.
+  6. 자막/캡션 트랙 모델이 없어 접근성과 다국어 유통이 불가능하다.
+  7. 장르(카테고리) 축이 없다. 자유 태그만으로는 탐색 축을 고정할 수 없다.
+  8. `UNLISTED`(링크 공유 미공개) 가시성이 없다. `EpisodeStatus`는 발행 상태만 표현한다.
+  9. 시청자 재생목록이 없다. `Series`는 크리에이터 소유 구조라 시청자가 담을 수 없다.
+  10. 전문 검색 인덱스(tsvector)가 없어 `search` 라우트가 LIKE 스캔에 의존한다.
+- 재현/근거: `prisma/schema.prisma` 496행 전량 검토.
+  `grep -rn "generateMetadata" apps/web/app` → `u/[handle]`, `ads-plan` **2개만**.
+  `watch/[episodeId]`, `series/[seriesId]`, `tags/[tag]`에 메타데이터 생성 없음.
+  `find apps/web/app -name "sitemap*" -o -name "robots*"` → **결과 없음**.
+  `grep -rn "birthYear" apps packages` → 저장 경로 없음, 클라이언트 입력만.
+- 제안: 3개 블록으로 확장한다. 블록 A(회원 정보) → B(콘텐츠 메타데이터) → C(서버 메타태그 표면).
+  블록별 필드 목록은 `10_TASKS/T15_METADATA_UPGRADE.md` §2가 소유한다.
+- 결정 (2026-08-27, 소유자 승인): **A+B+C 전체 진행.** 우선 항목은 법적/필수, AI 고지 구조화,
+  채널/프로필 강화, 발견/다국어 **전부**이며 SSS급 기준에서 누락을 남기지 않는다.
+  `04_DOMAIN_MODEL.md` §2 스키마 계약을 개정하고 `T15_METADATA_UPGRADE.md`를 신설한다.
+- 영향:
+  - `04_DOMAIN_MODEL.md` §2 개정 (불변 계약 수정 — 위 결정으로 승인됨)
+  - `packages/core/src/{enums,entities,index}.ts` + `schemas/` 신규 3종
+  - `packages/db/src/mappers/*` 동반 개정, `repositories/search.repo.ts` tsvector 전환
+  - `05_API_CONTRACT.md` 응답 스키마 확장 + `openapi.json` 재생성 → `gate:contract` 영향
+  - Prisma 마이그레이션 신규 1건. 전 필드 nullable/default 이므로 기존 행 무중단 확장
+  - `checkAgeGate` 호출부가 `User.birthDate` 기반으로 전환 (자기신고 → 저장값)
+  - `searchVector`는 Prisma 미지원 타입이라 마이그레이션에 raw SQL 동반
+- 상태: RESOLVED
+
+
 ## [ISS-018] Phase 2 모바일 절차가 Expo를 전제로 한다
 - 발견 단계: T13 사전 아키텍처 확인
 - 스펙 위치: `00_SPEC/00_PRODUCT.md` §3, `10_TASKS/T13_PWA_PHASE2.md` §1·부록

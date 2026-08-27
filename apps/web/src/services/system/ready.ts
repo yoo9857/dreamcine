@@ -3,6 +3,7 @@ import { checkDbHealth } from '@aidream/db'
 import { getQueue, QUEUE } from '@aidream/queue'
 
 import { getLogger } from '@/src/lib/logger'
+import { mailTransportConfigured } from '@/src/lib/mail'
 import { getRedis } from '@/src/lib/redis'
 
 export type DependencyState = 'ok' | 'fail'
@@ -12,6 +13,7 @@ export interface ReadyChecks {
   redis: DependencyState
   storage: DependencyState
   queue: DependencyState
+  mail: DependencyState
 }
 
 export interface ReadyResult {
@@ -24,6 +26,7 @@ export interface ReadyDependencies {
   readonly redis: () => Promise<unknown>
   readonly storage: () => Promise<unknown>
   readonly queue: () => Promise<unknown>
+  readonly mail: () => Promise<unknown>
 }
 
 /** 의존 서비스 검사 타임아웃. 하나가 느려도 2초 안에 판정한다. */
@@ -94,14 +97,21 @@ async function probe(
 export async function checkReadiness(
   dependencies: ReadyDependencies = productionDependencies(),
 ): Promise<ReadyResult> {
-  const [db, redis, objectStorage, queue] = await Promise.all([
+  const [db, redis, objectStorage, queue, mail] = await Promise.all([
     probe('db', dependencies.db),
     probe('redis', dependencies.redis),
     probe('storage', dependencies.storage),
     probe('queue', dependencies.queue),
+    probe('mail', dependencies.mail),
   ])
 
-  const checks: ReadyChecks = { db, redis, storage: objectStorage, queue }
+  const checks: ReadyChecks = {
+    db,
+    redis,
+    storage: objectStorage,
+    queue,
+    mail,
+  }
   const healthy = Object.values(checks).every((state) => state === 'ok')
   return { status: healthy ? 'ok' : 'degraded', checks }
 }
@@ -120,5 +130,13 @@ function productionDependencies(): ReadyDependencies {
         'active',
         'failed',
       ),
+    mail: () => {
+      if (process.env.NODE_ENV === 'production' && !mailTransportConfigured()) {
+        return Promise.reject(
+          new Error('transactional mail transport is not configured'),
+        )
+      }
+      return Promise.resolve()
+    },
   }
 }

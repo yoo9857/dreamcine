@@ -66,6 +66,8 @@ function mapSearchRow(
         handle: row.creatorHandle,
         displayName: row.creatorDisplayName,
         avatarUrl: avatarUrl(row.creatorAvatarKey),
+        tier: row.creatorTier,
+        isVerified: row.creatorVerifiedAt !== null,
       },
     }
   }

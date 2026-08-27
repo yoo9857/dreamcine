@@ -18,7 +18,6 @@ export interface AgeGateProps {
 }
 
 export function AgeGate(props: AgeGateProps): ReactNode {
-  const [birthYear, setBirthYear] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [playback, setPlayback] = useState<PlaybackResponse | null>(null)
@@ -50,7 +49,6 @@ export function AgeGate(props: AgeGateProps): ReactNode {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             confirmed: true,
-            ...(props.rating === 'A19' ? { birthYear: Number(birthYear) } : {}),
           }),
         },
       )
@@ -112,23 +110,10 @@ export function AgeGate(props: AgeGateProps): ReactNode {
           void submit(event)
         }}
       >
-        {props.rating === 'A19' ? (
-          <label>
-            출생 연도
-            <input
-              className="ml-2 border p-2"
-              aria-label="출생 연도"
-              inputMode="numeric"
-              min="1900"
-              max={String(new Date().getFullYear())}
-              required
-              type="number"
-              value={birthYear}
-              onChange={(event) => {
-                setBirthYear(event.target.value)
-              }}
-            />
-          </label>
+        {props.rating === 'A19' && props.authenticated ? (
+          <p className="mt-2">
+            가입 시 등록한 생년월일을 기준으로 성인 여부를 확인합니다.
+          </p>
         ) : null}
         {error === null ? null : <p role="alert">{error}</p>}
         <button

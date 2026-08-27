@@ -45,6 +45,8 @@ const developmentBrowseItem = {
     handle: 'hanbin',
     displayName: '한빈',
     avatarUrl: null,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   isLiked: false,
 } satisfies FeedItem

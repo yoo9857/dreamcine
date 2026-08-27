@@ -5,6 +5,9 @@ import {
   setUserEmailVerified,
 } from '@aidream/db'
 
+import { getLogger } from '@/src/lib/logger'
+import { mailTransportConfigured, sendWelcomeMail } from '@/src/lib/mail'
+
 import { VERIFY_TOKEN_PREFIX } from './signup'
 
 export interface VerifyEmailResult {
@@ -47,6 +50,20 @@ export async function verifyEmail(
 
   const verifiedAt = new Date()
   const updated = await setUserEmailVerified(user.id, verifiedAt)
+  if (mailTransportConfigured()) {
+    try {
+      await sendWelcomeMail({
+        to: updated.email,
+        handle: updated.handle,
+        locale: updated.locale.startsWith('en') ? 'en' : 'ko',
+      })
+    } catch (error: unknown) {
+      getLogger().error(
+        { err: error, userId: updated.id },
+        'welcome mail delivery failed',
+      )
+    }
+  }
   return {
     userId: updated.id,
     emailVerified: (updated.emailVerified ?? verifiedAt).toISOString(),

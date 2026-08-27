@@ -1,5 +1,6 @@
 import type { User } from '@aidream/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { userFixture } from '@/src/test-support/entity-fixtures'
 
 const mocks = vi.hoisted(() => ({
   consumeToken: vi.fn(),
@@ -10,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   findEmail: vi.fn(),
   hash: vi.fn(),
   info: vi.fn(),
+  mailConfigured: vi.fn(),
   sendReset: vi.fn(),
+  sendVerification: vi.fn(),
+  sendWelcome: vi.fn(),
   setVerified: vi.fn(),
   updatePassword: vi.fn(),
 }))
@@ -29,16 +33,20 @@ vi.mock('@/src/lib/logger', () => ({
   getLogger: () => ({ error: mocks.error, info: mocks.info }),
 }))
 vi.mock('@/src/lib/mail', () => ({
+  mailTransportConfigured: mocks.mailConfigured,
   sendPasswordResetMail: mocks.sendReset,
-  sendVerificationMail: vi.fn(),
+  sendVerificationMail: mocks.sendVerification,
+  sendWelcomeMail: mocks.sendWelcome,
 }))
 
 const { requestPasswordReset } = await import('./request-password-reset.js')
 const { resetPassword } = await import('./reset-password.js')
+const { resendVerification } = await import('./resend-verification.js')
 const { verifyEmail } = await import('./verify-email.js')
 
 const NOW = new Date('2026-08-24T00:00:00.000Z')
 const USER: User = {
+  ...userFixture(),
   id: 'user_1',
   handle: 'creator',
   email: 'creator@example.com',
@@ -65,13 +73,45 @@ beforeEach(() => {
   mocks.findEmail.mockReset().mockResolvedValue(USER)
   mocks.hash.mockReset().mockResolvedValue('new-hash')
   mocks.info.mockReset()
+  mocks.mailConfigured.mockReset().mockReturnValue(true)
   mocks.sendReset.mockReset().mockResolvedValue(undefined)
+  mocks.sendVerification.mockReset().mockResolvedValue(undefined)
+  mocks.sendWelcome.mockReset().mockResolvedValue(undefined)
   mocks.setVerified
     .mockReset()
     .mockImplementation((_id: string, at: Date) =>
       Promise.resolve({ ...USER, emailVerified: at }),
     )
   mocks.updatePassword.mockReset().mockResolvedValue(undefined)
+})
+
+describe('resendVerification', () => {
+  it('기존 인증 토큰을 교체하고 새 인증 메일을 보낸다', async () => {
+    await resendVerification({ email: USER.email })
+
+    expect(mocks.deleteTokens).toHaveBeenCalledWith(`verify:${USER.email}`)
+    expect(mocks.createToken).toHaveBeenCalledWith(
+      expect.objectContaining({ identifier: `verify:${USER.email}` }),
+    )
+    expect(mocks.sendVerification).toHaveBeenCalledWith(
+      expect.objectContaining({ to: USER.email, lang: 'ko' }),
+    )
+  })
+
+  it('없는 계정과 이미 인증된 계정은 같은 성공 결과로 끝낸다', async () => {
+    mocks.findEmail.mockResolvedValueOnce(null)
+    await expect(
+      resendVerification({ email: 'missing@example.com' }),
+    ).resolves.toBeUndefined()
+
+    mocks.findEmail.mockResolvedValueOnce({ ...USER, emailVerified: NOW })
+    await expect(
+      resendVerification({ email: USER.email }),
+    ).resolves.toBeUndefined()
+
+    expect(mocks.createToken).not.toHaveBeenCalled()
+    expect(mocks.sendVerification).not.toHaveBeenCalled()
+  })
 })
 
 describe('requestPasswordReset', () => {
@@ -83,7 +123,15 @@ describe('requestPasswordReset', () => {
       expect.objectContaining({ identifier: `reset:${USER.email}` }),
     )
     expect(mocks.sendReset).toHaveBeenCalledWith(
-      expect.objectContaining({ to: USER.email }),
+      expect.objectContaining({ to: USER.email, locale: 'ko' }),
+    )
+  })
+
+  it('요청 화면의 언어로 비밀번호 재설정 메일을 보낸다', async () => {
+    await requestPasswordReset({ email: USER.email, lang: 'en' })
+
+    expect(mocks.sendReset).toHaveBeenCalledWith(
+      expect.objectContaining({ to: USER.email, locale: 'en' }),
     )
   })
 
@@ -154,12 +202,18 @@ describe('verifyEmail', () => {
       userId: USER.id,
     })
     expect(mocks.setVerified).toHaveBeenCalledOnce()
+    expect(mocks.sendWelcome).toHaveBeenCalledWith({
+      to: USER.email,
+      handle: USER.handle,
+      locale: 'ko',
+    })
 
     mocks.findEmail.mockResolvedValue({ ...USER, emailVerified: NOW })
     await expect(verifyEmail({ token: 'token' })).resolves.toEqual({
       userId: USER.id,
       emailVerified: NOW.toISOString(),
     })
+    expect(mocks.sendWelcome).toHaveBeenCalledOnce()
   })
 
   it('없는 토큰과 없는 계정을 거부한다', async () => {

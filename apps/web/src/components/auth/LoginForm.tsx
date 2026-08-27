@@ -157,6 +157,16 @@ export function LoginForm({
               : { error: errors.password.message })}
             {...register('password')}
           />
+          <Link
+            href={
+              locale === 'en' ? '/password/forgot?lang=en' : '/password/forgot'
+            }
+            className="ilog-login-forgot-link"
+          >
+            {locale === 'en'
+              ? 'Forgot your password?'
+              : '비밀번호를 잊으셨나요?'}
+          </Link>
         </Stack>
 
         <Button

@@ -1,5 +1,6 @@
 import type { User } from '@aidream/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { userFixture } from '@/src/test-support/entity-fixtures'
 
 const mocks = vi.hoisted(() => ({
   findUser: vi.fn(),
@@ -20,6 +21,7 @@ const { updateMe } = await import('./update-me.js')
 
 const NOW = new Date('2026-08-24T00:00:00.000Z')
 const USER: User = {
+  ...userFixture(),
   id: 'user_1',
   handle: 'creator',
   email: 'creator@example.com',

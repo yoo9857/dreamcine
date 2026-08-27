@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { PublicUserSchema } from './user.schema.js'
+
 import { LIMITS } from '../limits.js'
 import { PaginationSchema } from './pagination.schema.js'
 
@@ -18,11 +20,11 @@ export const UpdateCommentSchema = z.object({ body: CommentBodySchema })
 
 export const CommentListQuerySchema = PaginationSchema
 
-export const CommentUserSchema = z.object({
-  handle: z.string().min(1),
-  displayName: z.string().min(1),
-  avatarUrl: z.string().url().nullable(),
-})
+/**
+ * 댓글 작성자. 피드 크리에이터와 같은 모양이어야 한다 — 같은 배지를 같은
+ * 규칙으로 그리기 때문이다.
+ */
+export const CommentUserSchema = PublicUserSchema
 
 export const CommentResponseSchema = z.object({
   id: z.string().min(1),

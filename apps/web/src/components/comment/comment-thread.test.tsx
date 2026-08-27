@@ -15,7 +15,13 @@ const item: CommentThreadItem = {
   createdAt: '2026-08-25T00:00:00.000Z',
   updatedAt: '2026-08-25T00:00:00.000Z',
   deleted: true,
-  user: { handle: 'creator', displayName: '제작자', avatarUrl: null },
+  user: {
+    handle: 'creator',
+    displayName: '제작자',
+    avatarUrl: null,
+    tier: 'BRONZE',
+    isVerified: false,
+  },
   replies: [
     {
       id: 'comment_2',
@@ -25,7 +31,13 @@ const item: CommentThreadItem = {
       createdAt: '2026-08-25T00:01:00.000Z',
       updatedAt: '2026-08-25T00:01:00.000Z',
       deleted: false,
-      user: { handle: 'viewer', displayName: '시청자', avatarUrl: null },
+      user: {
+        handle: 'viewer',
+        displayName: '시청자',
+        avatarUrl: null,
+        tier: 'BRONZE',
+        isVerified: false,
+      },
     },
   ],
 }

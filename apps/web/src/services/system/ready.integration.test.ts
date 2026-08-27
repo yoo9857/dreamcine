@@ -40,7 +40,13 @@ describe.skipIf(skip)('readiness against real dependencies', () => {
   it('세 의존 서비스가 살아있으면 status=ok', async () => {
     await expect(checkReadiness()).resolves.toEqual({
       status: 'ok',
-      checks: { db: 'ok', redis: 'ok', storage: 'ok', queue: 'ok' },
+      checks: {
+        db: 'ok',
+        redis: 'ok',
+        storage: 'ok',
+        queue: 'ok',
+        mail: 'ok',
+      },
     })
   })
 

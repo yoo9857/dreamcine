@@ -4,6 +4,7 @@ import {
   AgeRating,
   AssetStatus,
   EpisodeStatus,
+  MemberTier,
   ReportStatus,
   UploadStatus,
   UserRole,
@@ -32,7 +33,23 @@ describe('고정 열거형', () => {
       'HIDDEN',
       'REMOVED',
     ])
-    expect(UserRole).toEqual(['VIEWER', 'CREATOR', 'MODERATOR', 'ADMIN'])
+    // 사다리 순서 그대로다. GUEST 는 저장되지 않으므로 여기 없다 — 그 불변식은
+    // roles.test.ts 가 지킨다. (ISS-020)
+    expect(UserRole).toEqual([
+      'VIEWER',
+      'MEMBER',
+      'CREATOR',
+      'PARTNER',
+      'MODERATOR',
+      'ADMIN',
+    ])
+    expect(MemberTier).toEqual([
+      'BRONZE',
+      'SILVER',
+      'GOLD',
+      'PLATINUM',
+      'DIAMOND',
+    ])
     expect(ReportStatus).toEqual(['OPEN', 'REVIEWING', 'ACTIONED', 'REJECTED'])
     expect(AgeRating).toEqual(['ALL', 'A12', 'A15', 'A19'])
   })

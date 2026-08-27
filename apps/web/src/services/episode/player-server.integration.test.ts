@@ -4,6 +4,7 @@ import type { RouteSession } from '@/src/auth/types'
 
 const mocks = vi.hoisted(() => ({
   findEpisode: vi.fn(),
+  findUser: vi.fn(),
   findProgress: vi.fn(),
   hasBlock: vi.fn(),
   upsertProgress: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@aidream/db', () => ({
   findPlaybackEpisode: mocks.findEpisode,
+  findUserById: mocks.findUser,
   findWatchProgress: mocks.findProgress,
   hasBlockBetween: mocks.hasBlock,
   upsertWatchProgress: mocks.upsertProgress,
@@ -44,6 +46,8 @@ const SESSION: RouteSession = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: new Date('2026-08-25T12:00:00.000Z'),
 }
@@ -66,6 +70,9 @@ beforeEach(() => {
   process.env.CDN_BASE_URL = 'https://cdn.example.com'
   process.env.NEXT_PUBLIC_CDN_BASE_URL = 'https://cdn.example.com'
   mocks.findEpisode.mockReset().mockResolvedValue(EPISODE)
+  mocks.findUser.mockReset().mockResolvedValue({
+    birthDate: new Date('2000-01-01T00:00:00.000Z'),
+  })
   mocks.findProgress.mockReset().mockResolvedValue(null)
   mocks.hasBlock.mockReset().mockResolvedValue(false)
   mocks.upsertProgress.mockReset().mockResolvedValue(undefined)
@@ -223,11 +230,11 @@ describe('getPlayback', () => {
 })
 
 describe('confirmAge', () => {
-  it('issues an episode-scoped signed cookie without persisting birth year', async () => {
+  it('uses the stored birth date and issues an episode-scoped signed cookie', async () => {
     mocks.findEpisode.mockResolvedValue({ ...EPISODE, ageRating: 'A19' })
     const result = await confirmAge({
       episodeId: EPISODE.id,
-      confirmation: { confirmed: true, birthYear: 2000 },
+      confirmation: { confirmed: true },
       session: SESSION,
       now: NOW,
     })
@@ -243,15 +250,18 @@ describe('confirmAge', () => {
     await expect(
       confirmAge({
         episodeId: EPISODE.id,
-        confirmation: { confirmed: true, birthYear: 2000 },
+        confirmation: { confirmed: true },
         session: null,
         now: NOW,
       }),
     ).rejects.toMatchObject({ code: 'E_AUTH_REQUIRED' })
+    mocks.findUser.mockResolvedValueOnce({
+      birthDate: new Date('2010-01-01T00:00:00.000Z'),
+    })
     await expect(
       confirmAge({
         episodeId: EPISODE.id,
-        confirmation: { confirmed: true, birthYear: 2010 },
+        confirmation: { confirmed: true },
         session: SESSION,
         now: NOW,
       }),

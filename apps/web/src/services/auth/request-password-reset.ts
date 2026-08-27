@@ -10,6 +10,15 @@ import { sendPasswordResetMail } from '@/src/lib/mail'
 
 import { createOneTimeToken } from './signup'
 
+export interface RequestPasswordResetIntent extends RequestPasswordResetInput {
+  /**
+   * `exactOptionalPropertyTypes` 아래에서 `undefined` 를 명시한다. zod 의
+   * `.optional()` 결과는 "키 없음" 이 아니라 "값이 undefined" 이므로, 이것을
+   * 빼면 파싱 결과를 그대로 넘길 수 없다.
+   */
+  readonly lang?: 'ko' | 'en' | undefined
+}
+
 /** 토큰 TTL 1시간. (T03 §5 #12) */
 export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000
 
@@ -23,7 +32,7 @@ export const RESET_TOKEN_PREFIX = 'reset:'
  * 하나만 무효화해도 다른 것으로 우회할 수 있다.
  */
 export async function requestPasswordReset(
-  input: RequestPasswordResetInput,
+  input: RequestPasswordResetIntent,
 ): Promise<void> {
   const user = await findUserByEmail(input.email)
   if (user === null) {
@@ -45,7 +54,11 @@ export async function requestPasswordReset(
   })
 
   try {
-    await sendPasswordResetMail({ to: user.email, token })
+    await sendPasswordResetMail({
+      to: user.email,
+      token,
+      locale: input.lang ?? (user.locale.startsWith('en') ? 'en' : 'ko'),
+    })
   } catch (error: unknown) {
     getLogger().error(
       { err: error, userId: user.id },

@@ -4,6 +4,25 @@ import type { ReactNode } from 'react'
 import { getServerSession } from '@/src/auth/server-session'
 import type { RouteSession } from '@/src/auth/types'
 import { AuthenticatedDiscoveryHome } from '@/src/components/discovery/AuthenticatedDiscoveryHome'
+import type { Metadata } from 'next'
+
+import { absoluteUrlOrNull } from '@/src/lib/site-url'
+
+const CANONICAL = absoluteUrlOrNull('/browse')
+
+export const metadata: Metadata = {
+  title: '탐색',
+  description: '장르·태그·인기순으로 ilog의 AI 드라마를 찾아보세요.',
+  ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: 'website',
+    title: '탐색 · ilog',
+    description: '장르·태그·인기순으로 ilog의 AI 드라마를 찾아보세요.',
+    siteName: 'ilog',
+    ...(CANONICAL === null ? {} : { url: CANONICAL }),
+  },
+}
 
 const developmentPreviewSession: RouteSession = {
   userId: 'preview-user',
@@ -15,6 +34,8 @@ const developmentPreviewSession: RouteSession = {
     role: 'CREATOR',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'GOLD',
+    isVerified: true,
   },
   expiresAt: new Date('2099-12-31T23:59:59.000Z'),
 }

@@ -1,4 +1,4 @@
-import type { Episode, Page } from '@aidream/core'
+import type { Episode, Page, MemberTier } from '@aidream/core'
 import { AppError } from '@aidream/core'
 import { Prisma, type Episode as PrismaEpisode } from '@prisma/client'
 import { db } from '../client.js'
@@ -20,6 +20,8 @@ export interface FeedRow extends Episode {
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
+  readonly creatorTier: MemberTier
+  readonly creatorVerifiedAt: Date | null
   readonly durationSec: number | null
 }
 
@@ -30,6 +32,8 @@ type PrismaFeedRow = PrismaEpisode & {
   creatorHandle: string
   creatorDisplayName: string
   creatorAvatarKey: string | null
+  creatorTier: MemberTier
+  creatorVerifiedAt: Date | null
   durationSec: number | null
 }
 
@@ -55,6 +59,29 @@ const episodeColumns = Prisma.raw(`
   e.like_count AS "likeCount",
   e.comment_count AS "commentCount",
   e.rank_score AS "rankScore",
+  e.visibility,
+  e.language,
+  e.category_id AS "categoryId",
+  e.keywords,
+  e.allow_embed AS "allowEmbed",
+  e.allow_download AS "allowDownload",
+  e.recorded_at AS "recordedAt",
+  e.meta_title AS "metaTitle",
+  e.meta_description AS "metaDescription",
+  e.og_image_key AS "ogImageKey",
+  e.canonical_path AS "canonicalPath",
+  e.made_for_kids AS "madeForKids",
+  e.license,
+  e.content_warnings AS "contentWarnings",
+  e.regions_allowed AS "regionsAllowed",
+  e.regions_blocked AS "regionsBlocked",
+  e.ai_models AS "aiModels",
+  e.ai_tools AS "aiTools",
+  e.ai_human_role AS "aiHumanRole",
+  e.ai_generated_pct AS "aiGeneratedPct",
+  e.share_count AS "shareCount",
+  e.impression_count AS "impressionCount",
+  e.avg_watch_sec AS "avgWatchSec",
   e.created_at AS "createdAt",
   e.updated_at AS "updatedAt",
   e.deleted_at AS "deletedAt",
@@ -64,7 +91,9 @@ const episodeColumns = Prisma.raw(`
   creator.handle AS "creatorHandle",
   creator.display_name AS "creatorDisplayName",
   creator.avatar_key AS "creatorAvatarKey",
-  asset.duration_sec AS "durationSec"
+  creator.tier AS "creatorTier",
+  creator.verified_at AS "creatorVerifiedAt",
+  COALESCE(e.duration_sec, asset.duration_sec) AS "durationSec"
 `)
 
 function blockedFilter(viewerId?: string): Prisma.Sql {
@@ -113,6 +142,8 @@ function toPage(
       creatorHandle: row.creatorHandle,
       creatorDisplayName: row.creatorDisplayName,
       creatorAvatarKey: row.creatorAvatarKey,
+      creatorTier: row.creatorTier,
+      creatorVerifiedAt: row.creatorVerifiedAt,
       durationSec: row.durationSec,
     })),
     nextCursor:

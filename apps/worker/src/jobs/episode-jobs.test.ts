@@ -1,4 +1,5 @@
 import type { Episode, VideoAsset } from '@aidream/core'
+import { episodeFixture } from '@aidream/core/test-support'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { deleteEpisodeMedia } from './delete-episode-media.js'
@@ -9,6 +10,7 @@ import {
 
 const NOW = new Date('2026-08-25T00:00:00.000Z')
 const EPISODE: Episode = {
+  ...episodeFixture(),
   id: 'episode_1',
   seriesId: 'series_1',
   seasonId: 'season_1',

@@ -2,6 +2,7 @@ import {
   AppError,
   type FeedItem,
   type FeedQuery,
+  type MemberTier,
   type Page,
 } from '@aidream/core'
 import {
@@ -33,6 +34,13 @@ export interface CachedFeedRow {
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
+  /**
+   * 등급·인증은 **선택 필드**다. 이 캐시는 Redis 에 이미 들어 있는 항목이
+   * 있고, 배포 직후에는 등급 없이 직렬화된 옛 항목이 TTL 만큼 남는다.
+   * 필수로 두면 그 시간 동안 피드가 깨진다.
+   */
+  readonly creatorTier?: MemberTier
+  readonly creatorVerifiedAt?: string | null
 }
 
 type CachedFeedPage = Page<CachedFeedRow>
@@ -81,6 +89,8 @@ export function toCachedFeedRow(row: FeedRow): CachedFeedRow {
     creatorHandle: row.creatorHandle,
     creatorDisplayName: row.creatorDisplayName,
     creatorAvatarKey: row.creatorAvatarKey,
+    creatorTier: row.creatorTier,
+    creatorVerifiedAt: row.creatorVerifiedAt?.toISOString() ?? null,
   }
 }
 
@@ -107,6 +117,10 @@ export function toPublicFeedItem(
       handle: row.creatorHandle,
       displayName: row.creatorDisplayName,
       avatarUrl: avatarUrl(row.creatorAvatarKey),
+      // 옛 캐시 항목에는 등급이 없다. BRONZE 는 배지가 없는 등급이므로
+      // 폴백으로 안전하다 — 없는 배지를 그리지 않는다.
+      tier: row.creatorTier ?? 'BRONZE',
+      isVerified: (row.creatorVerifiedAt ?? null) !== null,
     },
     isLiked,
   }

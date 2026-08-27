@@ -4,7 +4,7 @@ import { Button, EmptyState, ErrorState, Spinner, Stack } from '@aidream/ui'
 import { MailCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState, type ReactNode } from 'react'
+import React, { useEffect, useState, type ReactNode } from 'react'
 
 import { readApiError, staticMessageFor } from '@/src/lib/error-messages'
 import { messages } from '@/src/lib/messages'
@@ -14,6 +14,44 @@ type VerifyState = 'checking' | 'success' | 'expired' | 'error'
 interface Outcome {
   state: VerifyState
   message: string | null
+}
+
+const verificationRequests = new Map<string, Promise<Outcome>>()
+
+async function requestVerification(token: string): Promise<Outcome> {
+  try {
+    const response = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    if (response.ok) {
+      return { state: 'success', message: null }
+    }
+    const problem = readApiError(await response.json().catch(() => null))
+    return {
+      state: problem?.code === 'E_VALIDATION' ? 'expired' : 'error',
+      message: problem?.message ?? staticMessageFor('E_INTERNAL'),
+    }
+  } catch {
+    return { state: 'error', message: staticMessageFor('E_INTERNAL') }
+  }
+}
+
+function verifyOnce(token: string): Promise<Outcome> {
+  const pending = verificationRequests.get(token)
+  if (pending !== undefined) return pending
+
+  const request = requestVerification(token)
+  verificationRequests.set(token, request)
+  void request.finally(() => {
+    window.setTimeout(() => {
+      if (verificationRequests.get(token) === request) {
+        verificationRequests.delete(token)
+      }
+    }, 5_000)
+  })
+  return request
 }
 
 export function VerifyStatus(): ReactNode {
@@ -52,26 +90,20 @@ export function VerifyStatus(): ReactNode {
     }
 
     let cancelled = false
+    /*
+      좁혀진 `token` 을 지역 const 로 받는다. `verify` 는 함수 선언(호이스팅)
+      이라 TypeScript 가 위의 early return narrowing 을 적용하지 않는다 —
+      선언은 좁혀지기 전에도 호출될 수 있기 때문이다.
+    */
+    const verifyToken = token
 
     async function verify(): Promise<void> {
-      const response = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
+      const result = await verifyOnce(verifyToken)
       if (cancelled) {
         return
       }
-      if (response.ok) {
-        setOutcome({ state: 'success', message: null })
-        return
-      }
-      const problem = readApiError(await response.json().catch(() => null))
       // 토큰 만료·무효는 둘 다 E_VALIDATION 이다. 화면은 재발송을 안내한다.
-      setOutcome({
-        state: problem?.code === 'E_VALIDATION' ? 'expired' : 'error',
-        message: problem?.message ?? staticMessageFor('E_INTERNAL'),
-      })
+      setOutcome(result)
     }
 
     void verify()

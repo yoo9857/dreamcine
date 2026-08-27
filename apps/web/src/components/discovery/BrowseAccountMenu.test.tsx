@@ -28,7 +28,9 @@ const user = {
   handle: 'hanbin',
   displayName: '한빈',
   email: 'hanbin@example.com',
-}
+  tier: 'GOLD',
+  isVerified: true,
+} as const
 
 afterEach(() => {
   cleanup()

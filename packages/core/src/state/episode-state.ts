@@ -1,4 +1,5 @@
 import type { AssetStatus, EpisodeStatus, UserRole } from '../enums.js'
+import { isModeratorRole } from '../rules/roles.js'
 import type { ErrorCode } from '../errors/codes.js'
 
 export type TransitionActor =
@@ -68,7 +69,7 @@ export function checkEpisodeTransition(
   if (current === 'PUBLISHED' && next === 'HIDDEN') {
     if (
       actor.kind !== 'USER' ||
-      (!actor.isOwner && actor.role !== 'MODERATOR' && actor.role !== 'ADMIN')
+      (!actor.isOwner && !isModeratorRole(actor.role))
     ) {
       return { ok: false, code: 'E_EPISODE_INVALID_TRANSITION' }
     }

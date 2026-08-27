@@ -102,6 +102,8 @@ async function runCreateComment(
       handle: user.handle,
       displayName: user.displayName,
       avatarUrl: avatarUrl(user.avatarKey),
+      tier: user.tier,
+      isVerified: user.verifiedAt !== null,
     },
   }
 }

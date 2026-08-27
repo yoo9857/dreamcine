@@ -70,6 +70,8 @@ function routeSession(
       role: 'CREATOR',
       status: 'ACTIVE',
       emailVerified: true,
+      tier: 'BRONZE',
+      isVerified: false,
       ...overrides,
     },
   }

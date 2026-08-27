@@ -7,6 +7,10 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RouteSession } from '@/src/auth/types'
+import {
+  episodeFixture,
+  seriesFixture,
+} from '@/src/test-support/entity-fixtures'
 
 const mocks = vi.hoisted(() => ({
   countSeriesByOwner: vi.fn(),
@@ -81,10 +85,13 @@ const SESSION: RouteSession = {
     role: 'CREATOR',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
 }
 
 const SERIES: Series = {
+  ...seriesFixture(),
   id: 'series_1',
   ownerId: SESSION.userId,
   slug: '나의-드라마-2',
@@ -125,6 +132,7 @@ const ASSET: VideoAsset = {
 }
 
 const EPISODE: Episode = {
+  ...episodeFixture(),
   id: 'episode_1',
   seriesId: SERIES.id,
   seasonId: 'season_1',

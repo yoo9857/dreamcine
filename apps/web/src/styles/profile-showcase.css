@@ -483,6 +483,21 @@ html[data-theme='dark'] .profile-showcase {
   letter-spacing: 0.04em;
 }
 
+/* 프로필 헤더의 "@handle · FILMMAKER" 줄에 인증 마크와 등급 배지가 붙는다. */
+.profile-identity p,
+.profile-head p {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.profile-verified {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--aidream-accent);
+}
+
 .profile-bio {
   max-width: 44ch;
   margin: 0;

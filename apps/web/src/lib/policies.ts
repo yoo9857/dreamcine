@@ -1,0 +1,3 @@
+export const TERMS_VERSION = '2026-08-27'
+export const PRIVACY_VERSION = '2026-08-27'
+export const MARKETING_CONSENT_VERSION = '2026-08-27'

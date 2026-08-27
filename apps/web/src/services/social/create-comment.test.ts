@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { RouteSession } from '@/src/auth/types'
 import { createComment, type CreateCommentDependencies } from './create-comment'
+import { userFixture } from '@/src/test-support/entity-fixtures'
 
 const now = new Date('2026-08-25T00:00:00.000Z')
 const session = {
@@ -15,10 +16,13 @@ const session = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: now,
 } satisfies RouteSession
 const user = {
+  ...userFixture(),
   id: 'viewer',
   handle: 'viewer',
   email: 'v@example.com',

@@ -19,7 +19,13 @@ const item: FeedItem = {
   likeCount: 1,
   publishedAt: '2026-08-25T00:00:00.000Z',
   series: { id: 'series_1', title: '시리즈', slug: 'series' },
-  creator: { handle: 'creator', displayName: '제작자', avatarUrl: null },
+  creator: {
+    handle: 'creator',
+    displayName: '제작자',
+    avatarUrl: null,
+    tier: 'BRONZE',
+    isVerified: false,
+  },
   isLiked: false,
 }
 

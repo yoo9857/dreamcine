@@ -1,8 +1,9 @@
 import { AppError, type SeriesResponse, type UserProfile } from '@aidream/core'
-import { Avatar } from '@aidream/ui'
+import { Avatar, TierBadge } from '@aidream/ui'
 import {
   ArrowDown,
   ArrowUpRight,
+  BadgeCheck,
   Camera,
   Mail,
   MessageCircle,
@@ -16,8 +17,11 @@ import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
+import { JsonLd } from '@/src/components/seo/JsonLd'
 import { ProfilePopularCarousel } from '@/src/components/profile/ProfilePopularCarousel'
 import { ShowcaseThemeToggle } from '@/src/components/showcase/ShowcaseThemeToggle'
+import { profileJsonLd } from '@/src/lib/seo/json-ld'
+import { absoluteUrlOrNull } from '@/src/lib/site-url'
 import { FollowButton } from '@/src/components/social/FollowButton'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import '@/src/styles/profile-showcase.css'
@@ -48,9 +52,24 @@ const PREVIEW_PROFILE: UserProfile = {
   handle: 'hanbin',
   displayName: '한빈',
   bio: '기억에 오래 남는 장면과 사람의 이야기를 만듭니다. 영화와 현실 사이, 아직 이름 붙지 않은 감정을 기록하는 크리에이터입니다.',
+  channelDescription: null,
   avatarUrl: null,
+  bannerUrl: null,
+  channelKeywords: ['AI 드라마', '단편', '감성'],
+  country: 'KR',
+  locale: 'ko-KR',
+  isVerified: true,
+  role: 'CREATOR',
+  tier: 'GOLD',
+  tierPoints: 18_400,
   followerCount: 12_840,
+  followingCount: 42,
   seriesCount: 5,
+  episodeCount: 23,
+  totalViews: '184200',
+  joinedAt: new Date('2026-02-01T00:00:00.000Z'),
+  trailerEpisodeId: null,
+  links: [],
   isFollowing: false,
   isBlocked: false,
 }
@@ -62,6 +81,8 @@ const PREVIEW_PROFILE_ALIASES: Readonly<Record<string, UserProfile>> = {
     displayName: '소라',
     bio: '낯선 움직임과 감각적인 색으로 새로운 세계를 기록합니다.',
     avatarUrl: '/brand/profiles/cristobal-valenzuela.jpeg',
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 9220,
     seriesCount: 8,
   },
@@ -71,6 +92,8 @@ const PREVIEW_PROFILE_ALIASES: Readonly<Record<string, UserProfile>> = {
     displayName: '민서',
     bio: '짧지만 선명한 감정의 순간을 시네마틱 필름으로 전합니다.',
     avatarUrl: '/brand/profiles/minseo-color.webp',
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 7810,
     seriesCount: 6,
   },
@@ -80,6 +103,8 @@ const PREVIEW_PROFILE_ALIASES: Readonly<Record<string, UserProfile>> = {
     displayName: '도하',
     bio: '기술과 상상력이 만나는 비주얼 스토리를 설계합니다.',
     avatarUrl: '/brand/profiles/michael-burns.jpg',
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 6340,
     seriesCount: 11,
   },
@@ -89,6 +114,8 @@ const PREVIEW_PROFILE_ALIASES: Readonly<Record<string, UserProfile>> = {
     displayName: '노아',
     bio: '리듬과 움직임을 중심으로 한 실험적인 숏폼을 만듭니다.',
     avatarUrl: '/brand/profiles/noa-color.webp',
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 5190,
     seriesCount: 7,
   },
@@ -98,6 +125,8 @@ const PREVIEW_PROFILE_ALIASES: Readonly<Record<string, UserProfile>> = {
     displayName: '윤',
     bio: '사람과 공간 사이의 조용한 서사를 오래 바라봅니다.',
     avatarUrl: '/brand/profiles/james-cameron.jpg',
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 4820,
     seriesCount: 4,
   },
@@ -108,6 +137,8 @@ const PREVIEW_RELATED_CREATORS: readonly RelatedCreator[] = [
     handle: 'sora.archive',
     displayName: '소라',
     avatarUrl: null,
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 9220,
     seriesCount: 8,
   },
@@ -115,6 +146,8 @@ const PREVIEW_RELATED_CREATORS: readonly RelatedCreator[] = [
     handle: 'minseo.film',
     displayName: '민서',
     avatarUrl: null,
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 7810,
     seriesCount: 6,
   },
@@ -122,6 +155,8 @@ const PREVIEW_RELATED_CREATORS: readonly RelatedCreator[] = [
     handle: 'doha.visuals',
     displayName: '도하',
     avatarUrl: null,
+    tier: 'GOLD',
+    isVerified: true,
     followerCount: 6340,
     seriesCount: 11,
   },
@@ -201,13 +236,64 @@ function WorkCard({
   )
 }
 
+/**
+ * 프로필 메타데이터.
+ *
+ * DB 조회가 실패하거나 핸들이 없으면 핸들만 담은 최소 메타로 떨어진다.
+ * 메타데이터 실패가 페이지 실패가 되면 안 된다.
+ */
 export async function generateMetadata({
   params,
 }: {
   readonly params: Promise<{ handle: string }>
 }): Promise<Metadata> {
   const { handle } = await params
-  return { title: `@${handle}` }
+  const canonical = absoluteUrlOrNull(`/u/${handle}`)
+
+  let profile: UserProfile | null = null
+  try {
+    profile = await getProfile(handle, null)
+  } catch {
+    profile = null
+  }
+  if (profile === null) {
+    return {
+      title: `@${handle}`,
+      robots: { index: false, follow: true },
+      ...(canonical === null ? {} : { alternates: { canonical } }),
+    }
+  }
+
+  const description =
+    profile.channelDescription ??
+    profile.bio ??
+    `${profile.displayName}(@${profile.handle})의 작품 ${String(profile.seriesCount)}편`
+  const title = `${profile.displayName} (@${profile.handle})`
+
+  return {
+    title,
+    description,
+    keywords:
+      profile.channelKeywords.length === 0
+        ? undefined
+        : [...profile.channelKeywords],
+    ...(canonical === null ? {} : { alternates: { canonical } }),
+    robots: { index: true, follow: true },
+    openGraph: {
+      type: 'profile',
+      title,
+      description,
+      siteName: 'ilog',
+      locale: profile.locale,
+      ...(canonical === null ? {} : { url: canonical }),
+      ...(profile.bannerUrl === null
+        ? profile.avatarUrl === null
+          ? {}
+          : { images: [{ url: profile.avatarUrl }] }
+        : { images: [{ url: profile.bannerUrl }] }),
+    },
+    twitter: { card: 'summary_large_image', title, description },
+  }
 }
 
 export default async function ProfilePage({
@@ -246,6 +332,16 @@ export default async function ProfilePage({
 
     return (
       <div className="profile-showcase">
+        <JsonLd
+          document={profileJsonLd({
+            handle: profile.handle,
+            displayName: profile.displayName,
+            description: profile.channelDescription ?? profile.bio,
+            avatarUrl: profile.avatarUrl,
+            followerCount: profile.followerCount,
+            joinedAt: profile.joinedAt,
+          })}
+        />
         <header className="profile-floating-header">
           <nav aria-label="프로필 메뉴">
             <Link href="/" className="profile-wordmark" aria-label="ilog 홈">
@@ -309,7 +405,17 @@ export default async function ProfilePage({
                   />
                   <div>
                     <h1>{profile.displayName}</h1>
-                    <p>@{profile.handle} · FILMMAKER</p>
+                    <p>
+                      @{profile.handle} · FILMMAKER
+                      {profile.isVerified ? (
+                        <BadgeCheck
+                          className="profile-verified"
+                          role="img"
+                          aria-label="인증 채널"
+                        />
+                      ) : null}
+                      <TierBadge tier={profile.tier} size="sm" />
+                    </p>
                   </div>
                 </div>
                 <p className="profile-bio">
@@ -317,7 +423,9 @@ export default async function ProfilePage({
                     '장면과 감정 사이의 이야기를 영상으로 기록합니다. 새로운 작품으로 곧 만나요.'}
                 </p>
                 <div className="profile-stats">
-                  <span>{profile.followerCount} FOLLOWERS</span>
+                  {profile.followerCount === null ? null : (
+                    <span>{profile.followerCount} FOLLOWERS</span>
+                  )}
                   <span>{profile.seriesCount} WORKS</span>
                 </div>
                 {isSelf ? null : (
@@ -325,7 +433,7 @@ export default async function ProfilePage({
                     <FollowButton
                       handle={profile.handle}
                       initialFollowing={profile.isFollowing}
-                      initialCount={profile.followerCount}
+                      initialCount={profile.followerCount ?? 0}
                       disabled={session === null || profile.isBlocked}
                     />
                   </div>

@@ -34,9 +34,16 @@ let RESET_TOKEN_PREFIX: string
 
 interface Credentials {
   email: string
+  emailConfirmation: string
   password: string
   handle: string
   displayName: string
+  birthDate: string
+  gender: 'PREFER_NOT_TO_SAY'
+  signupPurpose: 'CREATOR'
+  country: 'KR'
+  acceptTerms: true
+  marketingConsent: false
 }
 
 let counter = 0
@@ -49,10 +56,18 @@ let counter = 0
 function credentials(): Credentials {
   counter += 1
   const suffix = String(counter).padStart(3, '0')
+  const email = `creator_${suffix}@example.com`
   return {
-    email: `creator_${suffix}@example.com`,
+    email,
+    emailConfirmation: email,
     password: 'correct horse battery',
     handle: `creator_${suffix}`,
+    birthDate: '1995-06-15',
+    gender: 'PREFER_NOT_TO_SAY',
+    signupPurpose: 'CREATOR',
+    country: 'KR',
+    acceptTerms: true,
+    marketingConsent: false,
     displayName: '드라마 제작자',
   }
 }

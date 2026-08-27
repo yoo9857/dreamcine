@@ -7,6 +7,10 @@
     ".": {
       "worker": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./test-support": {
+      "worker": "./dist/test-support/entities.js",
+      "default": "./src/test-support/entities.ts"
     }
   },
   "dependencies": {

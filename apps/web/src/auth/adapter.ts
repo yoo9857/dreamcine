@@ -20,6 +20,9 @@ import {
 } from '@aidream/db'
 import type { Adapter, AdapterUser } from 'next-auth/adapters'
 
+import { getLogger } from '../lib/logger'
+import { mailTransportConfigured, sendWelcomeMail } from '../lib/mail'
+
 const HANDLE_MIN = 3
 const HANDLE_MAX = 20
 const HANDLE_ATTEMPTS = 8
@@ -91,6 +94,20 @@ export function createAuthAdapter(): Adapter {
         created.id,
         user.emailVerified ?? new Date(),
       )
+      if (mailTransportConfigured()) {
+        try {
+          await sendWelcomeMail({
+            to: verified.email,
+            handle: verified.handle,
+            locale: verified.locale.startsWith('en') ? 'en' : 'ko',
+          })
+        } catch (error: unknown) {
+          getLogger().error(
+            { err: error, userId: verified.id },
+            'oauth welcome mail delivery failed',
+          )
+        }
+      }
       return toAdapterUser(verified)
     },
 

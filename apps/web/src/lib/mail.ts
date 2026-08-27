@@ -1,11 +1,50 @@
 import { AppError } from '@aidream/core'
-import { createTransport } from 'nodemailer'
+import { hasActiveMarketingConsent } from '@aidream/db'
+import { randomUUID } from 'node:crypto'
+import { createTransport, type Transporter } from 'nodemailer'
 
 import { getLogger } from './logger'
+import { createMarketingUnsubscribeToken } from './marketing-unsubscribe'
+import { absoluteUrl } from './site-url'
+import {
+  eventTemplate,
+  passwordResetTemplate,
+  refundTemplate,
+  verificationTemplate,
+  welcomeTemplate,
+  type EventTemplateInput,
+  type MailLocale,
+  type RefundTemplateInput,
+  type RenderedMail,
+} from './mail-templates'
 
 export interface MailRecipientToken {
-  to: string
-  token: string
+  readonly to: string
+  readonly token: string
+}
+
+export interface PasswordResetMailInput extends MailRecipientToken {
+  readonly locale?: MailLocale
+}
+
+export interface WelcomeMailInput {
+  readonly handle: string
+  readonly locale?: MailLocale
+  readonly to: string
+}
+
+export interface RefundMailInput extends RefundTemplateInput {
+  readonly to: string
+}
+
+export interface EventMailInput extends EventTemplateInput {
+  readonly to: string
+}
+
+export interface MarketingEventMailInput
+  extends Omit<EventTemplateInput, 'unsubscribeHref'> {
+  readonly userId: string
+  readonly to: string
 }
 
 interface VerificationMailInput extends MailRecipientToken {
@@ -14,49 +53,81 @@ interface VerificationMailInput extends MailRecipientToken {
   readonly market?: 'kr' | 'us'
 }
 
-interface MailMessage {
-  to: string
-  subject: string
-  text: string
-}
+let cachedTransport: {
+  readonly url: string
+  readonly value: Transporter
+} | null = null
 
 function appUrl(): string {
   const value = process.env.APP_URL
-  if (value === undefined || value === '') {
+  if (value === undefined || value === '')
     throw new AppError('E_INTERNAL', { reason: 'app-url-missing' })
-  }
   return value.replace(/\/$/u, '')
 }
 
-/**
- * `SMTP_URL` 이 없으면 네트워크로 나가지 않는다. 개발·테스트 환경에서 메일
- * 서버를 요구하지 않기 위한 경계다. 토큰은 로그에 남기지 않는다(§9 redact).
- */
-async function send(message: MailMessage): Promise<void> {
-  const smtpUrl = process.env.SMTP_URL
-  const from = process.env.MAIL_FROM
+function brandDomain(): string {
+  return new URL(appUrl()).hostname
+}
+
+export function mailTransportConfigured(): boolean {
+  const smtpUrl = process.env.SMTP_URL?.trim()
+  const from = process.env.MAIL_FROM?.trim()
   if (
     smtpUrl === undefined ||
     smtpUrl === '' ||
     from === undefined ||
     from === ''
-  ) {
-    getLogger().info(
-      { to: message.to, subject: message.subject },
-      'mail transport disabled, skipping delivery',
-    )
-    return
-  }
-
+  )
+    return false
   try {
-    const transport = createTransport(smtpUrl)
-    await transport.sendMail({
-      from,
-      to: message.to,
+    const protocol = new URL(smtpUrl).protocol
+    return protocol === 'smtp:' || protocol === 'smtps:'
+  } catch {
+    return false
+  }
+}
+
+function transport(): Transporter {
+  const smtpUrl = process.env.SMTP_URL?.trim()
+  if (smtpUrl === undefined || smtpUrl === '')
+    throw new AppError('E_INTERNAL', { reason: 'mail-transport-missing' })
+  if (cachedTransport?.url === smtpUrl) return cachedTransport.value
+  const value = createTransport({
+    url: smtpUrl,
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 100,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  })
+  cachedTransport = { url: smtpUrl, value }
+  return value
+}
+
+async function send(
+  to: string,
+  message: RenderedMail,
+  headers: Readonly<Record<string, string>> = {},
+): Promise<void> {
+  const from = process.env.MAIL_FROM?.trim()
+  if (from === undefined || from === '')
+    throw new AppError('E_INTERNAL', { reason: 'mail-from-missing' })
+  try {
+    await transport().sendMail({
+      from: { name: 'ILOG', address: from },
+      to,
       subject: message.subject,
       text: message.text,
+      html: message.html,
+      headers: {
+        'X-Entity-Ref-ID': randomUUID(),
+        'X-Auto-Response-Suppress': 'All',
+        ...headers,
+      },
     })
   } catch (error: unknown) {
+    getLogger().error({ err: error }, 'transactional mail delivery failed')
     throw new AppError('E_INTERNAL', { reason: 'smtp-send' }, error)
   }
 }
@@ -69,38 +140,90 @@ export function sendVerificationMail(
   if (input.plan !== undefined) link.searchParams.set('plan', input.plan)
   if (input.lang !== undefined) link.searchParams.set('lang', input.lang)
   if (input.market !== undefined) link.searchParams.set('market', input.market)
-  return send({
-    to: input.to,
-    subject: '[AIDREAM] 이메일 인증을 완료해 주세요',
-    text: [
-      'AIDREAM 가입을 환영합니다.',
-      '',
-      '아래 주소에서 이메일 인증을 완료해 주세요. 링크는 24시간 동안 유효합니다.',
-      link.toString(),
-      '',
-      '직접 가입하지 않았다면 이 메일을 무시하세요.',
-    ].join('\n'),
-  })
+  const href = link.toString()
+  return send(
+    input.to,
+    verificationTemplate({
+      brandDomain: brandDomain(),
+      href,
+      locale: input.lang === 'en' ? 'en' : 'ko',
+    }),
+  )
+}
+
+export function sendPasswordResetMail(
+  input: PasswordResetMailInput,
+): Promise<void> {
+  const link = new URL('/password/reset', `${appUrl()}/`)
+  link.searchParams.set('token', input.token)
+  if (input.locale === 'en') link.searchParams.set('lang', 'en')
+  return send(
+    input.to,
+    passwordResetTemplate({
+      brandDomain: brandDomain(),
+      href: link.toString(),
+      ...(input.locale === undefined ? {} : { locale: input.locale }),
+    }),
+  )
+}
+
+export function sendWelcomeMail(input: WelcomeMailInput): Promise<void> {
+  const link = new URL('/browse', `${appUrl()}/`)
+  if (input.locale === 'en') link.searchParams.set('lang', 'en')
+  return send(
+    input.to,
+    welcomeTemplate({
+      brandDomain: brandDomain(),
+      handle: input.handle,
+      href: link.toString(),
+      ...(input.locale === undefined ? {} : { locale: input.locale }),
+    }),
+  )
+}
+
+export function sendRefundMail(input: RefundMailInput): Promise<void> {
+  const { to, ...templateInput } = input
+  return send(
+    to,
+    refundTemplate({ ...templateInput, brandDomain: brandDomain() }),
+  )
+}
+
+/** 로컬 템플릿 미리보기 전용. 운영 캠페인은 sendMarketingEventMail을 쓴다. */
+export function sendEventMailPreviewOnly(input: EventMailInput): Promise<void> {
+  const { to, ...templateInput } = input
+  return send(
+    to,
+    eventTemplate({ ...templateInput, brandDomain: brandDomain() }),
+    {
+      'List-Unsubscribe': `<${input.unsubscribeHref}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  )
 }
 
 /**
- * 재설정 화면은 08_UIUX_SPEC.md §1 라우트 맵에 아직 없다. 그래서 링크가 아니라
- * 토큰을 본문에 담는다. 화면이 생기면 이 함수만 바꾸면 된다.
+ * 운영 캠페인의 유일한 발송 진입점. 후보 목록을 만든 뒤 사용자가 철회했을 수
+ * 있으므로 SMTP 전송 직전에 최신 동의를 다시 확인한다.
  */
-export function sendPasswordResetMail(
-  input: MailRecipientToken,
-): Promise<void> {
-  return send({
-    to: input.to,
-    subject: '[AIDREAM] 비밀번호 재설정 안내',
-    text: [
-      '비밀번호 재설정이 요청되었습니다. 아래 토큰으로 재설정을 진행하세요.',
-      '토큰은 1시간 동안, 한 번만 사용할 수 있습니다.',
-      '',
-      input.token,
-      '',
-      `문의: ${appUrl()}`,
-      '요청하지 않았다면 이 메일을 무시하세요. 비밀번호는 그대로 유지됩니다.',
-    ].join('\n'),
+export async function sendMarketingEventMail(
+  input: MarketingEventMailInput,
+): Promise<boolean> {
+  if (!(await hasActiveMarketingConsent(input.userId))) return false
+  const secret = process.env.AUTH_SECRET
+  if (secret === undefined || secret === '') throw new AppError('E_INTERNAL')
+  const token = createMarketingUnsubscribeToken({
+    userId: input.userId,
+    now: new Date(),
+    secret,
   })
+  const { userId: _userId, to, ...template } = input
+  await sendEventMailPreviewOnly({
+    ...template,
+    to,
+    unsubscribeHref: absoluteUrl(
+      `/api/marketing/unsubscribe?token=${encodeURIComponent(token)}`,
+    ),
+  })
+  return true
 }

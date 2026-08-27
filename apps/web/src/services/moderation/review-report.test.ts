@@ -17,6 +17,8 @@ function session(role: 'MODERATOR' | 'ADMIN'): RouteSession {
       role,
       status: 'ACTIVE',
       emailVerified: true,
+      tier: 'BRONZE',
+      isVerified: false,
     },
   }
 }

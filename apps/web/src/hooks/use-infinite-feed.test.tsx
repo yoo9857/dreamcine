@@ -17,7 +17,13 @@ const first: FeedItem = {
   likeCount: 0,
   publishedAt: '2026-08-25T00:00:00.000Z',
   series: { id: 'series-1', title: 'Series', slug: 'series' },
-  creator: { handle: 'creator', displayName: 'Creator', avatarUrl: null },
+  creator: {
+    handle: 'creator',
+    displayName: 'Creator',
+    avatarUrl: null,
+    tier: 'BRONZE',
+    isVerified: false,
+  },
   isLiked: false,
 }
 const second: FeedItem = { ...first, episodeId: 'episode-2', title: 'Second' }

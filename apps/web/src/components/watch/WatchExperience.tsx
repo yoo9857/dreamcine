@@ -1,4 +1,5 @@
 import type { FeedItem } from '@aidream/core'
+import type { PublicUserSummary } from '@aidream/core'
 import {
   ArrowUpRight,
   Clock3,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { UserTierLine } from '@/src/components/user/UserTierLine'
 
 function duration(value: number | null): string {
   if (value === null) return '--:--'
@@ -57,7 +59,9 @@ function ShortCard({
       </div>
       <section>
         <h3>{item.title}</h3>
-        <p>{item.creator.displayName}</p>
+        <p>
+          <UserTierLine user={item.creator} link={false} compact />
+        </p>
         <small>
           <Clock3 /> {duration(item.durationSec)}
         </small>
@@ -83,7 +87,9 @@ function LongCard({
         </i>
       </div>
       <h3>{item.title}</h3>
-      <p>{item.creator.displayName}</p>
+      <p>
+        <UserTierLine user={item.creator} link={false} compact />
+      </p>
       <small>
         <Eye /> 조회 {count(item.viewCount)} · 좋아요 {count(item.likeCount)}
       </small>
@@ -168,11 +174,7 @@ export function WatchExperience({
   readonly title: string
   readonly seriesTitle: string
   readonly description: string | null
-  readonly creator: {
-    readonly handle: string
-    readonly displayName: string
-    readonly avatarUrl: string | null
-  }
+  readonly creator: PublicUserSummary
   readonly viewCount: string
   readonly publishedAt: string | null
   readonly actions: ReactNode
@@ -202,7 +204,10 @@ export function WatchExperience({
                   <img src={creator.avatarUrl} alt="" />
                 )}
                 <div>
-                  <strong>{creator.displayName}</strong>
+                  <strong>
+                    {/* 바깥이 이미 프로필 링크다 — 중첩 링크를 만들지 않는다. */}
+                    <UserTierLine user={creator} link={false} />
+                  </strong>
                   <small>@{creator.handle}</small>
                 </div>
               </Link>

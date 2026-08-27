@@ -15,13 +15,19 @@ import {
 
 import { hashPassword } from '@/src/auth/password'
 import { getLogger } from '@/src/lib/logger'
-import { sendVerificationMail } from '@/src/lib/mail'
+import { mailTransportConfigured, sendVerificationMail } from '@/src/lib/mail'
+import {
+  MARKETING_CONSENT_VERSION,
+  PRIVACY_VERSION,
+  TERMS_VERSION,
+} from '@/src/lib/policies'
 
 export interface SignupResult {
   id: string
   handle: string
   email: string
   emailVerified: null
+  verificationEmailSent: boolean
 }
 
 export interface SignupIntent {
@@ -56,7 +62,10 @@ function specifyConflict(error: unknown): unknown {
   return error
 }
 
-async function createAccount(input: SignupInput): Promise<User> {
+async function createAccount(
+  input: SignupInput,
+  intent: SignupIntent,
+): Promise<User> {
   const passwordHash = await hashPassword(input.password)
   try {
     return await createUser({
@@ -64,6 +73,28 @@ async function createAccount(input: SignupInput): Promise<User> {
       email: input.email,
       displayName: input.displayName,
       passwordHash,
+      locale: intent.lang === 'en' ? 'en-US' : 'ko-KR',
+      birthDate: new Date(`${input.birthDate}T00:00:00.000Z`),
+      gender: input.gender,
+      signupPurpose: input.signupPurpose,
+      country: input.country,
+      consents: [
+        {
+          kind: 'TOS',
+          version: TERMS_VERSION,
+          granted: input.acceptTerms,
+        },
+        {
+          kind: 'PRIVACY',
+          version: PRIVACY_VERSION,
+          granted: input.acceptTerms,
+        },
+        {
+          kind: 'MARKETING',
+          version: MARKETING_CONSENT_VERSION,
+          granted: input.marketingConsent,
+        },
+      ],
     })
   } catch (error: unknown) {
     throw specifyConflict(error)
@@ -83,6 +114,14 @@ export async function signup(
   input: SignupInput,
   intent: SignupIntent = {},
 ): Promise<SignupResult> {
+  if (process.env.NODE_ENV === 'production' && !mailTransportConfigured()) {
+    getLogger().error(
+      { reason: 'mail-transport-missing' },
+      'signup blocked because verification mail is unavailable',
+    )
+    throw new AppError('E_INTERNAL', { reason: 'mail-transport-missing' })
+  }
+
   const reserved: readonly string[] = RESERVED_HANDLES
   if (reserved.includes(input.handle)) {
     throw new AppError('E_USER_HANDLE_TAKEN', { reason: 'reserved' })
@@ -95,7 +134,7 @@ export async function signup(
     throw new AppError('E_USER_HANDLE_TAKEN')
   }
 
-  const user = await createAccount(input)
+  const user = await createAccount(input, intent)
 
   const token = createOneTimeToken()
   await createVerificationToken({
@@ -104,12 +143,21 @@ export async function signup(
     expires: new Date(Date.now() + EMAIL_VERIFY_TTL_MS),
   })
 
-  try {
-    await sendVerificationMail({ to: user.email, token, ...intent })
-  } catch (error: unknown) {
+  let verificationEmailSent = false
+  if (mailTransportConfigured()) {
+    try {
+      await sendVerificationMail({ to: user.email, token, ...intent })
+      verificationEmailSent = true
+    } catch (error: unknown) {
+      getLogger().error(
+        { err: error, userId: user.id },
+        'verification mail delivery failed',
+      )
+    }
+  } else {
     getLogger().error(
-      { err: error, userId: user.id },
-      'verification mail delivery failed',
+      { userId: user.id },
+      'verification mail transport is not configured',
     )
   }
 
@@ -118,5 +166,6 @@ export async function signup(
     handle: user.handle,
     email: user.email,
     emailVerified: null,
+    verificationEmailSent,
   }
 }

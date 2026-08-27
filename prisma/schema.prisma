@@ -7,11 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// 저장되는 역할. `GUEST` 는 행이 없는 상태이므로 여기 없다 —
+/// 판정 계층의 `ActorRole` 이 담당한다. (ISS-020)
 enum UserRole {
   VIEWER
+  MEMBER
   CREATOR
+  PARTNER
   MODERATOR
   ADMIN
+}
+
+/// 활동 기반 회원 등급. 권한이 아니라 **혜택**을 가른다.
+enum MemberTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
 }
 
 enum UserStatus {
@@ -102,6 +115,88 @@ enum CreatorApplicationStatus {
   REJECTED
 }
 
+enum Visibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum LinkKind {
+  WEBSITE
+  YOUTUBE
+  INSTAGRAM
+  X
+  TIKTOK
+  THREADS
+  DISCORD
+  EMAIL
+  OTHER
+}
+
+enum ConsentKind {
+  TOS
+  PRIVACY
+  MARKETING
+  AGE
+  AI_TRAINING
+  SENSITIVE_DATA
+}
+
+enum ContentLicense {
+  STANDARD
+  CC_BY
+}
+
+enum CreditRole {
+  DIRECTOR
+  WRITER
+  VOICE
+  MUSIC
+  EDIT
+  AI_VISUAL
+  PRODUCER
+  TRANSLATOR
+  OTHER
+}
+
+enum SubtitleKind {
+  SUBTITLE
+  CAPTION
+}
+
+enum AuthEventKind {
+  SIGNUP
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_RESET_REQUEST
+  PASSWORD_CHANGED
+  EMAIL_VERIFIED
+  ROLE_CHANGED
+  SUSPENDED
+  REACTIVATED
+}
+
+enum DeletionRequestStatus {
+  PENDING
+  CANCELLED
+  PURGED
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum SignupPurpose {
+  VIEWER
+  CREATOR
+  BOTH
+}
+
 model User {
   id            String     @id @default(cuid())
   handle        String     @unique
@@ -113,11 +208,65 @@ model User {
   avatarKey     String?    @map("avatar_key")
   role          UserRole   @default(VIEWER)
   status        UserStatus @default(ACTIVE)
-  followerCount Int        @default(0) @map("follower_count")
-  seriesCount   Int        @default(0) @map("series_count")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  deletedAt     DateTime?  @map("deleted_at")
+
+  // ───── 활동 등급 (권한이 아니라 혜택. ISS-020)
+  tier            MemberTier @default(BRONZE)
+  tierPoints      Int        @default(0) @map("tier_points")
+  tierEvaluatedAt DateTime?  @map("tier_evaluated_at")
+
+  // ───── 역할 부여 흔적. 상세 이력은 RoleGrant 가 갖는다.
+  roleGrantedAt DateTime? @map("role_granted_at")
+  roleGrantedBy String?   @map("role_granted_by")
+
+  // ───── 채널 프로필 (YouTube 채널 등가물)
+  bannerKey          String?    @map("banner_key")
+  channelDescription String?    @map("channel_description") @db.VarChar(5000)
+  channelKeywords    String[]   @default([]) @map("channel_keywords")
+  trailerEpisodeId   String?    @map("trailer_episode_id")
+  profileVisibility  Visibility @default(PUBLIC) @map("profile_visibility")
+  hideFollowerCount  Boolean    @default(false) @map("hide_follower_count")
+  verifiedAt         DateTime?  @map("verified_at")
+
+  // ───── 지역·언어 (12_GLOBAL_EXPANSION §2 language != market)
+  country  String? @db.Char(2)
+  locale   String  @default("ko-KR") @db.VarChar(10)
+  timezone String  @default("Asia/Seoul") @db.VarChar(64)
+
+  // ───── 본인확인·연령 (AgeRating.A19 게이트의 저장 근거)
+  birthDate       DateTime?      @map("birth_date") @db.Date
+  gender          Gender?
+  signupPurpose   SignupPurpose? @map("signup_purpose")
+  phone           String?        @db.VarChar(32)
+  phoneVerifiedAt DateTime?      @map("phone_verified_at")
+
+  // ───── 업로드 기본값
+  defaultAgeRating AgeRating      @default(ALL) @map("default_age_rating")
+  defaultLanguage  String         @default("ko") @map("default_language") @db.VarChar(10)
+  defaultLicense   ContentLicense @default(STANDARD) @map("default_license")
+
+  // ───── 집계 카운터
+  followerCount  Int    @default(0) @map("follower_count")
+  followingCount Int    @default(0) @map("following_count")
+  seriesCount    Int    @default(0) @map("series_count")
+  episodeCount   Int    @default(0) @map("episode_count")
+  totalViews     BigInt @default(0) @map("total_views")
+
+  // ───── 운영·유입·제재
+  lastLoginAt     DateTime? @map("last_login_at")
+  lastSeenAt      DateTime? @map("last_seen_at")
+  loginCount      Int       @default(0) @map("login_count")
+  signupIpHash    String?   @map("signup_ip_hash") @db.VarChar(64)
+  signupUserAgent String?   @map("signup_user_agent") @db.VarChar(500)
+  signupReferrer  String?   @map("signup_referrer") @db.VarChar(500)
+  utmSource       String?   @map("utm_source") @db.VarChar(120)
+  utmMedium       String?   @map("utm_medium") @db.VarChar(120)
+  utmCampaign     String?   @map("utm_campaign") @db.VarChar(120)
+  suspendedUntil  DateTime? @map("suspended_until")
+  suspendReason   String?   @map("suspend_reason") @db.VarChar(500)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   series         Series[]
   uploadSessions UploadSession[]
@@ -133,7 +282,23 @@ model User {
   accounts       Account[]
   sessions       Session[]
 
+  trailerEpisode  Episode?                 @relation("channelTrailer", fields: [trailerEpisodeId], references: [id], onDelete: SetNull)
+  links           UserLink[]
+  consents        UserConsent[]
+  notifPrefs      NotificationPreference[]
+  authEvents      AuthAuditLog[]
+  roleGrants      RoleGrant[]              @relation("roleSubject")
+  roleGrantsMade  RoleGrant[]              @relation("roleGranter")
+  deletionRequest UserDeletionRequest?
+  playlists       Playlist[]
+  credits         Credit[]
+
   @@index([status, createdAt])
+  @@index([role, status])
+  @@index([tier, tierPoints(sort: Desc)])
+  @@index([country, locale])
+  @@index([verifiedAt])
+  @@index([lastSeenAt])
   @@map("user")
 }
 
@@ -177,28 +342,63 @@ model VerificationToken {
 }
 
 model Series {
-  id           String    @id @default(cuid())
-  ownerId      String    @map("owner_id")
-  slug         String    @unique
-  title        String    @db.VarChar(120)
-  synopsis     String?   @db.VarChar(2000)
-  posterKey    String?   @map("poster_key")
-  ageRating    AgeRating @default(ALL) @map("age_rating")
-  isCompleted  Boolean   @default(false) @map("is_completed")
-  commentsOff  Boolean   @default(false) @map("comments_off")
-  episodeCount Int       @default(0) @map("episode_count")
-  totalViews   BigInt    @default(0) @map("total_views")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  id          String    @id @default(cuid())
+  ownerId     String    @map("owner_id")
+  slug        String    @unique
+  title       String    @db.VarChar(120)
+  synopsis    String?   @db.VarChar(2000)
+  posterKey   String?   @map("poster_key")
+  ageRating   AgeRating @default(ALL) @map("age_rating")
+  isCompleted Boolean   @default(false) @map("is_completed")
+  commentsOff Boolean   @default(false) @map("comments_off")
 
-  owner    User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  seasons  Season[]
-  episodes Episode[]
-  tags     SeriesTag[]
+  // ----- 발견 축
+  bannerKey        String?    @map("banner_key")
+  categoryId       String?    @map("category_id")
+  language         String     @default("ko") @db.VarChar(10)
+  visibility       Visibility @default(PUBLIC)
+  keywords         String[]   @default([])
+  trailerEpisodeId String?    @map("trailer_episode_id")
+  firstAiredAt     DateTime?  @map("first_aired_at")
+
+  // ----- 공유 메타태그 (12_GLOBAL_EXPANSION §4 SEO 게이트)
+  metaTitle       String? @map("meta_title") @db.VarChar(70)
+  metaDescription String? @map("meta_description") @db.VarChar(160)
+  ogImageKey      String? @map("og_image_key")
+  canonicalPath   String? @map("canonical_path") @db.VarChar(300)
+
+  // ----- 정책·권리
+  madeForKids     Boolean        @default(false) @map("made_for_kids")
+  license         ContentLicense @default(STANDARD)
+  contentWarnings String[]       @default([]) @map("content_warnings")
+  regionsAllowed  String[]       @default([]) @map("regions_allowed")
+  regionsBlocked  String[]       @default([]) @map("regions_blocked")
+
+  // ----- 집계
+  episodeCount  Int    @default(0) @map("episode_count")
+  totalViews    BigInt @default(0) @map("total_views")
+  totalLikes    Int    @default(0) @map("total_likes")
+  followerCount Int    @default(0) @map("follower_count")
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  owner        User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  seasons      Season[]
+  episodes     Episode[]
+  tags         SeriesTag[]
+  category     Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  trailer      Episode?            @relation("seriesTrailer", fields: [trailerEpisodeId], references: [id], onDelete: SetNull)
+  translations SeriesTranslation[]
+  credits      Credit[]
 
   @@index([ownerId, createdAt])
   @@index([deletedAt, createdAt])
+  @@index([categoryId, visibility, createdAt(sort: Desc)])
+  @@index([language, visibility])
   @@map("series")
 }
 
@@ -217,26 +417,64 @@ model Season {
 }
 
 model Episode {
-  id           String        @id @default(cuid())
-  seriesId     String        @map("series_id")
-  seasonId     String?       @map("season_id")
-  assetId      String?       @unique @map("asset_id")
-  number       Int
-  title        String        @db.VarChar(160)
-  description  String?       @db.VarChar(2000)
-  thumbKey     String?       @map("thumb_key")
-  status       EpisodeStatus @default(DRAFT)
-  ageRating    AgeRating     @default(ALL) @map("age_rating")
-  aiDisclosure String?       @map("ai_disclosure") @db.VarChar(500)
-  publishAt    DateTime?     @map("publish_at")
-  publishedAt  DateTime?     @map("published_at")
-  viewCount    BigInt        @default(0) @map("view_count")
-  likeCount    Int           @default(0) @map("like_count")
-  commentCount Int           @default(0) @map("comment_count")
-  rankScore    Float         @default(0) @map("rank_score")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  deletedAt    DateTime?     @map("deleted_at")
+  id          String        @id @default(cuid())
+  seriesId    String        @map("series_id")
+  seasonId    String?       @map("season_id")
+  assetId     String?       @unique @map("asset_id")
+  number      Int
+  title       String        @db.VarChar(160)
+  description String?       @db.VarChar(2000)
+  thumbKey    String?       @map("thumb_key")
+  status      EpisodeStatus @default(DRAFT)
+  ageRating   AgeRating     @default(ALL) @map("age_rating")
+
+  // ----- 가시성·재생 기본값
+  visibility    Visibility @default(PUBLIC)
+  durationSec   Int?       @map("duration_sec")
+  language      String     @default("ko") @db.VarChar(10)
+  categoryId    String?    @map("category_id")
+  keywords      String[]   @default([])
+  allowEmbed    Boolean    @default(true) @map("allow_embed")
+  allowDownload Boolean    @default(false) @map("allow_download")
+  recordedAt    DateTime?  @map("recorded_at")
+
+  // ----- 공유 메타태그 (JSON-LD VideoObject 원천)
+  metaTitle       String? @map("meta_title") @db.VarChar(70)
+  metaDescription String? @map("meta_description") @db.VarChar(160)
+  ogImageKey      String? @map("og_image_key")
+  canonicalPath   String? @map("canonical_path") @db.VarChar(300)
+
+  // ----- 정책·권리
+  madeForKids     Boolean        @default(false) @map("made_for_kids")
+  license         ContentLicense @default(STANDARD)
+  contentWarnings String[]       @default([]) @map("content_warnings")
+  regionsAllowed  String[]       @default([]) @map("regions_allowed")
+  regionsBlocked  String[]       @default([]) @map("regions_blocked")
+
+  // ----- AI 고지 (자유서술 aiDisclosure 를 구조화)
+  aiDisclosure   String?  @map("ai_disclosure") @db.VarChar(500)
+  aiModels       String[] @default([]) @map("ai_models")
+  aiTools        String[] @default([]) @map("ai_tools")
+  aiHumanRole    String?  @map("ai_human_role") @db.VarChar(500)
+  aiGeneratedPct Int?     @map("ai_generated_pct")
+
+  publishAt   DateTime? @map("publish_at")
+  publishedAt DateTime? @map("published_at")
+
+  // ----- 집계·분석
+  viewCount       BigInt @default(0) @map("view_count")
+  likeCount       Int    @default(0) @map("like_count")
+  commentCount    Int    @default(0) @map("comment_count")
+  shareCount      Int    @default(0) @map("share_count")
+  impressionCount BigInt @default(0) @map("impression_count")
+  avgWatchSec     Int    @default(0) @map("avg_watch_sec")
+  rankScore       Float  @default(0) @map("rank_score")
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   series        Series          @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   season        Season?         @relation(fields: [seasonId], references: [id], onDelete: SetNull)
@@ -246,11 +484,24 @@ model Episode {
   watchProgress WatchProgress[]
   tags          EpisodeTag[]
 
+  category         Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  chapters         Chapter[]
+  credits          Credit[]
+  subtitles        SubtitleTrack[]
+  translations     EpisodeTranslation[]
+  playlistItems    PlaylistItem[]
+  channelTrailerOf User[]               @relation("channelTrailer")
+  seriesTrailerOf  Series[]             @relation("seriesTrailer")
+
   @@unique([seriesId, seasonId, number])
   @@index([status, publishedAt(sort: Desc), id(sort: Desc)], map: "episode_feed_latest_idx")
   @@index([status, rankScore(sort: Desc), id(sort: Desc)], map: "episode_feed_popular_idx")
   @@index([seriesId, number])
   @@index([status, publishAt])
+  @@index([status, visibility, publishedAt(sort: Desc)])
+  @@index([categoryId, status, rankScore(sort: Desc)])
+  @@index([language, status, publishedAt(sort: Desc)])
+  @@index([madeForKids, status])
   @@map("episode")
 }
 
@@ -493,4 +744,254 @@ model CreatorApplication {
   @@unique([email, round])
   @@index([status, createdAt])
   @@map("creator_application")
+}
+
+// ═════════════════════════════ 블록 A · 회원 정보 부속 모델
+
+/// 채널 외부 링크. YouTube 채널 링크 등가물.
+model UserLink {
+  id     String   @id @default(cuid())
+  userId String   @map("user_id")
+  kind   LinkKind
+  label  String   @db.VarChar(60)
+  url    String   @db.VarChar(500)
+  order  Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, url])
+  @@index([userId, order])
+  @@map("user_link")
+}
+
+/// 약관·개인정보·마케팅 동의 이력. PIPA/GDPR 열람·철회 요청의 근거.
+model UserConsent {
+  id        String      @id @default(cuid())
+  userId    String      @map("user_id")
+  kind      ConsentKind
+  version   String      @db.VarChar(32)
+  granted   Boolean     @default(true)
+  grantedAt DateTime    @default(now()) @map("granted_at")
+  revokedAt DateTime?   @map("revoked_at")
+  ipHash    String?     @map("ip_hash") @db.VarChar(64)
+  userAgent String?     @map("user_agent") @db.VarChar(500)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, version])
+  @@index([userId, kind, grantedAt(sort: Desc)])
+  @@index([kind, version])
+  @@map("user_consent")
+}
+
+/// 알림 채널별 수신 설정. 없으면 인앱 on, 이메일/푸시 off 를 기본으로 본다.
+model NotificationPreference {
+  userId String    @map("user_id")
+  type   NotifType
+  inApp  Boolean   @default(true) @map("in_app")
+  email  Boolean   @default(false)
+  push   Boolean   @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, type])
+  @@map("notification_preference")
+}
+
+/// 인증·계정 상태 변경 감사 로그. IP 는 원본 대신 해시로만 보관한다.
+model AuthAuditLog {
+  id        String        @id @default(cuid())
+  userId    String?       @map("user_id")
+  email     String?       @db.VarChar(254)
+  kind      AuthEventKind
+  success   Boolean       @default(true)
+  ipHash    String?       @map("ip_hash") @db.VarChar(64)
+  userAgent String?       @map("user_agent") @db.VarChar(500)
+  detail    String?       @db.VarChar(500)
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([kind, createdAt(sort: Desc)])
+  @@index([email, kind, createdAt(sort: Desc)])
+  @@map("auth_audit_log")
+}
+
+/// 역할 변경 이력.
+///
+/// `AuthAuditLog.ROLE_CHANGED` 는 "무언가 바뀜" 만 알려준다. 권한 사고를
+/// 추적하려면 **전후 값과 부여자**가 필요하다. 부여자 계정이 삭제되어도
+/// 이력은 남아야 하므로 `onDelete: SetNull` 이다.
+model RoleGrant {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  fromRole  UserRole @map("from_role")
+  toRole    UserRole @map("to_role")
+  grantedBy String?  @map("granted_by")
+  reason    String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User  @relation("roleSubject", fields: [userId], references: [id], onDelete: Cascade)
+  granter User? @relation("roleGranter", fields: [grantedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([toRole, createdAt(sort: Desc)])
+  @@index([grantedBy, createdAt(sort: Desc)])
+  @@map("role_grant")
+}
+
+/// 회원 탈퇴 유예. 즉시 파기하지 않고 예정 시각까지 복구 창을 둔다.
+model UserDeletionRequest {
+  userId           String                @id @map("user_id")
+  status           DeletionRequestStatus @default(PENDING)
+  reason           String?               @db.VarChar(500)
+  requestedAt      DateTime              @default(now()) @map("requested_at")
+  scheduledPurgeAt DateTime              @map("scheduled_purge_at")
+  cancelledAt      DateTime?             @map("cancelled_at")
+  purgedAt         DateTime?             @map("purged_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledPurgeAt])
+  @@map("user_deletion_request")
+}
+
+// ═════════════════════════════ 블록 B · 콘텐츠 메타데이터 부속 모델
+
+/// 장르 축. 자유 태그와 달리 운영이 소유하는 고정 분류다.
+model Category {
+  id       String  @id @default(cuid())
+  slug     String  @unique @db.VarChar(40)
+  nameKo   String  @map("name_ko") @db.VarChar(60)
+  nameEn   String  @map("name_en") @db.VarChar(60)
+  order    Int     @default(0)
+  isActive Boolean @default(true) @map("is_active")
+
+  series   Series[]
+  episodes Episode[]
+
+  @@index([isActive, order])
+  @@map("category")
+}
+
+/// 에피소드 챕터(타임스탬프). 플레이어 진행바 마커와 JSON-LD Clip 의 원천.
+model Chapter {
+  id        String @id @default(cuid())
+  episodeId String @map("episode_id")
+  startSec  Int    @map("start_sec")
+  title     String @db.VarChar(120)
+
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, startSec])
+  @@index([episodeId, startSec])
+  @@map("chapter")
+}
+
+/// 제작진·출연. 시리즈 단위 또는 에피소드 단위로 붙는다.
+model Credit {
+  id        String     @id @default(cuid())
+  seriesId  String?    @map("series_id")
+  episodeId String?    @map("episode_id")
+  userId    String?    @map("user_id")
+  role      CreditRole
+  name      String     @db.VarChar(80)
+  note      String?    @db.VarChar(200)
+  order     Int        @default(0)
+
+  series  Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([seriesId, order])
+  @@index([episodeId, order])
+  @@index([userId])
+  @@map("credit")
+}
+
+/// 자막·캡션 트랙. 접근성(10_NFR)과 다국어 유통의 전제.
+model SubtitleTrack {
+  id              String       @id @default(cuid())
+  episodeId       String       @map("episode_id")
+  language        String       @db.VarChar(10)
+  label           String       @db.VarChar(60)
+  kind            SubtitleKind @default(SUBTITLE)
+  objectKey       String       @map("object_key")
+  isDefault       Boolean      @default(false) @map("is_default")
+  isAutoGenerated Boolean      @default(false) @map("is_auto_generated")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, language, kind])
+  @@index([episodeId])
+  @@map("subtitle_track")
+}
+
+/// 에피소드 로케일별 카피. hreflang alternates 의 원천.
+model EpisodeTranslation {
+  episodeId       String   @map("episode_id")
+  locale          String   @db.VarChar(10)
+  title           String   @db.VarChar(160)
+  description     String?  @db.VarChar(2000)
+  metaTitle       String?  @map("meta_title") @db.VarChar(70)
+  metaDescription String?  @map("meta_description") @db.VarChar(160)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@id([episodeId, locale])
+  @@index([locale])
+  @@map("episode_translation")
+}
+
+/// 시리즈 로케일별 카피.
+model SeriesTranslation {
+  seriesId        String   @map("series_id")
+  locale          String   @db.VarChar(10)
+  title           String   @db.VarChar(120)
+  synopsis        String?  @db.VarChar(2000)
+  metaTitle       String?  @map("meta_title") @db.VarChar(70)
+  metaDescription String?  @map("meta_description") @db.VarChar(160)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, locale])
+  @@index([locale])
+  @@map("series_translation")
+}
+
+/// 시청자 재생목록. Series 는 크리에이터 소유라 시청자가 담을 수 없다.
+model Playlist {
+  id          String     @id @default(cuid())
+  userId      String     @map("user_id")
+  title       String     @db.VarChar(120)
+  description String?    @db.VarChar(1000)
+  visibility  Visibility @default(PRIVATE)
+  itemCount   Int        @default(0) @map("item_count")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PlaylistItem[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([visibility, updatedAt(sort: Desc)])
+  @@map("playlist")
+}
+
+model PlaylistItem {
+  playlistId String   @map("playlist_id")
+  episodeId  String   @map("episode_id")
+  order      Int      @default(0)
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  episode  Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, episodeId])
+  @@index([playlistId, order])
+  @@map("playlist_item")
 }

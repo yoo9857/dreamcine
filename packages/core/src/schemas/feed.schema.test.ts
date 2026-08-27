@@ -21,6 +21,8 @@ const feedItem = {
     handle: 'creator',
     displayName: '제작자',
     avatarUrl: null,
+    tier: 'GOLD',
+    isVerified: true,
   },
   isLiked: false,
 }

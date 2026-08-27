@@ -1,4 +1,5 @@
 import type { FeedItem } from '@aidream/core'
+import { UserTierLine } from '@/src/components/user/UserTierLine'
 import { Badge } from '@aidream/ui'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -61,7 +62,11 @@ export function EpisodeCard({
               <i aria-hidden="true">
                 {item.creator.displayName.slice(0, 1).toLocaleUpperCase()}
               </i>
-              {item.creator.displayName}
+              {/*
+                카드 안에서는 이름을 다시 링크하지 않는다 — 카드 전체가 이미
+                회차로 가는 링크이고, 중첩 링크는 무효 마크업이다.
+              */}
+              <UserTierLine user={item.creator} link={false} compact />
             </span>
             <span className="episode-stats">
               조회 {item.viewCount} · 좋아요 {item.likeCount}

@@ -4,7 +4,6 @@ import { AgeRating } from '../enums.js'
 
 export const AgeConfirmSchema = z.object({
   confirmed: z.literal(true),
-  birthYear: z.number().int().min(1900).optional(),
 })
 
 export type AgeConfirmInput = z.infer<typeof AgeConfirmSchema>

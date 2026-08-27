@@ -1,4 +1,6 @@
 import { type PlaybackResponse, type SeriesResponse } from '@aidream/core'
+import { findSeriesById, listEpisodesBySeries } from '@aidream/db'
+import type { Metadata } from 'next'
 import { Avatar } from '@aidream/ui'
 import { ArrowUpRight, Play } from 'lucide-react'
 import { cookies, headers } from 'next/headers'
@@ -8,7 +10,12 @@ import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { WatchPlayer } from '@/src/components/player/HlsPlayer'
+import { JsonLd } from '@/src/components/seo/JsonLd'
 import { ShowcaseThemeToggle } from '@/src/components/showcase/ShowcaseThemeToggle'
+import {
+  buildSeriesJsonLd,
+  buildSeriesMetadata,
+} from '@/src/lib/seo/series-metadata'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import '@/src/styles/series-showcase.css'
 import { getPlayback } from '@/src/services/episode/get-playback'
@@ -65,6 +72,8 @@ const PREVIEW_CREATOR: SeriesCreator = {
   handle: 'hanbin',
   displayName: '한빈',
   avatarUrl: null,
+  tier: 'GOLD',
+  isVerified: true,
 }
 
 function Corner({
@@ -123,6 +132,40 @@ function OtherWorkCard({
   )
 }
 
+/**
+ * 시리즈 상세의 공유·색인 메타데이터.
+ *
+ * 포트폴리오 프리뷰(`preview-1`..`preview-5`) 는 DB 에 없는 데모 경로다.
+ * 색인 대상이 아니므로 `noindex` 로 고정한다.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  readonly params: Promise<{ seriesId: string }>
+}): Promise<Metadata> {
+  const { seriesId } = await params
+  if (/^preview-[1-5]$/u.test(seriesId)) {
+    return { title: '작품', robots: { index: false, follow: false } }
+  }
+
+  const series = await findSeriesById(seriesId).catch(() => null)
+  if (series === null) {
+    return { title: '작품', robots: { index: false, follow: false } }
+  }
+  const [creator, episodes] = await Promise.all([
+    getSeriesCreator(series.ownerId).catch(() => null),
+    listEpisodesBySeries({
+      seriesId,
+      status: ['PUBLISHED'],
+      limit: 1,
+    }).catch(() => null),
+  ])
+  return buildSeriesMetadata(series, {
+    publishedEpisodeCount: episodes?.items.length ?? 0,
+    creatorDisplayName: creator?.displayName ?? 'ilog',
+  })
+}
+
 export default async function SeriesPage({
   params,
 }: {
@@ -174,8 +217,32 @@ export default async function SeriesPage({
   const releaseYear = new Date(detail.series.createdAt).getFullYear()
   const firstEpisode = detail.episodes[0]
 
+  /*
+    구조화 데이터는 API 응답(`SeriesResponse`)이 아니라 도메인 엔티티에서
+    만든다. `metaTitle` · `keywords` · `visibility` 같은 색인용 필드는 공개
+    API 계약에 없기 때문이다. 실패해도 페이지는 그대로 나간다.
+  */
+  const seriesEntity = isPortfolioPreview
+    ? null
+    : await findSeriesById(seriesId).catch(() => null)
+  const jsonLdDocuments =
+    seriesEntity === null
+      ? []
+      : buildSeriesJsonLd(seriesEntity, {
+          creatorHandle: creator.handle,
+          creatorDisplayName: creator.displayName,
+          episodes: detail.episodes.map((episode) => ({
+            id: episode.id,
+            number: episode.number,
+            title: episode.title,
+          })),
+        })
+
   return (
     <div className="series-showcase">
+      {jsonLdDocuments.map((document, index) => (
+        <JsonLd key={`jsonld-${String(index)}`} document={document} />
+      ))}
       <header className="series-floating-header">
         <nav aria-label="작품 메뉴">
           <Link href="/" className="series-wordmark" aria-label="ilog 홈">

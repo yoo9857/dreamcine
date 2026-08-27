@@ -52,6 +52,7 @@ export {
 } from './primitives/Toast.js'
 export { Avatar, type AvatarProps } from './primitives/Avatar.js'
 export { Badge, type BadgeProps, type BadgeTone } from './primitives/Badge.js'
+export { TierBadge, type TierBadgeProps } from './primitives/TierBadge.js'
 export { Skeleton, type SkeletonProps } from './primitives/Skeleton.js'
 export { Spinner, type SpinnerProps } from './primitives/Spinner.js'
 export { Progress, type ProgressProps } from './primitives/Progress.js'

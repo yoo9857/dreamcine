@@ -2,6 +2,7 @@ import { AppError } from '@aidream/core'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { RouteSession } from '@/src/auth/types'
+import { userFixture } from '@/src/test-support/entity-fixtures'
 import {
   followUser,
   unfollowUser,
@@ -10,6 +11,7 @@ import {
 } from './follow-user'
 
 const target = {
+  ...userFixture(),
   id: 'creator',
   handle: 'creator',
   email: 'creator@example.com',
@@ -37,6 +39,8 @@ const session = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: new Date('2026-09-01T00:00:00.000Z'),
 } satisfies RouteSession

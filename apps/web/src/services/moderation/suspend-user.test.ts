@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { RouteSession } from '@/src/auth/types'
 
 import { suspendUser, type SuspendUserDependencies } from './suspend-user'
+import { userFixture } from '@/src/test-support/entity-fixtures'
 
 function session(role: 'MODERATOR' | 'ADMIN'): RouteSession {
   return {
@@ -17,11 +18,14 @@ function session(role: 'MODERATOR' | 'ADMIN'): RouteSession {
       role,
       status: 'ACTIVE',
       emailVerified: true,
+      tier: 'BRONZE',
+      isVerified: false,
     },
   }
 }
 
 const user: User = {
+  ...userFixture(),
   id: 'user_1',
   handle: 'user1',
   email: 'user1@example.com',

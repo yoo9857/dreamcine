@@ -1,4 +1,5 @@
 import type { Episode } from '@aidream/core'
+import { episodeFixture } from '@aidream/core/test-support'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +37,7 @@ const { publishScheduled } = await import('./publish-scheduled.js')
 const NOW = new Date('2026-08-25T00:00:00.000Z')
 const ASSET_ID = 'asset_1'
 const EPISODE: Episode = {
+  ...episodeFixture(),
   id: 'episode_production',
   seriesId: 'series_1',
   seasonId: 'season_1',

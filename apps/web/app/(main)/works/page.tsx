@@ -6,6 +6,25 @@ import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
 import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import { WorksCatalog } from '@/src/components/works/WorksCatalog'
 import { getFeed } from '@/src/services/feed/get-feed'
+import type { Metadata } from 'next'
+
+import { absoluteUrlOrNull } from '@/src/lib/site-url'
+
+const CANONICAL = absoluteUrlOrNull('/works')
+
+export const metadata: Metadata = {
+  title: '작품',
+  description: 'ilog에 공개된 AI 드라마 시리즈 전체 목록.',
+  ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: 'website',
+    title: '작품 · ilog',
+    description: 'ilog에 공개된 AI 드라마 시리즈 전체 목록.',
+    siteName: 'ilog',
+    ...(CANONICAL === null ? {} : { url: CANONICAL }),
+  },
+}
 
 import '@/src/styles/works-gallery.css'
 
@@ -17,6 +36,8 @@ const developmentPreviewUser = {
   role: 'CREATOR',
   status: 'ACTIVE',
   emailVerified: true,
+  tier: 'GOLD',
+  isVerified: true,
 } as const
 
 const developmentPreviewItems: FeedItem[] = [
@@ -122,7 +143,13 @@ function preview(
     likeCount,
     publishedAt: '2026-08-24T12:00:00.000Z',
     series: { id: `series-${id}`, title, slug: id },
-    creator: { handle, displayName, avatarUrl: null },
+    creator: {
+      handle,
+      displayName,
+      avatarUrl: null,
+      tier: 'GOLD',
+      isVerified: true,
+    },
     isLiked: false,
   }
 }

@@ -6,11 +6,13 @@ import { parseBody } from '@/src/http/parse'
 import { created } from '@/src/http/response'
 import { signup } from '@/src/services/auth/signup'
 
-const SignupRequestSchema = SignupSchema.extend({
-  plan: z.literal('ads-standard').optional(),
-  lang: z.enum(['ko', 'en']).optional(),
-  market: z.enum(['kr', 'us']).optional(),
-})
+const SignupRequestSchema = SignupSchema.and(
+  z.object({
+    plan: z.literal('ads-standard').optional(),
+    lang: z.enum(['ko', 'en']).optional(),
+    market: z.enum(['kr', 'us']).optional(),
+  }),
+)
 
 export const POST = withRoute(
   async ({ body }) => {

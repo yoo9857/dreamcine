@@ -4,9 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RouteSession } from '@/src/auth/types'
 import { getFeed, type FeedServiceDependencies } from './get-feed'
+import { feedRowFixture } from '@/src/test-support/entity-fixtures'
 
 const now = new Date('2026-08-25T00:00:00.000Z')
 const row: FeedRow = {
+  ...feedRowFixture(),
   id: 'episode_1',
   seriesId: 'series_1',
   seasonId: null,
@@ -46,6 +48,8 @@ const session: RouteSession = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: now,
 }

@@ -1,11 +1,8 @@
-import { AppError } from '@aidream/core'
+import { AppError, type PublicUserSummary } from '@aidream/core'
 import { findUserByHandle, listRelatedCreators } from '@aidream/db'
 import { avatarUrl } from '@aidream/storage/cdn'
 
-export interface RelatedCreator {
-  readonly handle: string
-  readonly displayName: string
-  readonly avatarUrl: string | null
+export interface RelatedCreator extends PublicUserSummary {
   readonly followerCount: number
   readonly seriesCount: number
 }
@@ -21,6 +18,8 @@ export async function getRelatedCreators(
     handle: creator.handle,
     displayName: creator.displayName,
     avatarUrl: avatarUrl(creator.avatarKey),
+    tier: creator.tier,
+    isVerified: creator.verifiedAt !== null,
     followerCount: creator.followerCount,
     seriesCount: creator.seriesCount,
   }))

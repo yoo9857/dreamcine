@@ -4,10 +4,10 @@ export interface AgeGateInput {
   readonly rating: AgeRating
   readonly viewer: {
     readonly isAuthenticated: boolean
-    readonly birthYear?: number
+    readonly birthDate?: Date
   } | null
   readonly confirmed: boolean
-  readonly currentYear: number
+  readonly now: Date
 }
 
 export type AgeGateResult =
@@ -27,10 +27,12 @@ export function checkAgeGate(input: AgeGateInput): AgeGateResult {
   if (input.viewer?.isAuthenticated !== true) {
     return { allowed: false, reason: 'AUTH_REQUIRED' }
   }
-  if (!input.confirmed || input.viewer.birthYear === undefined) {
+  if (!input.confirmed || input.viewer.birthDate === undefined) {
     return { allowed: false, reason: 'CONFIRM_REQUIRED' }
   }
-  return input.currentYear - input.viewer.birthYear >= 19
+  const nineteenthBirthday = new Date(input.viewer.birthDate)
+  nineteenthBirthday.setUTCFullYear(nineteenthBirthday.getUTCFullYear() + 19)
+  return input.now >= nineteenthBirthday
     ? { allowed: true }
     : { allowed: false, reason: 'AGE_RESTRICTED' }
 }

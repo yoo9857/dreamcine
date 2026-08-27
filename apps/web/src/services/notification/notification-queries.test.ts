@@ -14,6 +14,8 @@ const session = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   expiresAt: new Date(),
 } satisfies RouteSession

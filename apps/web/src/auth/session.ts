@@ -59,6 +59,8 @@ function toSessionUser(user: User): SessionUser {
     role: user.role,
     status: user.status,
     emailVerified: user.emailVerified !== null,
+    tier: user.tier,
+    isVerified: user.verifiedAt !== null,
   }
 }
 

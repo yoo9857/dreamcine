@@ -4,6 +4,25 @@ import type { ReactNode } from 'react'
 import { getServerSession } from '@/src/auth/server-session'
 import { FeedList } from '@/src/components/feed/FeedList'
 import { getFeed } from '@/src/services/feed/get-feed'
+import type { Metadata } from 'next'
+
+import { absoluteUrlOrNull } from '@/src/lib/site-url'
+
+const CANONICAL = absoluteUrlOrNull('/following')
+
+export const metadata: Metadata = {
+  title: '팔로잉',
+  description: '팔로우한 크리에이터의 새 회차.',
+  ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
+  robots: { index: false, follow: true },
+  openGraph: {
+    type: 'website',
+    title: '팔로잉 · ilog',
+    description: '팔로우한 크리에이터의 새 회차.',
+    siteName: 'ilog',
+    ...(CANONICAL === null ? {} : { url: CANONICAL }),
+  },
+}
 
 export default async function FollowingPage(): Promise<ReactNode> {
   const session = await getServerSession()

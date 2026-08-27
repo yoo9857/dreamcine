@@ -55,6 +55,8 @@ function toResponse(
       handle: row.user.handle,
       displayName: row.user.displayName,
       avatarUrl: avatarUrl(row.user.avatarKey),
+      tier: row.user.tier,
+      isVerified: row.user.verifiedAt !== null,
     },
   }
 }

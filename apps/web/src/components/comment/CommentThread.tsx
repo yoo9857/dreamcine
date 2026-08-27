@@ -1,6 +1,7 @@
 'use client'
 
 import type { CommentThreadItem } from '@aidream/core'
+import { UserTierLine } from '@/src/components/user/UserTierLine'
 import { Button, Textarea } from '@aidream/ui'
 import React, { type ReactNode, type SyntheticEvent, useState } from 'react'
 
@@ -93,7 +94,9 @@ export function CommentThread({
               key={item.id}
               className="rounded-lg border border-border bg-bg-elevated p-4"
             >
-              <p className="font-semibold text-fg">{item.user.displayName}</p>
+              <p className="font-semibold text-fg">
+                <UserTierLine user={item.user} />
+              </p>
               <p className="whitespace-pre-wrap text-fg-secondary">
                 {item.body}
               </p>
@@ -102,7 +105,8 @@ export function CommentThread({
                   {item.replies.map((reply) => (
                     <li key={reply.id}>
                       <p className="text-sm font-semibold text-fg">
-                        {reply.user.displayName}
+                        {/* 대댓글은 들여쓰기로 폭이 좁다. 배지를 점으로 줄인다. */}
+                        <UserTierLine user={reply.user} compact />
                       </p>
                       <p className="whitespace-pre-wrap text-sm text-fg-secondary">
                         {reply.body}

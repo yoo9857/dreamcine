@@ -64,6 +64,8 @@ function makeSession(
       role: 'CREATOR',
       status: 'ACTIVE',
       emailVerified: true,
+      tier: 'BRONZE',
+      isVerified: false,
       ...overrides,
     },
     expiresAt: new Date(Date.now() + 60_000),

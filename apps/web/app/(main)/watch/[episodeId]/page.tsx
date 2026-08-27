@@ -1,9 +1,11 @@
 import { AppError, type FeedItem } from '@aidream/core'
 import {
   findEpisodeById,
+  findEpisodeMetaView,
   findPlaybackEpisode,
   getEpisodeSocialState,
 } from '@aidream/db'
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -14,6 +16,7 @@ import { CommentThread } from '@/src/components/comment/CommentThread'
 import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import { WatchPlayer } from '@/src/components/player/HlsPlayer'
 import { ReportDialog } from '@/src/components/ReportDialog'
+import { JsonLd } from '@/src/components/seo/JsonLd'
 import { LikeButton } from '@/src/components/social/LikeButton'
 import {
   WatchExperience,
@@ -24,6 +27,10 @@ import { getFeed } from '@/src/services/feed/get-feed'
 import { getSeries } from '@/src/services/series/get-series'
 import { getSeriesCreator } from '@/src/services/series/get-series-creator'
 import { listComments } from '@/src/services/social/list-comments'
+import {
+  buildEpisodeJsonLd,
+  buildEpisodeMetadata,
+} from '@/src/lib/seo/episode-metadata'
 
 import '@/src/styles/watch-experience.css'
 
@@ -39,6 +46,8 @@ const previewUser = {
   role: 'CREATOR',
   status: 'ACTIVE',
   emailVerified: true,
+  tier: 'GOLD',
+  isVerified: true,
 } as const
 
 function previewItem(
@@ -58,7 +67,13 @@ function previewItem(
     likeCount: 420 + seconds,
     publishedAt: '2026-08-26T12:00:00.000Z',
     series: { id: `series-${id}`, title, slug: id },
-    creator: { handle: 'hanbin', displayName: creator, avatarUrl: null },
+    creator: {
+      handle: 'hanbin',
+      displayName: creator,
+      avatarUrl: null,
+      tier: 'GOLD',
+      isVerified: true,
+    },
     isLiked: false,
   }
 }
@@ -129,6 +144,8 @@ function PreviewWatchPage(): ReactNode {
           handle: 'hanbin',
           displayName: '한빈',
           avatarUrl: '/brand/profiles/minseo-color.webp',
+          tier: 'DIAMOND',
+          isVerified: true,
         }}
         viewCount="12840"
         publishedAt="2026. 08. 26"
@@ -151,6 +168,37 @@ function PreviewWatchPage(): ReactNode {
   )
 }
 
+/**
+ * `watch/[episodeId]` 의 공유·색인 메타데이터.
+ *
+ * 이 라우트가 플랫폼에서 가장 많이 공유되는 URL 이다. 여기에 메타데이터가
+ * 없으면 카카오톡·X·디스코드에 붙는 링크가 제목 없는 회색 카드로 나간다.
+ *
+ * `PUBLISHED` + `PUBLIC` 이 아닌 회차는 `noindex` 로 내려간다. 예약·초안·
+ * 숨김·비공개 링크가 검색에 한 번 새면 되돌릴 수 없다.
+ */
+export async function generateMetadata(
+  props: WatchPageProps,
+): Promise<Metadata> {
+  const { episodeId } = await props.params
+  if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
+    return { title: '재생' }
+  }
+  let meta = null
+  try {
+    meta = await findEpisodeMetaView(episodeId)
+  } catch {
+    meta = null
+  }
+  if (meta === null) {
+    return { title: '재생', robots: { index: false, follow: false } }
+  }
+  return buildEpisodeMetadata(meta, {
+    isPubliclyVisible:
+      meta.visibility === 'PUBLIC' && meta.publishedAt !== null,
+  })
+}
+
 export default async function WatchPage(
   props: WatchPageProps,
 ): Promise<ReactNode> {
@@ -169,12 +217,15 @@ export default async function WatchPage(
       cookieHeader: requestHeaders.get('cookie'),
       now: new Date(),
     })
-    const [comments, social, episode, recommendations] = await Promise.all([
-      listComments(episodeId, { limit: 20 }),
-      getEpisodeSocialState(episodeId, session?.userId),
-      findEpisodeById(episodeId),
-      getFeed({ type: 'latest', limit: 18 }, session),
-    ])
+    const [comments, social, episode, recommendations, metaView] =
+      await Promise.all([
+        listComments(episodeId, { limit: 20 }),
+        getEpisodeSocialState(episodeId, session?.userId),
+        findEpisodeById(episodeId),
+        getFeed({ type: 'latest', limit: 18 }, session),
+        // 구조화 데이터 실패가 재생을 막지 않는다.
+        findEpisodeMetaView(episodeId).catch(() => null),
+      ])
     if (episode === null) notFound()
     const seriesDetail = await getSeries(episode.seriesId)
     const creator = await getSeriesCreator(seriesDetail.series.ownerId)
@@ -202,6 +253,15 @@ export default async function WatchPage(
 
     return (
       <div className="watch-page">
+        {metaView === null
+          ? null
+          : buildEpisodeJsonLd(metaView).map((document, index) => (
+              <JsonLd
+                // 문서 종류가 위치로 고정되어 있다(VideoObject, BreadcrumbList).
+                key={`jsonld-${String(index)}`}
+                document={document}
+              />
+            ))}
         <DiscoveryTopbar user={session?.user ?? null} />
         <WatchExperience
           player={

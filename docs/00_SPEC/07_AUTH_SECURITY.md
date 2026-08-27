@@ -30,42 +30,115 @@
 
 ## 2. 권한 매트릭스
 
-| 동작 | VIEWER | CREATOR | MODERATOR | ADMIN |
-|---|---|---|---|---|
-| 공개 콘텐츠 시청 | ○ | ○ | ○ | ○ |
-| 좋아요 / 댓글 / 팔로우 | ○(인증) | ○ | ○ | ○ |
-| 신고 | ○(인증) | ○ | ○ | ○ |
-| 시리즈/에피소드 생성 | ✗ | ○ | ✗ | ○ |
-| 업로드 | ✗ | ○ | ✗ | ○ |
-| 자기 콘텐츠 수정/삭제 | — | ○ | ✗ | ○ |
-| 남의 콘텐츠 숨김 | ✗ | ✗ | ○ | ○ |
-| 남의 콘텐츠 영구삭제 | ✗ | ✗ | ✗ | ○ |
-| 신고 심사 | ✗ | ✗ | ○ | ○ |
-| 계정 정지 | ✗ | ✗ | ✗ | ○ |
-| 역할 부여 | ✗ | ✗ | ✗ | ○ |
+> 2026-08-27 `ISS-020` 승인으로 4단계 평면에서 **7단계 사다리**로 개정되었다.
+> 사다리 정의와 유도 규칙은 `packages/core/src/rules/roles.ts` 가 소유한다.
+
+### 역할 사다리
+
+| 순위 | 역할 | 저장 | 뜻 |
+|---|---|---|---|
+| 0 | `GUEST` | **안 함** | 비로그인 방문자. 세션이 없을 때의 런타임 역할 |
+| 1 | `VIEWER` | ○ | 가입 완료, **이메일 미인증** |
+| 2 | `MEMBER` | ○ (유도) | 이메일 인증 완료 |
+| 3 | `CREATOR` | ○ | 업로드·시리즈 운영 |
+| 4 | `PARTNER` | ○ | CREATOR + 우대 한도, 정산 대상 |
+| 5 | `MODERATOR` | ○ | 신고 심사·숨김·계정 제한 |
+| 6 | `ADMIN` | ○ | 전관 + 역할 부여 |
+
+**`GUEST` 는 DB 열거형에 없다.** 게스트는 행이 없다. 저장 가능한 값으로 만들면
+"GUEST 로 저장된 계정" 이라는 불가능한 상태가 타입상 표현 가능해지고, 그런 행이
+하나 생기는 순간 그 계정은 로그인은 되면서 아무 동작도 못 하는 유령이 된다.
+`ActorRole = UserRole | 'GUEST'` 를 판정 계층에만 둔다.
+
+**`MEMBER` 는 저장하지 않고 유도한다.** `emailVerified` 가 이미 진실의 단일
+출처다. 역할 컬럼에 또 적으면 이메일 변경·인증 철회 시 두 값이 갈라질 수 있고,
+갈라진 쪽이 판정에 쓰이면 인증 게이트가 무력화된다. `resolveActorRole()` 이 매
+판정마다 유도하므로 갈라질 자리가 없다. 그래서 `MEMBER` 는 `GRANTABLE_ROLES` 에
+없다 — ADMIN 도 직접 지정하지 못한다. 강등은 `VIEWER` 로 한다.
+
+**사다리는 권한의 근사치일 뿐이다.** `MODERATOR` 는 `CREATOR` 보다 위에 있지만
+업로드는 못 한다. 운영 권한과 제작 권한은 다른 축이다. 그래서 `can()` 은
+`hasAtLeast()` 로 판정하지 않는다 — `hasAtLeast()` 는 "이 역할 이상에게만 보이는
+화면" 같은 **표시 게이트** 전용이다.
+
+### 매트릭스
+
+`○` 가능 · `✗` 불가 · `자` 자기 것만 · `—` 해당 없음
+
+| 동작 | GUEST | VIEWER | MEMBER | CREATOR | PARTNER | MODERATOR | ADMIN |
+|---|---|---|---|---|---|---|---|
+| 공개 콘텐츠 시청 `episode.watch` | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| 댓글 작성 `comment.create` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
+| 좋아요 `social.like` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
+| 팔로우 `social.follow` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
+| 재생목록 생성 `playlist.create` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
+| 신고 `report.create` | ✗ | ○ | ○ | ○ | ○ | ○ | ○ |
+| 자기 프로필 수정 `profile.update` | ✗ | 자 | 자 | 자 | 자 | 자 | 자 |
+| 시리즈 생성 `series.create` | ✗ | ✗ | ✗ | ○ | ○ | ✗ | ○ |
+| 에피소드 생성 `episode.create` | ✗ | ✗ | ✗ | ○ | ○ | ✗ | ○ |
+| 업로드 `upload.create` | ✗ | ✗ | ✗ | ○ | ○ | ✗ | ○ |
+| 콘텐츠 수정 `series.update` `episode.update` | ✗ | ✗ | ✗ | 자 | 자 | ✗ | 자 |
+| 공개 `episode.publish` | ✗ | ✗ | ✗ | 자 | 자 | ✗ | 자 |
+| 숨김 `episode.hide` | ✗ | ✗ | ✗ | 자 | 자 | ○ | ○ |
+| 영구삭제 `series.remove` `episode.remove` | ✗ | ✗ | ✗ | 자 | 자 | ✗ | ○ |
+| 댓글 삭제 `comment.delete` | ✗ | 자 | 자 | 자 | 자 | ○ | ○ |
+| 신고 심사 `report.review` | ✗ | ✗ | ✗ | ✗ | ✗ | ○ | ○ |
+| 감사 로그 열람 `user.viewAudit` | ✗ | ✗ | ✗ | ✗ | ✗ | ○ | ○ |
+| 정산 화면 `monetization.view` | ✗ | ✗ | ✗ | ✗ | 자 | ✗ | ○ |
+| 계정 정지 `user.suspend` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ○ |
+| 역할 부여 `user.setRole` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ○ |
+
+`ADMIN` 이 "콘텐츠 수정" 에서 `자` 인 이유: 남의 작품을 **고치는** 권한은 어떤
+역할에도 없다. 운영이 개입해야 하면 숨기거나 삭제한다. 남의 이름으로 남의 작품을
+바꾸는 경로는 만들지 않는다.
+
+`PARTNER` 가 정산에서 `자` 인 이유: 파트너는 자기 정산만 본다. 남의 수익을 보는
+것은 ADMIN 의 권한이다.
+
+읽기 예외 하나: **정지·삭제 계정은 `episode.watch` 도 false 다.** §2 철칙 1이
+"정지 계정은 아무것도 못 한다" 이므로 시청도 포함한다. 결과적으로 정지 계정은
+로그아웃한 방문자보다 볼 수 있는 것이 적다 — 의도된 것이며, 정지가 징계이기
+때문이다.
 
 ### 판정은 순수 함수 하나로
 
 ```ts
 // packages/core/src/rules/permission.ts
-export type Action =
-  | 'episode.create' | 'episode.update' | 'episode.publish' | 'episode.remove'
-  | 'episode.hide'   | 'comment.create' | 'comment.delete'
-  | 'report.review'  | 'user.suspend'   | 'user.setRole'
+export type ActorRole = UserRole | 'GUEST'   // rules/roles.ts
 
-export function can(
-  actor: { id: string; role: UserRole; status: UserStatus; emailVerified: boolean },
-  action: Action,
-  resource?: { ownerId?: string },
-): boolean
+export interface Actor {
+  readonly id: string | null        // GUEST 는 null
+  readonly role: ActorRole          // 저장된 역할이 아니라 실효 역할
+  readonly status: UserStatus
+  readonly emailVerified: boolean
+}
+
+/** 세션 없음 → GUEST, 인증된 VIEWER → MEMBER 를 여기서 한 번만 유도한다. */
+export function actorFromAccount(account: ActorAccount | null): Actor
+export function guestActor(): Actor
+
+export function can(actor: Actor, action: Action, resource?: { ownerId?: string }): boolean
 ```
 
 **규칙**: 권한 판정 코드는 이 함수 **밖에 존재하지 않는다.**
 라우트/서비스/컴포넌트가 각자 `if (role === 'ADMIN')` 하는 것을 금지한다.
-(권한 로직이 흩어지면 반드시 구멍이 생긴다)
+`session === null` 을 각자 해석하는 것도 같은 위반이다 — 그것이 GUEST 판정이
+흩어져 있던 원래 경로였다. 웹 계층은 `apps/web/src/auth/actor.ts` 의
+`actorFromSession()` 을 통과한다.
 
 `can()` 은 순수 함수이므로 권한 조합 전수 테스트가 가능하다 —
-`packages/core/tests/permission.test.ts` 에 **역할 × 동작 × 소유관계 전조합**을 테스트한다.
+`packages/core/tests/permission.test.ts` 에 **역할 × 동작 × 소유관계 전조합**
+(7 × 22 × 2 = 308) 을 손으로 적은 표와 대조한다.
+
+### 회원 등급은 권한이 아니다
+
+`MemberTier`(`BRONZE`..`DIAMOND`) 는 **혜택**을 가른다. 권한 판정에 들어가지
+않는다. 등급이 권한을 바꾸면 "활동을 많이 한 사람이 남의 콘텐츠를 지울 수 있다"
+같은 조합이 생긴다.
+
+한도 계산은 `resolveEntitlements({ capacity, role, tier })` 하나가 소유한다.
+서버 용량(`11_CAPACITY_TIERS.md` §3)이 고정이고 등급은 그것을 **배분**한다 —
+등급이 용량을 늘리는 구조로 만들면 등급 인플레가 그대로 서버 부하가 된다.
 
 ## 3. 라우트 보호 계층 (3중)
 

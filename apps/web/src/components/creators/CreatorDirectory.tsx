@@ -5,6 +5,7 @@ import Link from 'next/link'
 import React, { useMemo, useState, type ReactNode } from 'react'
 
 import type { CreatorDirectoryItem } from '@/src/services/user/get-featured-creators'
+import { UserBadges } from '@/src/components/user/UserTierLine'
 
 type SortMode = 'featured' | 'followers' | 'works'
 
@@ -51,7 +52,12 @@ function CreatorCard({
         </div>
         <div className="creator-card-copy">
           <div>
+            {/*
+              배지는 제목 밖에 둔다 — 제목의 접근성 이름은 사람 이름이어야
+              한다. (UserBadges 주석 참고)
+            */}
             <h3>{creator.displayName}</h3>
+            <UserBadges user={creator} />
             <span>@{creator.handle}</span>
           </div>
           <p>
@@ -95,6 +101,7 @@ function MonthlyCreatorCard({
           <Sparkles aria-hidden="true" /> ILOG CURATED
         </span>
         <h3>{creator.displayName}</h3>
+        <UserBadges user={creator} />
         <strong>@{creator.handle}</strong>
         <p>{creator.bio ?? '새로운 이야기를 만드는 ilog 크리에이터입니다.'}</p>
         <dl>

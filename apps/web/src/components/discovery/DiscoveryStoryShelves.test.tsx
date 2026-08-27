@@ -19,7 +19,13 @@ const liveItem: FeedItem = {
   likeCount: 33,
   publishedAt: '2026-08-27T00:00:00.000Z',
   series: { id: 'series-live', title: '라이브 시리즈', slug: 'live' },
-  creator: { handle: 'hanbin', displayName: '한빈', avatarUrl: null },
+  creator: {
+    handle: 'hanbin',
+    displayName: '한빈',
+    avatarUrl: null,
+    tier: 'BRONZE',
+    isVerified: false,
+  },
   isLiked: false,
 }
 

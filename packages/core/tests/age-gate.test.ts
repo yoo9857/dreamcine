@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { checkAgeGate, type AgeGateInput } from '../src/index.js'
 
-const YEAR = 2026
+const NOW = new Date('2026-08-27T00:00:00.000Z')
 
 function decide(patch: Partial<AgeGateInput>): ReturnType<typeof checkAgeGate> {
   return checkAgeGate({
     rating: 'ALL',
     viewer: null,
     confirmed: false,
-    currentYear: YEAR,
+    now: NOW,
     ...patch,
   })
 }
@@ -55,11 +55,20 @@ describe('checkAgeGate', () => {
     const base = {
       rating: 'A19' as const,
       confirmed: true,
-      viewer: { isAuthenticated: true, birthYear: YEAR - 19 },
+      viewer: {
+        isAuthenticated: true,
+        birthDate: new Date('2007-08-27T00:00:00.000Z'),
+      },
     }
     expect(decide(base)).toEqual({ allowed: true })
     expect(
-      decide({ ...base, viewer: { ...base.viewer, birthYear: YEAR - 18 } }),
+      decide({
+        ...base,
+        viewer: {
+          ...base.viewer,
+          birthDate: new Date('2007-08-28T00:00:00.000Z'),
+        },
+      }),
     ).toEqual({ allowed: false, reason: 'AGE_RESTRICTED' })
   })
 })

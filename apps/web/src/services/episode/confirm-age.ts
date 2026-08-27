@@ -1,5 +1,5 @@
 import { AppError, checkAgeGate, type AgeConfirmInput } from '@aidream/core'
-import { findPlaybackEpisode } from '@aidream/db'
+import { findPlaybackEpisode, findUserById } from '@aidream/db'
 
 import type { RouteSession } from '@/src/auth/types'
 import {
@@ -22,6 +22,8 @@ export async function confirmAge(
 ): Promise<ConfirmAgeResult> {
   const episode = await findPlaybackEpisode(input.episodeId)
   if (episode === null) throw new AppError('E_EPISODE_NOT_FOUND')
+  const viewer =
+    input.session === null ? null : await findUserById(input.session.userId)
   const decision = checkAgeGate({
     rating: episode.ageRating,
     viewer:
@@ -29,12 +31,12 @@ export async function confirmAge(
         ? null
         : {
             isAuthenticated: true,
-            ...(input.confirmation.birthYear === undefined
+            ...(viewer?.birthDate === null || viewer?.birthDate === undefined
               ? {}
-              : { birthYear: input.confirmation.birthYear }),
+              : { birthDate: viewer.birthDate }),
           },
     confirmed: input.confirmation.confirmed,
-    currentYear: input.now.getUTCFullYear(),
+    now: input.now,
   })
   if (!decision.allowed) {
     throw new AppError(

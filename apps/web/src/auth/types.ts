@@ -1,4 +1,4 @@
-import type { UserRole, UserStatus } from '@aidream/core'
+import type { MemberTier, UserRole, UserStatus } from '@aidream/core'
 
 /**
  * Auth.js v5 의 기본 세션 쿠키 이름. secure 접두 버전을 먼저 본다.
@@ -20,6 +20,13 @@ export interface SessionUser {
   readonly role: UserRole
   readonly status: UserStatus
   readonly emailVerified: boolean
+  /**
+   * 우상단 프로필에 등급 배지를 그리려면 세션에 등급이 있어야 한다. 매 렌더에
+   * DB 를 다시 조회하지 않기 위한 것이며, 권한 판정에는 쓰이지 않는다 —
+   * 등급은 혜택 축이다. (ISS-020)
+   */
+  readonly tier: MemberTier
+  readonly isVerified: boolean
 }
 
 export interface RouteSession {

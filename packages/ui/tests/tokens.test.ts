@@ -109,6 +109,7 @@ describe('토큰 구조', () => {
       color.danger,
       color.warning,
       color.success,
+      color.tier,
       color.border,
     ]
 
@@ -188,7 +189,9 @@ describe('renderThemeCss', () => {
     for (const name of COLOR_VARIABLE_NAMES) {
       expect(css).toContain(`${VAR_PREFIX}-${name}:`)
     }
-    expect(COLOR_VARIABLE_NAMES).toHaveLength(17)
+    // 17 기본 + 등급 8 (ISS-020). 이름 배열과 값 배열의 길이가 어긋나면
+    // renderThemeCss 가 잘못된 쌍을 내보내므로 숫자를 못 박아 둔다.
+    expect(COLOR_VARIABLE_NAMES).toHaveLength(25)
   })
 
   it('간격 · 반경 · 폰트 · z 변수를 싣는다', () => {

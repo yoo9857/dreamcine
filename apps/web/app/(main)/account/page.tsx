@@ -5,6 +5,11 @@ import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { AccountSettingsForm } from '@/src/components/account/AccountSettingsForm'
+import { ConsentPreferences } from '@/src/components/account/ConsentPreferences'
+import {
+  CONSENT_DOCUMENTS,
+  getConsentPreferences,
+} from '@/src/services/auth/consent-preferences'
 import { getMe } from '@/src/services/auth/get-me'
 
 export const metadata = { title: '계정 관리' }
@@ -13,7 +18,10 @@ export default async function AccountPage(): Promise<ReactNode> {
   const session = await getServerSession()
   if (session === null) redirect('/login?next=%2Faccount')
 
-  const profile = await getMe(session.userId)
+  const [profile, consents] = await Promise.all([
+    getMe(session.userId),
+    getConsentPreferences(session.userId),
+  ])
   const joinedAt = new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -36,6 +44,7 @@ export default async function AccountPage(): Promise<ReactNode> {
       <nav className="account-jump-nav" aria-label="계정 관리 메뉴">
         <a href="#profile">프로필 관리</a>
         <a href="#account">계정 정보</a>
+        <a href="#consents">동의 관리</a>
         <a href="mailto:support@ilog.kr?subject=ilog%20고객센터%20문의">
           고객센터
         </a>
@@ -54,6 +63,23 @@ export default async function AccountPage(): Promise<ReactNode> {
         <AccountSettingsForm
           initialDisplayName={profile.displayName}
           initialBio={profile.bio}
+        />
+      </section>
+
+      <section
+        className="account-panel"
+        id="consents"
+        aria-labelledby="consents-title"
+      >
+        <div className="account-section-heading">
+          <span>03 / CONSENT</span>
+          <h2 id="consents-title">동의 및 수신 관리</h2>
+          <p>동의 문서와 마케팅 이메일 수신 여부를 관리합니다.</p>
+        </div>
+        <ConsentPreferences
+          initialMarketing={consents.marketing}
+          termsVersion={CONSENT_DOCUMENTS.terms}
+          privacyVersion={CONSENT_DOCUMENTS.privacy}
         />
       </section>
 

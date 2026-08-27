@@ -44,6 +44,8 @@ function session(overrides: Partial<RouteSession['user']> = {}): RouteSession {
       role: 'CREATOR',
       status: 'ACTIVE',
       emailVerified: true,
+      tier: 'BRONZE',
+      isVerified: false,
       ...overrides,
     },
   }

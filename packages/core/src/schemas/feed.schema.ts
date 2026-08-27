@@ -2,12 +2,7 @@ import { z } from 'zod'
 
 import { AgeRating } from '../enums.js'
 import { PaginationSchema } from './pagination.schema.js'
-
-const CreatorSchema = z.object({
-  handle: z.string().min(1),
-  displayName: z.string().min(1),
-  avatarUrl: z.string().url().nullable(),
-})
+import { PublicUserSchema } from './user.schema.js'
 
 export const FeedItemSchema = z.object({
   episodeId: z.string().min(1),
@@ -23,7 +18,7 @@ export const FeedItemSchema = z.object({
     title: z.string().min(1),
     slug: z.string().min(1),
   }),
-  creator: CreatorSchema,
+  creator: PublicUserSchema,
   isLiked: z.boolean(),
 })
 
@@ -50,7 +45,7 @@ export const SearchResultSchema = z.discriminatedUnion('type', [
     title: z.string().min(1),
     slug: z.string().min(1),
     posterUrl: z.string().url().nullable(),
-    creator: CreatorSchema,
+    creator: PublicUserSchema,
   }),
   z.object({ type: z.literal('episode'), episode: FeedItemSchema }),
   z.object({

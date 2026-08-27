@@ -16,6 +16,8 @@ const session: RouteSession = {
     role: 'VIEWER',
     status: 'ACTIVE',
     emailVerified: true,
+    tier: 'BRONZE',
+    isVerified: false,
   },
 }
 

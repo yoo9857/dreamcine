@@ -27,6 +27,8 @@ const base: FeedItem = {
     handle: 'creator',
     displayName: '작가',
     avatarUrl: null,
+    tier: 'BRONZE',
+    isVerified: false,
   },
   isLiked: false,
 }

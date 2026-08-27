@@ -1,6 +1,15 @@
 'use client'
 
-import { CircleHelp, LogOut, Settings, Sparkles, UserRound } from 'lucide-react'
+import type { MemberTier } from '@aidream/core'
+import { TierBadge } from '@aidream/ui'
+import {
+  BadgeCheck,
+  CircleHelp,
+  LogOut,
+  Settings,
+  Sparkles,
+  UserRound,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
@@ -11,6 +20,8 @@ interface BrowseAccountMenuProps {
     readonly handle: string
     readonly displayName: string
     readonly email: string
+    readonly tier: MemberTier
+    readonly isVerified: boolean
   }
 }
 
@@ -120,7 +131,12 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
           <i />
         </span>
         <span className="browse-account-trigger-copy">
-          <strong>{user.displayName}</strong>
+          <strong>
+            {user.displayName}
+            {/* 트리거는 폭이 좁다. 라벨 대신 점만 두고 등급 이름은
+                aria-label·title 로 남긴다. */}
+            <TierBadge tier={user.tier} compact />
+          </strong>
           <small>@{user.handle}</small>
         </span>
         <span className="browse-account-chevron" aria-hidden="true" />
@@ -141,9 +157,19 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               <i />
             </span>
             <div>
-              <p>{user.displayName}</p>
+              <p>
+                {user.displayName}
+                {user.isVerified ? (
+                  <BadgeCheck
+                    className="browse-account-verified"
+                    role="img"
+                    aria-label="인증 채널"
+                  />
+                ) : null}
+              </p>
               <span>@{user.handle}</span>
               <small>{user.email}</small>
+              <TierBadge tier={user.tier} size="sm" />
             </div>
             <Sparkles aria-hidden="true" />
           </header>

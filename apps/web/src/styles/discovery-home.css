@@ -249,6 +249,18 @@
 }
 .browse-account-trigger-copy strong {
   font-size: 11px;
+  /* 이름 + 등급 점이 한 줄에 붙는다. 이름이 길면 점이 밀려나지 않게
+     점에는 flex-shrink: 0 이 걸려 있다 (TierBadge). */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.browse-account-verified {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--aidream-accent);
 }
 .browse-account-trigger-copy small {
   color: #7f8b95;
