@@ -167,6 +167,93 @@ describe('database repository integration', () => {
     }
   })
 
+  it('persists consent history and only lists verified active marketing recipients', async () => {
+    const optedIn = await repo.createUser({
+      handle: 'marketing_opted_in',
+      email: 'marketing_opted_in@example.com',
+      displayName: 'Marketing Opted In',
+      locale: 'ko',
+      consents: [
+        { kind: 'TOS', version: '2026-08-27', granted: true },
+        { kind: 'PRIVACY', version: '2026-08-27', granted: true },
+        { kind: 'MARKETING', version: '2026-08-27', granted: true },
+      ],
+    })
+    const unverified = await repo.createUser({
+      handle: 'marketing_unverified',
+      email: 'marketing_unverified@example.com',
+      displayName: 'Marketing Unverified',
+      consents: [{ kind: 'MARKETING', version: '2026-08-27', granted: true }],
+    })
+    const revoked = await repo.createUser({
+      handle: 'marketing_revoked',
+      email: 'marketing_revoked@example.com',
+      displayName: 'Marketing Revoked',
+      consents: [{ kind: 'MARKETING', version: '2026-08-27', granted: true }],
+    })
+    await database.user.update({
+      where: { id: optedIn.id },
+      data: { emailVerified: new Date() },
+    })
+    await database.user.update({
+      where: { id: revoked.id },
+      data: { emailVerified: new Date() },
+    })
+
+    await expect(repo.hasActiveMarketingConsent(optedIn.id)).resolves.toBe(true)
+    await expect(repo.hasActiveMarketingConsent(unverified.id)).resolves.toBe(
+      true,
+    )
+    await expect(repo.hasActiveMarketingConsent('missing-user')).resolves.toBe(
+      false,
+    )
+
+    const consentRows = await repo.listUserConsents(optedIn.id)
+    expect(consentRows).toHaveLength(3)
+    expect(consentRows.map((consent) => consent.kind)).toEqual([
+      'MARKETING',
+      'PRIVACY',
+      'TOS',
+    ])
+
+    await repo.setUserConsent({
+      userId: revoked.id,
+      kind: 'MARKETING',
+      version: '2026-08-27',
+      granted: false,
+      ipHash: 'hashed-ip',
+      userAgent: 'integration-test',
+    })
+    await expect(repo.hasActiveMarketingConsent(revoked.id)).resolves.toBe(
+      false,
+    )
+    await expect(
+      repo.listMarketingRecipients(100, '2026-08-27'),
+    ).resolves.toEqual([
+      {
+        id: optedIn.id,
+        email: optedIn.email,
+        handle: optedIn.handle,
+        locale: 'ko',
+      },
+    ])
+
+    await repo.setUserConsent({
+      userId: revoked.id,
+      kind: 'MARKETING',
+      version: '2026-08-27',
+      granted: true,
+    })
+    await expect(repo.hasActiveMarketingConsent(revoked.id)).resolves.toBe(true)
+    await database.user.update({
+      where: { id: revoked.id },
+      data: { status: 'SUSPENDED' },
+    })
+    const recipients = await repo.listMarketingRecipients(0, '2026-08-27')
+    expect(recipients).toHaveLength(1)
+    expect(recipients[0]?.id).toBe(optedIn.id)
+  })
+
   it('maintains series and episode counters and excludes soft-deleted rows', async () => {
     const ownerId = await createFixtureUser('creator')
     const seriesId = await createFixtureSeries(ownerId, 'counter')
