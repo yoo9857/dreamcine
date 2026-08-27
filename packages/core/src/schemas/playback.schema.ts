@@ -34,6 +34,8 @@ export const PlaybackResponseSchema = z.object({
   episodeId: z.string(),
   masterUrl: z.string().url(),
   posterUrl: z.string().url().optional(),
+  spriteUrl: z.string().url().optional(),
+  spriteVttUrl: z.string().url().optional(),
   durationSec: z.number().int().positive(),
   startAtSec: z.number().int().min(0),
   renditions: z.array(PlaybackRenditionSchema),

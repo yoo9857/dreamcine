@@ -13,6 +13,7 @@ import '../src/styles/auth-login.css'
 import '../src/styles/cinematic-motion.css'
 import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
+import '../src/styles/player.css'
 
 export const metadata: Metadata = {
   title: {

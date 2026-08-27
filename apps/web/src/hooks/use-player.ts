@@ -100,15 +100,23 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
       video.volume = Math.max(0, Math.min(volume, 1))
       video.muted = false
       localStorage.setItem('aidream.player.volume', String(video.volume))
+      localStorage.setItem('aidream.player.muted', 'false')
     },
     [video],
   )
   const toggleMuted = useCallback((): void => {
-    if (video !== null) video.muted = !video.muted
+    if (video === null) return
+    video.muted = !video.muted
+    localStorage.setItem('aidream.player.muted', String(video.muted))
   }, [video])
   const setPlaybackRate = useCallback(
     (rate: number): void => {
-      if (video !== null) video.playbackRate = Math.max(0.25, Math.min(rate, 2))
+      if (video === null) return
+      video.playbackRate = Math.max(0.25, Math.min(rate, 2))
+      localStorage.setItem(
+        'aidream.player.playback-rate',
+        String(video.playbackRate),
+      )
     },
     [video],
   )
@@ -123,9 +131,26 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
   )
   const toggleFullscreen = useCallback(async (): Promise<void> => {
     if (video === null) return
-    if (document.fullscreenElement === null)
-      await video.parentElement?.requestFullscreen()
-    else await document.exitFullscreen()
+    if (document.fullscreenElement !== null) {
+      await document.exitFullscreen()
+      return
+    }
+    const container = video.parentElement
+    if (
+      container !== null &&
+      typeof container.requestFullscreen === 'function'
+    ) {
+      await container.requestFullscreen()
+      return
+    }
+    if (typeof video.requestFullscreen === 'function') {
+      await video.requestFullscreen()
+      return
+    }
+    const iosVideo = video as HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void
+    }
+    iosVideo.webkitEnterFullscreen?.()
   }, [video])
 
   useEffect(() => {
@@ -133,6 +158,12 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
     const storedVolume = Number(localStorage.getItem('aidream.player.volume'))
     if (Number.isFinite(storedVolume) && storedVolume >= 0 && storedVolume <= 1)
       video.volume = storedVolume
+    video.muted = localStorage.getItem('aidream.player.muted') === 'true'
+    const storedRate = Number(
+      localStorage.getItem('aidream.player.playback-rate'),
+    )
+    if (Number.isFinite(storedRate) && storedRate >= 0.25 && storedRate <= 2)
+      video.playbackRate = storedRate
     const sync = (): void => {
       patch({
         positionSec: video.currentTime,
@@ -141,6 +172,26 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
         muted: video.muted,
         playbackRate: video.playbackRate,
       })
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = video.paused
+          ? 'paused'
+          : 'playing'
+        if (
+          Number.isFinite(video.duration) &&
+          video.duration > 0 &&
+          typeof navigator.mediaSession.setPositionState === 'function'
+        ) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: video.duration,
+              playbackRate: video.playbackRate,
+              position: Math.min(video.currentTime, video.duration),
+            })
+          } catch (error: unknown) {
+            void error
+          }
+        }
+      }
     }
     const handlers: readonly [string, EventListener][] = [
       [
@@ -203,6 +254,60 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
         video.removeEventListener(name, handler)
     }
   }, [patch, video])
+
+  useEffect(() => {
+    if (video === null || !('mediaSession' in navigator)) return
+    const session = navigator.mediaSession
+    const actions: readonly [MediaSessionAction, MediaSessionActionHandler][] =
+      [
+        [
+          'play',
+          () => {
+            void video.play()
+          },
+        ],
+        [
+          'pause',
+          () => {
+            video.pause()
+          },
+        ],
+        [
+          'seekbackward',
+          (details) => {
+            seekBy(-(details.seekOffset ?? 10))
+          },
+        ],
+        [
+          'seekforward',
+          (details) => {
+            seekBy(details.seekOffset ?? 10)
+          },
+        ],
+        [
+          'seekto',
+          (details) => {
+            if (details.seekTime !== undefined) seek(details.seekTime)
+          },
+        ],
+      ]
+    for (const [action, handler] of actions) {
+      try {
+        session.setActionHandler(action, handler)
+      } catch (error: unknown) {
+        void error
+      }
+    }
+    return () => {
+      for (const [action] of actions) {
+        try {
+          session.setActionHandler(action, null)
+        } catch (error: unknown) {
+          void error
+        }
+      }
+    }
+  }, [seek, seekBy, video])
 
   useEffect(() => {
     const onFullscreen = (): void => {

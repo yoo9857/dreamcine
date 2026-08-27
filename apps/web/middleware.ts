@@ -110,9 +110,17 @@ export function middleware(req: NextRequest): NextResponse {
   const hasSessionCookie = SESSION_COOKIE_NAMES.some((name) =>
     req.cookies.has(name),
   )
+  const usesDevelopmentBrowsePreview =
+    process.env.NODE_ENV === 'development' &&
+    !process.env.DATABASE_URL &&
+    req.nextUrl.pathname === '/browse'
 
   let response: NextResponse
-  if (needsAuth(req.nextUrl.pathname) && !hasSessionCookie) {
+  if (
+    needsAuth(req.nextUrl.pathname) &&
+    !hasSessionCookie &&
+    !usesDevelopmentBrowsePreview
+  ) {
     const loginUrl = new URL('/login', req.nextUrl.origin)
     loginUrl.searchParams.set(
       'next',

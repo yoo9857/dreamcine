@@ -1,0 +1,529 @@
+.ilog-player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background: #010304;
+  font-family: inherit;
+  user-select: none;
+}
+
+.ilog-player-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #010304;
+  cursor: pointer;
+}
+
+.ilog-player.is-playing:not(.is-controls-visible),
+.ilog-player.is-playing:not(.is-controls-visible) .ilog-player-video {
+  cursor: none;
+}
+
+.ilog-player-vignette {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 18%) 0%,
+    transparent 30%,
+    transparent 56%,
+    rgb(0 0 0 / 82%) 100%
+  );
+  transition: opacity 220ms ease;
+}
+
+.ilog-player.is-controls-visible .ilog-player-vignette {
+  opacity: 1;
+}
+
+.ilog-player-controls {
+  position: absolute;
+  z-index: 4;
+  right: 16px;
+  bottom: 12px;
+  left: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition:
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.ilog-player.is-controls-visible .ilog-player-controls {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.ilog-player-timeline {
+  --player-progress: 0%;
+  --player-buffered: 0%;
+  position: relative;
+  display: flex;
+  height: 14px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ilog-player-seek-preview {
+  position: absolute;
+  bottom: 20px;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.ilog-player-seek-tooltip {
+  min-width: 45px;
+  display: grid;
+  justify-items: center;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 8px;
+  color: #fff;
+  background: rgb(8 13 16 / 92%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  font-size: 8px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(12px);
+}
+
+.ilog-player-seek-tooltip > span {
+  padding: 5px 8px;
+}
+
+.ilog-player-seek-image {
+  display: block;
+  max-width: 160px;
+  max-height: 90px;
+  background-repeat: no-repeat;
+}
+
+.ilog-player-timeline input {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  outline: none;
+  background: linear-gradient(
+    90deg,
+    #ff4055 0 var(--player-progress),
+    rgb(255 255 255 / 42%) var(--player-progress) var(--player-buffered),
+    rgb(255 255 255 / 18%) var(--player-buffered) 100%
+  );
+  transition: height 120ms ease;
+}
+
+.ilog-player-timeline:hover input,
+.ilog-player-timeline input:focus-visible {
+  height: 6px;
+}
+
+.ilog-player-timeline input::-webkit-slider-thumb,
+.ilog-player-volume input::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  appearance: none;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ff4055;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 36%);
+}
+
+.ilog-player-timeline input::-moz-range-thumb,
+.ilog-player-volume input::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ff4055;
+}
+
+.ilog-player-control-row,
+.ilog-player-control-group {
+  display: flex;
+  align-items: center;
+}
+
+.ilog-player-control-row {
+  min-height: 38px;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ilog-player-control-group {
+  gap: 3px;
+}
+
+.ilog-player-control-end {
+  margin-left: auto;
+}
+
+.ilog-player-icon-button {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.ilog-player-icon-button:hover,
+.ilog-player-icon-button:focus-visible,
+.ilog-player-settings[open] > summary {
+  background: rgb(255 255 255 / 12%);
+}
+
+.ilog-player-icon-button:active {
+  transform: scale(0.91);
+}
+
+.ilog-player-icon-button svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.8;
+}
+
+.ilog-player-play-button svg {
+  width: 21px;
+  height: 21px;
+}
+
+.ilog-player-skip small {
+  position: absolute;
+  top: 13px;
+  font-size: 6px;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.ilog-player-volume {
+  display: flex;
+  align-items: center;
+}
+
+.ilog-player-volume > label {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width 180ms ease,
+    opacity 150ms ease;
+}
+
+.ilog-player-volume:hover > label,
+.ilog-player-volume:focus-within > label {
+  width: 72px;
+  opacity: 1;
+}
+
+.ilog-player-volume input {
+  width: 62px;
+  height: 3px;
+  display: block;
+  appearance: none;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 38%);
+  accent-color: #ff4055;
+}
+
+.ilog-player-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 7px;
+  color: rgb(255 255 255 / 60%);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ilog-player-time strong {
+  color: #fff;
+  font-weight: 750;
+}
+
+.ilog-player-settings {
+  position: relative;
+}
+
+.ilog-player-settings > summary {
+  list-style: none;
+}
+
+.ilog-player-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ilog-player-settings-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  width: 210px;
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 14px;
+  background: rgb(10 15 18 / 92%);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 38%);
+  backdrop-filter: blur(18px) saturate(1.3);
+}
+
+.ilog-player-settings-menu label {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 9px;
+  border-radius: 9px;
+  color: rgb(255 255 255 / 76%);
+  font-size: 10px;
+}
+
+.ilog-player-settings-menu label:hover {
+  background: rgb(255 255 255 / 6%);
+}
+
+.ilog-player-settings-menu label > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.ilog-player-settings-menu label svg {
+  width: 15px;
+  height: 15px;
+  color: #ff6070;
+}
+
+.ilog-player-settings-menu select {
+  min-width: 66px;
+  border: 0;
+  color: #fff;
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  text-align: right;
+  cursor: pointer;
+}
+
+.ilog-player-settings-menu option {
+  color: #fff;
+  background: #10171b;
+}
+
+.ilog-player-center-action,
+.ilog-player-buffering {
+  position: absolute;
+  z-index: 3;
+  inset: 50% auto auto 50%;
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ilog-player-center-action {
+  border: 1px solid rgb(255 255 255 / 28%);
+  color: #fff;
+  opacity: 0;
+  background: rgb(6 12 15 / 55%);
+  box-shadow: 0 16px 42px rgb(0 0 0 / 30%);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.ilog-player:not(.is-playing) .ilog-player-center-action,
+.ilog-player.is-controls-visible:hover .ilog-player-center-action {
+  opacity: 1;
+}
+
+.ilog-player.is-playing .ilog-player-center-action {
+  width: 52px;
+  height: 52px;
+}
+
+.ilog-player-center-action:hover {
+  background: rgb(255 64 85 / 88%);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.ilog-player-center-action svg,
+.ilog-player-buffering svg {
+  width: 23px;
+  height: 23px;
+}
+
+.ilog-player-buffering {
+  color: #fff;
+  background: rgb(6 12 15 / 52%);
+  backdrop-filter: blur(10px);
+}
+
+.ilog-player-buffering svg {
+  animation: ilog-player-spin 900ms linear infinite;
+}
+
+.ilog-player-error {
+  position: absolute;
+  z-index: 5;
+  inset: 50% auto auto 50%;
+  min-width: min(360px, 80%);
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+  color: #fff;
+  background: rgb(18 10 13 / 88%);
+  font-size: 11px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(14px);
+}
+
+.ilog-player-ended-card {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 28px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 58 80 / 18%), transparent 34%),
+    rgb(2 6 8 / 82%);
+  text-align: center;
+  backdrop-filter: blur(9px);
+}
+
+.ilog-player-ended-card > span {
+  color: #ff6070;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.ilog-player-ended-card h2 {
+  margin: 8px 0 0;
+  font-size: clamp(20px, 3vw, 32px);
+  letter-spacing: -0.055em;
+}
+
+.ilog-player-ended-card p {
+  margin: 7px 0 0;
+  color: rgb(255 255 255 / 60%);
+  font-size: 11px;
+}
+
+.ilog-player-ended-card > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.ilog-player-ended-card button,
+.ilog-player-ended-card a {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(255 255 255 / 7%);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ilog-player-ended-card a {
+  border-color: #ff4055;
+  background: #ff4055;
+}
+
+.ilog-player-ended-card svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ilog-player:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  background: #000;
+}
+
+.ilog-player:fullscreen .ilog-player-controls {
+  right: clamp(20px, 3vw, 52px);
+  bottom: clamp(18px, 3vh, 36px);
+  left: clamp(20px, 3vw, 52px);
+}
+
+@keyframes ilog-player-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 680px) {
+  .ilog-player-controls {
+    right: 10px;
+    bottom: 7px;
+    left: 10px;
+  }
+  .ilog-player-icon-button {
+    width: 34px;
+    height: 34px;
+  }
+  .ilog-player-skip,
+  .ilog-player-volume > label,
+  .ilog-player-pip {
+    display: none;
+  }
+  .ilog-player-time {
+    margin-left: 3px;
+    font-size: 8px;
+  }
+  .ilog-player-center-action {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ilog-player-buffering svg {
+    animation-duration: 1.8s;
+  }
+}

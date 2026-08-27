@@ -80,6 +80,12 @@ export function AgeGate(props: AgeGateProps): ReactNode {
         {...(playback.posterUrl === undefined
           ? {}
           : { posterUrl: playback.posterUrl })}
+        {...(playback.spriteUrl === undefined
+          ? {}
+          : { spriteUrl: playback.spriteUrl })}
+        {...(playback.spriteVttUrl === undefined
+          ? {}
+          : { spriteVttUrl: playback.spriteVttUrl })}
         startAtSec={playback.startAtSec}
         durationSec={playback.durationSec}
       />

@@ -19,7 +19,18 @@
 .aidream-route-view:not(.is-discovery-home) {
   width: min(100%, 80rem);
   margin-inline: auto;
-  padding: 24px 16px 104px;
+}
+
+.aidream-route-view:not(.is-discovery-home):not(.is-works-gallery):not(
+    .is-creators-gallery
+  ):not(.is-watch-experience) {
+  padding: 24px 16px 104px 32px;
+}
+
+.aidream-route-view.is-works-gallery,
+.aidream-route-view.is-creators-gallery,
+.aidream-route-view.is-watch-experience {
+  padding: 0 16px 104px 32px;
 }
 
 @media (min-width: 768px) and (max-width: 1350px) {
@@ -162,6 +173,13 @@
   gap: 8px;
 }
 
+.aidream-app-shell:has(.is-works-gallery) .aidream-session-actions,
+.aidream-app-shell:has(.is-creators-gallery) .aidream-session-actions,
+.aidream-app-shell:has(.is-watch-experience) .aidream-session-actions,
+.aidream-app-shell:has(.is-browse-home) .aidream-session-actions {
+  display: none;
+}
+
 .aidream-session-actions a {
   min-height: 40px;
   border-radius: 999px;
@@ -203,8 +221,15 @@
     right: 14px;
     bottom: calc(76px + env(safe-area-inset-bottom));
   }
-  .aidream-route-view:not(.is-discovery-home) {
+  .aidream-route-view:not(.is-discovery-home):not(.is-works-gallery):not(
+      .is-creators-gallery
+    ):not(.is-watch-experience) {
     padding: 20px 16px;
+  }
+  .aidream-route-view.is-works-gallery,
+  .aidream-route-view.is-creators-gallery,
+  .aidream-route-view.is-watch-experience {
+    padding: 0 16px 20px;
   }
   .aidream-mobile-nav {
     position: fixed;

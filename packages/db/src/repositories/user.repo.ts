@@ -70,6 +70,26 @@ export function listRelatedCreators(
   })
 }
 
+export function listFeaturedCreators(limit: number): Promise<readonly User[]> {
+  return executeDb(async () => {
+    const rows = await db.user.findMany({
+      where: {
+        deletedAt: null,
+        status: 'ACTIVE',
+        series: {
+          some: {
+            deletedAt: null,
+            episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+          },
+        },
+      },
+      orderBy: [{ followerCount: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    })
+    return rows.map(mapUser)
+  })
+}
+
 export function listUsersForAdmin(options: {
   limit: number
   cursor?: string

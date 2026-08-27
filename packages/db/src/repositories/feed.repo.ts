@@ -33,6 +33,10 @@ type PrismaFeedRow = PrismaEpisode & {
   durationSec: number | null
 }
 
+// Production playback QA publishes a temporary episode to exercise the real
+// media pipeline. It must never become viewer-facing feed content.
+const PRODUCTION_MEDIA_QA_USER_ID = 'media_qa_20260826'
+
 const episodeColumns = Prisma.raw(`
   e.id,
   e.series_id AS "seriesId",
@@ -134,6 +138,7 @@ export function listPopularFeed(options: FeedOptions): Promise<Page<FeedRow>> {
         AND s.deleted_at IS NULL
         AND creator.deleted_at IS NULL
         AND creator.status = 'ACTIVE'::"UserStatus"
+        AND creator.id <> ${PRODUCTION_MEDIA_QA_USER_ID}
         ${blockedFilter(options.viewerId)}
         ${
           cursor === null
@@ -163,6 +168,7 @@ export function listLatestFeed(options: FeedOptions): Promise<Page<FeedRow>> {
         AND s.deleted_at IS NULL
         AND creator.deleted_at IS NULL
         AND creator.status = 'ACTIVE'::"UserStatus"
+        AND creator.id <> ${PRODUCTION_MEDIA_QA_USER_ID}
         ${blockedFilter(options.viewerId)}
         ${
           cursor === null
@@ -202,6 +208,7 @@ export function listFollowingFeed(
         AND s.deleted_at IS NULL
         AND creator.deleted_at IS NULL
         AND creator.status = 'ACTIVE'::"UserStatus"
+        AND creator.id <> ${PRODUCTION_MEDIA_QA_USER_ID}
         AND EXISTS (
           SELECT 1 FROM follow f
           WHERE f.follower_id = ${viewerId} AND f.following_id = s.owner_id

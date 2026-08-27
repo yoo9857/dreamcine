@@ -1,19 +1,19 @@
-import Form from 'next/form'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, type ReactNode } from 'react'
 
+import type { FeedItem } from '@aidream/core'
+
 import type { RouteSession } from '@/src/auth/types'
-import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 import { FeedSkeleton } from '@/src/components/feed/FeedSkeleton'
-import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
 import { getFeed } from '@/src/services/feed/get-feed'
+import { getSeries } from '@/src/services/series/get-series'
 
 import { DiscoveryBackdrop } from './DiscoveryBackdrop'
-import { BrowseAccountMenu } from './BrowseAccountMenu'
 import { DiscoveryCreatorCta } from './DiscoveryCreatorCta'
 import { DiscoveryFooter } from './DiscoveryFooter'
 import { DiscoveryStoryShelves } from './DiscoveryStoryShelves'
+import { DiscoveryTopbar } from './DiscoveryTopbar'
 import { HeroLikeButton } from './HeroLikeButton'
 
 const discoveryTabs = [
@@ -27,21 +27,27 @@ const discoveryTabs = [
   { href: '/search?q=숏폼', label: '숏폼' },
 ] as const
 
-function formatDuration(durationSec: number | null): string {
-  if (durationSec === null) return '--:--'
-  const minutes = Math.floor(durationSec / 60)
-  const seconds = Math.floor(durationSec % 60)
-  return `${String(minutes)}:${String(seconds).padStart(2, '0')}`
-}
-
-function SearchIcon(): ReactNode {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="m16 16 5 5" />
-    </svg>
-  )
-}
+const developmentBrowseItem = {
+  episodeId: 'preview-red-horizon',
+  title: '첫 번째 장면 · 비가 그친 뒤',
+  thumbUrl: '/brand/works/red-horizon.png',
+  durationSec: 1482,
+  ageRating: 'ALL',
+  viewCount: '12840',
+  likeCount: 926,
+  publishedAt: '2026-08-24T12:00:00.000Z',
+  series: {
+    id: 'preview-red-horizon',
+    title: '붉은 지평선 너머',
+    slug: 'red-horizon',
+  },
+  creator: {
+    handle: 'hanbin',
+    displayName: '한빈',
+    avatarUrl: null,
+  },
+  isLiked: false,
+} satisfies FeedItem
 
 function DiscoveryFallback(): ReactNode {
   return (
@@ -80,70 +86,39 @@ async function PopularDiscovery({
 }: {
   readonly session: RouteSession
 }): Promise<ReactNode> {
-  const page = await getFeed({ type: 'popular', limit: 20 }, session)
+  const isDevelopmentPreview =
+    process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
+  const page = isDevelopmentPreview
+    ? { items: [developmentBrowseItem], nextCursor: null }
+    : await getFeed({ type: 'popular', limit: 20 }, session)
   const lead = page.items[0]
   if (lead === undefined) {
     return (
       <>
         <section
-          className="discovery-hero"
-          aria-labelledby="curated-discovery-title"
-          data-cinematic-hero
+          className="discovery-empty-hero"
+          aria-labelledby="empty-discovery-title"
         >
-          <CinematicHeroMotion
-            chapter="01 / CURATED PREMIERE"
-            label="ILOG EDITOR'S PICK"
-          />
-          <Image
-            src="/brand/posters/memory.png"
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 640px) 100vw, (max-width: 1536px) 92vw, 1400px"
-            className="discovery-hero-image"
-          />
-          <div className="discovery-hero-shade" />
-          <div className="discovery-hero-copy">
-            <p className="discovery-kicker">
-              <span /> CURATED ON ILOG
-            </p>
-            <p className="discovery-hero-byline">한빈 · AI FILM</p>
-            <h1 id="curated-discovery-title">내일의 기억</h1>
-            <p>
-              기억을 영상으로 보관하는 가까운 미래. 사라져 가는 장면을
-              붙잡으려는 세 사람의 선택이 서로의 내일을 바꾸기 시작합니다.
-            </p>
-            <div className="discovery-hero-meta" aria-label="콘텐츠 정보">
-              <span>12+</span>
-              <span>DRAMA</span>
-              <span>ILOG PREMIERE</span>
-            </div>
-            <div className="discovery-hero-actions">
-              <Link href="/series/preview-1">
-                <span aria-hidden="true">▶</span> 작품 보기
-              </Link>
-              <Link href="/u/hanbin">
-                작가 프로필 <span aria-hidden="true">↗</span>
-              </Link>
-            </div>
+          <div>
+            <h1 id="empty-discovery-title">아직 공개된 작품이 없습니다</h1>
+            <p>새로운 작품이 공개되면 이곳에서 가장 먼저 소개합니다.</p>
+            <Link href="/creators">크리에이터 둘러보기</Link>
           </div>
-          <aside className="discovery-review-panel" aria-label="큐레이션 노트">
-            <div className="discovery-review-label">
-              <span>EDITOR'S NOTE</span>
-              <small>이번 주의 선택</small>
-            </div>
-            <blockquote>“기억은 사라져도, 장면은 우리 곁에 남는다.”</blockquote>
-            <p>한빈의 시네마틱 AI 드라마를 만나보세요.</p>
-            <Link href="/series/preview-1">
-              작품 자세히 보기 <span aria-hidden="true">→</span>
-            </Link>
-          </aside>
         </section>
         <DiscoveryTabs />
         <DiscoveryStoryShelves items={[]} />
       </>
     )
   }
+
+  const featuredSeries = isDevelopmentPreview
+    ? null
+    : await getSeries(lead.series.id).catch(() => null)
+  const synopsis =
+    featuredSeries?.series.synopsis ??
+    (isDevelopmentPreview
+      ? '끝없이 비가 내리는 도시, 한 사람이 붉은 빛의 근원을 찾아 경계 너머로 향합니다.'
+      : '작품 소개가 아직 등록되지 않았습니다.')
 
   return (
     <>
@@ -152,10 +127,6 @@ async function PopularDiscovery({
         aria-labelledby="discovery-title"
         data-cinematic-hero
       >
-        <CinematicHeroMotion
-          chapter="01 / DISCOVER"
-          label="ILOG ORIGINAL SIGNAL"
-        />
         {lead.thumbUrl === null ? (
           <div className="discovery-hero-art" aria-hidden="true" />
         ) : (
@@ -172,28 +143,12 @@ async function PopularDiscovery({
         <DiscoveryBackdrop episodeId={lead.episodeId} />
         <div className="discovery-hero-shade" />
         <div className="discovery-hero-copy">
-          <p className="discovery-kicker">
-            <span /> FEATURED ON ILOG
-          </p>
-          <p className="discovery-hero-byline">
-            {lead.series.title} · {lead.creator.displayName}
-          </p>
-          <h1 id="discovery-title">{lead.title}</h1>
-          <p>
-            지금 가장 주목받는 장면을 만나보세요. 보고 난 뒤의 감상은 리뷰로,
-            마음에 남은 순간은 하트로 기록할 수 있습니다.
-          </p>
-          <div className="discovery-hero-meta" aria-label="콘텐츠 정보">
-            <span>{lead.ageRating}</span>
-            <span>{formatDuration(lead.durationSec)}</span>
-            <span>조회 {lead.viewCount}</span>
-          </div>
+          <h1 id="discovery-title">{lead.series.title}</h1>
+          <p className="discovery-hero-subtitle">{lead.title}</p>
+          <p className="discovery-hero-synopsis">{synopsis}</p>
           <div className="discovery-hero-actions">
             <Link href={`/watch/${lead.episodeId}`}>
               <span aria-hidden="true">▶</span> 지금 재생
-            </Link>
-            <Link href={`/watch/${lead.episodeId}#reviews`}>
-              리뷰 보기 <span aria-hidden="true">↗</span>
             </Link>
             <HeroLikeButton
               episodeId={lead.episodeId}
@@ -203,17 +158,6 @@ async function PopularDiscovery({
             />
           </div>
         </div>
-        <aside className="discovery-review-panel" aria-label="커뮤니티 리뷰">
-          <div className="discovery-review-label">
-            <span>COMMUNITY REVIEW</span>
-            <small>감상과 대화</small>
-          </div>
-          <blockquote>“당신은 이 장면을 어떻게 보셨나요?”</blockquote>
-          <p>짧은 한 줄도 좋은 리뷰가 됩니다.</p>
-          <Link href={`/watch/${lead.episodeId}#reviews`}>
-            감상 남기기 <span aria-hidden="true">→</span>
-          </Link>
-        </aside>
       </section>
 
       <DiscoveryTabs />
@@ -230,33 +174,7 @@ export function AuthenticatedDiscoveryHome({
 }): ReactNode {
   return (
     <div className="discovery-home" id="discovery-top">
-      <header className="discovery-topbar">
-        <Link
-          href="/browse"
-          className="discovery-wordmark"
-          aria-label="ilog 홈"
-        >
-          <LeftBrandLogo priority />
-        </Link>
-        <Form className="discovery-search" action="/search" role="search">
-          <SearchIcon />
-          <label className="sr-only" htmlFor="discovery-query">
-            에피소드 검색
-          </label>
-          <input
-            id="discovery-query"
-            name="q"
-            placeholder="제목, 시리즈, 크리에이터를 검색하세요"
-          />
-          <button type="submit">검색</button>
-        </Form>
-        <div className="discovery-top-actions">
-          <div className="discovery-live" aria-label="새 콘텐츠 업데이트 중">
-            <span /> LIVE
-          </div>
-          <BrowseAccountMenu user={session.user} />
-        </div>
-      </header>
+      <DiscoveryTopbar user={session.user} />
       <Suspense fallback={<DiscoveryFallback />}>
         <PopularDiscovery session={session} />
       </Suspense>

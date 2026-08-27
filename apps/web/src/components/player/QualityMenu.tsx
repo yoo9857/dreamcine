@@ -1,5 +1,6 @@
 'use client'
 
+import { MonitorUp } from 'lucide-react'
 import React, { type ReactNode } from 'react'
 import type { PlayerLevel } from '@/src/hooks/use-player'
 
@@ -11,8 +12,10 @@ export interface QualityMenuProps {
 
 export function QualityMenu(props: QualityMenuProps): ReactNode {
   return (
-    <label>
-      <span className="sr-only">화질</span>
+    <label className="ilog-player-quality">
+      <span>
+        <MonitorUp /> 화질
+      </span>
       <select
         aria-label="화질"
         value={props.currentLevel}

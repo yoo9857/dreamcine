@@ -1,10 +1,18 @@
 'use client'
 
 import type HlsType from 'hls.js'
+import { LoaderCircle, Pause, Play } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import React, { useEffect, useRef, useState, type ReactNode } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { usePlayer } from '@/src/hooks/use-player'
 import { useWatchProgress } from '@/src/hooks/use-watch-progress'
+import { NextEpisodeCard } from './NextEpisodeCard'
 import { PlayerControls } from './PlayerControls'
 
 export interface HlsPlayerProps {
@@ -13,19 +21,92 @@ export interface HlsPlayerProps {
   readonly startAtSec: number
   readonly durationSec: number
   readonly spriteVttUrl?: string
+  readonly spriteUrl?: string
   readonly autoPlay?: boolean
   readonly onProgress: (positionSec: number) => void
   readonly onWatchedSeconds: (total: number) => void
   readonly onEnded: () => void
   readonly onError: (code: string) => void
   readonly onPause?: (positionSec: number) => void
+  readonly nextEpisode?: {
+    readonly id: string
+    readonly title: string
+  }
+}
+
+interface SeekFrame {
+  readonly startSec: number
+  readonly endSec: number
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+function vttTime(value: string): number {
+  const parts = value.split(':').map(Number)
+  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part)))
+    return 0
+  return (parts[0] ?? 0) * 3600 + (parts[1] ?? 0) * 60 + (parts[2] ?? 0)
+}
+
+function parseSeekFrames(vtt: string): readonly SeekFrame[] {
+  const pattern =
+    /(\d{2}:\d{2}:\d{2}\.\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}\.\d{3})[\s\S]*?#xywh=(\d+),(\d+),(\d+),(\d+)/gu
+  return [...vtt.matchAll(pattern)].map((match) => ({
+    startSec: vttTime(match[1] ?? '0:0:0'),
+    endSec: vttTime(match[2] ?? '0:0:0'),
+    x: Number(match[3]),
+    y: Number(match[4]),
+    width: Number(match[5]),
+    height: Number(match[6]),
+  }))
 }
 
 function HlsPlayerEngine(props: HlsPlayerProps): ReactNode {
   const [video, setVideo] = useState<HTMLVideoElement | null>(null)
+  const [controlsVisible, setControlsVisible] = useState(true)
+  const [seekFrames, setSeekFrames] = useState<readonly SeekFrame[]>([])
   const controller = usePlayer(video)
   const callbacks = useRef(props)
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   callbacks.current = props
+
+  const clearHideTimer = useCallback((): void => {
+    if (hideTimer.current !== null) clearTimeout(hideTimer.current)
+    hideTimer.current = null
+  }, [])
+
+  const revealControls = useCallback((): void => {
+    setControlsVisible(true)
+    clearHideTimer()
+    if (controller.state.status === 'playing')
+      hideTimer.current = setTimeout(() => {
+        setControlsVisible(false)
+      }, 2600)
+  }, [clearHideTimer, controller.state.status])
+
+  useEffect(() => {
+    revealControls()
+    return clearHideTimer
+  }, [clearHideTimer, controller.state.status, revealControls])
+
+  useEffect(() => {
+    if (props.spriteVttUrl === undefined) {
+      setSeekFrames([])
+      return
+    }
+    const abort = new AbortController()
+    void fetch(props.spriteVttUrl, { signal: abort.signal })
+      .then(async (response) => (response.ok ? response.text() : ''))
+      .then((vtt) => {
+        if (!abort.signal.aborted) setSeekFrames(parseSeekFrames(vtt))
+      })
+      .catch(() => undefined)
+    return () => {
+      abort.abort()
+    }
+  }, [props.spriteVttUrl])
 
   useEffect(() => {
     if (video === null) return
@@ -159,22 +240,79 @@ function HlsPlayerEngine(props: HlsPlayerProps): ReactNode {
     video,
   ])
 
+  const pictureInPictureSupported =
+    video !== null &&
+    typeof document !== 'undefined' &&
+    document.pictureInPictureEnabled &&
+    typeof video.requestPictureInPicture === 'function'
+  const togglePictureInPicture = async (): Promise<void> => {
+    if (video === null || !pictureInPictureSupported) return
+    if (document.pictureInPictureElement === video)
+      await document.exitPictureInPicture()
+    else await video.requestPictureInPicture()
+  }
+  const playing = controller.state.status === 'playing'
+  const busy =
+    controller.state.status === 'loading' ||
+    controller.state.status === 'buffering'
+
   return (
     <div
-      className="overflow-hidden rounded-lg bg-black"
+      className={`ilog-player${controlsVisible ? ' is-controls-visible' : ''}${playing ? ' is-playing' : ''}`}
       data-sprite-vtt={props.spriteVttUrl}
+      onPointerMove={revealControls}
+      onPointerDown={revealControls}
+      onPointerLeave={() => {
+        if (playing) setControlsVisible(false)
+      }}
+      onFocusCapture={revealControls}
     >
       <video
         ref={setVideo}
-        className="aspect-video w-full bg-black object-contain"
+        className="ilog-player-video"
         poster={props.posterUrl}
         playsInline
         preload="metadata"
         aria-label="에피소드 동영상"
+        onClick={() => {
+          void controller.togglePlayback()
+        }}
+        onDoubleClick={() => {
+          void controller.toggleFullscreen()
+        }}
       />
+      <div className="ilog-player-vignette" aria-hidden="true" />
+      {busy ? (
+        <div
+          className="ilog-player-buffering"
+          role="status"
+          aria-label="영상을 불러오는 중"
+        >
+          <LoaderCircle />
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="ilog-player-center-action"
+          aria-label={playing ? '일시정지' : '재생'}
+          onClick={() => {
+            void controller.togglePlayback()
+          }}
+        >
+          {playing ? (
+            <Pause fill="currentColor" />
+          ) : (
+            <Play fill="currentColor" />
+          )}
+        </button>
+      )}
       <PlayerControls
         state={controller.state}
         durationSec={props.durationSec}
+        {...(props.spriteUrl === undefined
+          ? {}
+          : { spriteUrl: props.spriteUrl })}
+        seekFrames={seekFrames}
         onTogglePlayback={() => {
           void controller.togglePlayback()
         }}
@@ -196,13 +334,34 @@ function HlsPlayerEngine(props: HlsPlayerProps): ReactNode {
         onToggleFullscreen={() => {
           void controller.toggleFullscreen()
         }}
+        {...(pictureInPictureSupported
+          ? {
+              onTogglePictureInPicture: () => {
+                void togglePictureInPicture()
+              },
+            }
+          : {})}
         onLevelChange={(level) => {
           controller.setLevel(level)
         }}
       />
+      {controller.state.status === 'ended' ? (
+        <NextEpisodeCard
+          {...(props.nextEpisode === undefined
+            ? {}
+            : {
+                episodeId: props.nextEpisode.id,
+                title: props.nextEpisode.title,
+              })}
+          onReplay={() => {
+            controller.seek(0)
+            void controller.togglePlayback()
+          }}
+        />
+      ) : null}
       {controller.state.status === 'error' ? (
-        <p role="alert" className="p-3 text-white">
-          동영상을 불러오지 못했습니다. 다시 시도해 주세요.
+        <p role="alert" className="ilog-player-error">
+          영상을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
         </p>
       ) : null}
     </div>
@@ -218,8 +377,14 @@ export interface WatchPlayerProps {
   readonly authenticated: boolean
   readonly masterUrl: string
   readonly posterUrl?: string
+  readonly spriteUrl?: string
+  readonly spriteVttUrl?: string
   readonly startAtSec: number
   readonly durationSec: number
+  readonly nextEpisode?: {
+    readonly id: string
+    readonly title: string
+  }
 }
 
 export function WatchPlayer(props: WatchPlayerProps): ReactNode {
@@ -231,8 +396,15 @@ export function WatchPlayer(props: WatchPlayerProps): ReactNode {
     <HlsPlayer
       masterUrl={props.masterUrl}
       {...(props.posterUrl === undefined ? {} : { posterUrl: props.posterUrl })}
+      {...(props.spriteUrl === undefined ? {} : { spriteUrl: props.spriteUrl })}
+      {...(props.spriteVttUrl === undefined
+        ? {}
+        : { spriteVttUrl: props.spriteVttUrl })}
       startAtSec={props.startAtSec}
       durationSec={props.durationSec}
+      {...(props.nextEpisode === undefined
+        ? {}
+        : { nextEpisode: props.nextEpisode })}
       onProgress={(position) => {
         progress.report(position)
       }}

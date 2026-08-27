@@ -1,6 +1,7 @@
 'use client'
 
-import React, { type ReactNode } from 'react'
+import React, { type CSSProperties, type ReactNode } from 'react'
+
 export interface SeekPreviewProps {
   readonly positionSec: number
   readonly spriteUrl?: string
@@ -9,20 +10,26 @@ export interface SeekPreviewProps {
   readonly width?: number
   readonly height?: number
 }
+
 export function SeekPreview(props: SeekPreviewProps): ReactNode {
   const style =
     props.spriteUrl === undefined
       ? undefined
-      : {
+      : ({
           backgroundImage: `url("${props.spriteUrl}")`,
           backgroundPosition: `-${String(props.x ?? 0)}px -${String(props.y ?? 0)}px`,
           width: props.width,
           height: props.height,
-        }
+        } satisfies CSSProperties)
   return (
-    <output aria-label="탐색 미리보기" style={style}>
-      {Math.floor(props.positionSec / 60)}:
-      {String(Math.floor(props.positionSec % 60)).padStart(2, '0')}
+    <output className="ilog-player-seek-tooltip" aria-label="탐색 미리보기">
+      {props.spriteUrl === undefined ? null : (
+        <i className="ilog-player-seek-image" style={style} />
+      )}
+      <span>
+        {String(Math.floor(props.positionSec / 60))}:
+        {String(Math.floor(props.positionSec % 60)).padStart(2, '0')}
+      </span>
     </output>
   )
 }

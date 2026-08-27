@@ -55,6 +55,54 @@ const PREVIEW_PROFILE: UserProfile = {
   isBlocked: false,
 }
 
+const PREVIEW_PROFILE_ALIASES: Readonly<Record<string, UserProfile>> = {
+  'sora.archive': {
+    ...PREVIEW_PROFILE,
+    handle: 'sora.archive',
+    displayName: '소라',
+    bio: '낯선 움직임과 감각적인 색으로 새로운 세계를 기록합니다.',
+    avatarUrl: '/brand/profiles/cristobal-valenzuela.jpeg',
+    followerCount: 9220,
+    seriesCount: 8,
+  },
+  'minseo.film': {
+    ...PREVIEW_PROFILE,
+    handle: 'minseo.film',
+    displayName: '민서',
+    bio: '짧지만 선명한 감정의 순간을 시네마틱 필름으로 전합니다.',
+    avatarUrl: '/brand/profiles/minseo-color.webp',
+    followerCount: 7810,
+    seriesCount: 6,
+  },
+  'doha.visuals': {
+    ...PREVIEW_PROFILE,
+    handle: 'doha.visuals',
+    displayName: '도하',
+    bio: '기술과 상상력이 만나는 비주얼 스토리를 설계합니다.',
+    avatarUrl: '/brand/profiles/michael-burns.jpg',
+    followerCount: 6340,
+    seriesCount: 11,
+  },
+  'noa.motion': {
+    ...PREVIEW_PROFILE,
+    handle: 'noa.motion',
+    displayName: '노아',
+    bio: '리듬과 움직임을 중심으로 한 실험적인 숏폼을 만듭니다.',
+    avatarUrl: '/brand/profiles/noa-color.webp',
+    followerCount: 5190,
+    seriesCount: 7,
+  },
+  'yoon.frame': {
+    ...PREVIEW_PROFILE,
+    handle: 'yoon.frame',
+    displayName: '윤',
+    bio: '사람과 공간 사이의 조용한 서사를 오래 바라봅니다.',
+    avatarUrl: '/brand/profiles/james-cameron.jpg',
+    followerCount: 4820,
+    seriesCount: 4,
+  },
+}
+
 const PREVIEW_RELATED_CREATORS: readonly RelatedCreator[] = [
   {
     handle: 'sora.archive',
@@ -176,9 +224,15 @@ export default async function ProfilePage({
     parseTheme(cookieStore.get(THEME_COOKIE)?.value) ?? 'dark'
 
   try {
-    const isPortfolioPreview = handle === 'hanbin'
+    const previewProfile =
+      handle === 'hanbin'
+        ? PREVIEW_PROFILE
+        : process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
+          ? PREVIEW_PROFILE_ALIASES[handle]
+          : undefined
+    const isPortfolioPreview = previewProfile !== undefined
     const [profile, series, relatedCreators] = isPortfolioPreview
-      ? [PREVIEW_PROFILE, PREVIEW_SERIES, PREVIEW_RELATED_CREATORS]
+      ? [previewProfile, PREVIEW_SERIES, PREVIEW_RELATED_CREATORS]
       : await Promise.all([
           getProfile(handle, session),
           getProfileSeries(handle),

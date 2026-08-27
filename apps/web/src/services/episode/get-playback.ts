@@ -70,10 +70,19 @@ export async function getPlayback(
     asset.durationSec - progress.positionSec > 30
       ? progress.positionSec
       : 0
+  const hasSeekSprite = asset.renditions.some(
+    (rendition) => rendition.name === '1080p',
+  )
   return {
     episodeId: episode.id,
     masterUrl: masterUrl(asset.id),
     posterUrl: thumbUrl(asset.id),
+    ...(hasSeekSprite
+      ? {
+          spriteUrl: thumbUrl(asset.id, 'sprite.jpg'),
+          spriteVttUrl: thumbUrl(asset.id, 'sprite.vtt'),
+        }
+      : {}),
     durationSec: asset.durationSec,
     startAtSec,
     renditions: [...asset.renditions],
