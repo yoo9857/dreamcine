@@ -1,17 +1,16 @@
 import type { AdminDashboardSnapshot } from '@aidream/db'
 import {
   ArrowRight,
-  CheckCircle2,
+  ArrowUpRight,
+  CalendarDays,
+  ChevronDown,
+  CircleAlert,
   Clock3,
-  Eye,
-  FileVideo2,
+  Filter,
   Flag,
-  Play,
-  Radio,
-  Sparkles,
+  Search,
   TrendingUp,
   UserPlus,
-  Users,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -38,299 +37,289 @@ function relativeDate(date: Date): string {
 }
 
 export function AdminDashboard({ data }: { data: AdminDashboardSnapshot }) {
-  const weekUsers = data.growth.reduce((sum, item) => sum + item.users, 0)
+  const periodUsers = data.growth.reduce((sum, item) => sum + item.users, 0)
   const maxGrowth = Math.max(...data.growth.map((item) => item.users), 1)
   const totalEpisodes = data.episodeStatus.reduce(
     (sum, item) => sum + item.count,
     0,
   )
-  const dateLabel = new Intl.DateTimeFormat('ko-KR', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  }).format(new Date())
+  const publishedRate =
+    totalEpisodes === 0
+      ? 0
+      : Math.round((data.totals.publishedEpisodes / totalEpisodes) * 100)
+  const activeGoalBars = Math.round((publishedRate / 100) * 42)
 
   const cards = [
     {
       label: '전체 회원',
       value: compact(data.totals.users),
-      detail: `이번 주 ${String(weekUsers)}명 가입`,
-      trend: percentChange(weekUsers, data.previousWeekUsers),
-      icon: Users,
-      tone: 'violet',
+      previous: `${compact(Math.max(data.totals.users - periodUsers, 0))} 이전`,
+      trend: percentChange(periodUsers, data.previousWeekUsers),
     },
     {
       label: '활성 크리에이터',
       value: compact(data.totals.creators),
-      detail: 'Creator · Partner',
-      trend: 'ACTIVE',
-      icon: Sparkles,
-      tone: 'cyan',
+      previous: 'Creator · Partner',
+      trend: '운영 중',
     },
     {
       label: '게시된 에피소드',
       value: compact(data.totals.publishedEpisodes),
-      detail: `전체 콘텐츠 ${String(totalEpisodes)}개`,
-      trend: 'LIVE',
-      icon: FileVideo2,
-      tone: 'amber',
+      previous: `전체 ${compact(totalEpisodes)}개`,
+      trend: `${String(publishedRate)}%`,
     },
     {
       label: '누적 조회수',
       value: compact(data.totals.totalViews),
-      detail: '전체 공개 콘텐츠 기준',
-      trend: 'ALL TIME',
-      icon: Eye,
-      tone: 'rose',
+      previous: '전체 공개 콘텐츠',
+      trend: '누적',
+    },
+  ]
+
+  const queue = [
+    {
+      label: '미처리 신고',
+      detail: '우선 검토',
+      value: data.attention.openReports,
+      icon: Flag,
+      href: '/admin/reports?status=OPEN',
+    },
+    {
+      label: '처리 중 영상',
+      detail: '파이프라인',
+      value: data.attention.processingAssets,
+      icon: Clock3,
+      href: '/admin/assets',
+    },
+    {
+      label: '실패 에셋',
+      detail: '재시도 필요',
+      value: data.attention.failedAssets,
+      icon: CircleAlert,
+      href: '/admin/assets?status=FAILED',
+    },
+    {
+      label: '크리에이터 지원',
+      detail: '심사 대기',
+      value: data.attention.creatorApplications,
+      icon: UserPlus,
+      href: '/admin/applications?status=SUBMITTED',
     },
   ]
 
   return (
-    <div className="admin-dashboard">
-      <section className="admin-page-heading">
-        <div>
-          <p className="admin-eyebrow">
-            <Radio /> LIVE OPERATIONS
-          </p>
-          <h1>좋은 아침이에요.</h1>
-          <p>{dateLabel} · ilog의 오늘을 한눈에 확인하세요.</p>
-        </div>
-        <div className="admin-heading-actions">
-          <Link
-            className="admin-button admin-button-secondary"
-            href="/admin/reports"
-          >
-            <Flag /> 신고 검토
-          </Link>
-          <Link className="admin-button admin-button-primary" href="/studio">
-            <Play /> 콘텐츠 등록
-          </Link>
-        </div>
+    <div className="admin-dashboard admin-crm-dashboard">
+      <section className="admin-crm-heading">
+        <h1>운영 현황</h1>
+        <p>회원, 콘텐츠, 신고와 미디어 처리 상태를 한눈에 확인하세요.</p>
       </section>
 
-      <section className="admin-stat-grid" aria-label="핵심 지표">
-        {cards.map((card) => {
-          const Icon = card.icon
-          return (
-            <article className="admin-stat-card" key={card.label}>
-              <div className={`admin-stat-icon is-${card.tone}`}>
-                <Icon />
-              </div>
-              <div className="admin-stat-meta">
-                <span>{card.label}</span>
-                <strong>{card.value}</strong>
-              </div>
-              <div className="admin-stat-foot">
-                <span>{card.detail}</span>
-                <em>
-                  <TrendingUp /> {card.trend}
-                </em>
-              </div>
-            </article>
-          )
-        })}
-      </section>
-
-      <section className="admin-dashboard-grid">
-        <article className="admin-panel admin-growth-panel">
-          <header className="admin-panel-heading">
-            <div>
-              <span>GROWTH</span>
-              <h2>신규 회원 추이</h2>
-              <p>최근 7일간 일별 가입자</p>
+      <section className="admin-crm-kpis" aria-label="핵심 지표">
+        {cards.map((card) => (
+          <article className="admin-crm-kpi" key={card.label}>
+            <header>
+              <span>{card.label}</span>
+              <ArrowUpRight />
+            </header>
+            <div className="admin-crm-kpi-value">
+              <strong>{card.value}</strong>
+              <em>
+                <TrendingUp /> {card.trend}
+              </em>
             </div>
-            <nav className="admin-range-switch">
-              <Link
-                className={data.periodDays === 7 ? 'is-active' : undefined}
-                href="/admin?range=7d"
-              >
-                7일
-              </Link>
-              <Link
-                className={data.periodDays === 30 ? 'is-active' : undefined}
-                href="/admin?range=30d"
-              >
-                30일
-              </Link>
-            </nav>
-          </header>
-          <div className="admin-chart-summary">
-            <strong>{String(weekUsers)}</strong>
-            <span>최근 {data.periodDays}일 신규 회원</span>
-            <em>
-              {percentChange(weekUsers, data.previousWeekUsers)} vs 지난주
-            </em>
-          </div>
+            <p>
+              <b>{card.previous.split(' ')[0]}</b>{' '}
+              {card.previous.split(' ').slice(1).join(' ')}
+            </p>
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-crm-card admin-crm-flow">
+        <header className="admin-crm-card-header">
+          <h2>신규 회원 흐름</h2>
+          <nav className="admin-crm-select" aria-label="조회 기간">
+            <Link
+              className={data.periodDays === 7 ? 'is-active' : undefined}
+              href="/admin?range=7d"
+            >
+              최근 7일
+            </Link>
+            <Link
+              className={data.periodDays === 30 ? 'is-active' : undefined}
+              href="/admin?range=30d"
+            >
+              최근 30일
+            </Link>
+            <ChevronDown />
+          </nav>
+        </header>
+        <div className="admin-crm-flow-content">
           <div
-            className={`admin-bar-chart${data.periodDays === 30 ? ' is-long-range' : ''}`}
+            className={`admin-crm-bars${data.periodDays === 30 ? ' is-long-range' : ''}`}
             role="img"
             aria-label={`최근 ${String(data.periodDays)}일 신규 회원 막대 차트`}
           >
-            {data.growth.map((item, index) => {
+            {data.growth.map((item) => {
               const height = Math.max((item.users / maxGrowth) * 100, 5)
               const label = new Intl.DateTimeFormat('ko-KR', {
-                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
               }).format(new Date(`${item.date}T12:00:00`))
               return (
-                <div className="admin-bar-column" key={item.date}>
-                  <span className="admin-bar-value">{item.users}</span>
-                  <i
-                    style={{ height: `${String(height)}%` }}
-                    className={
-                      index === data.growth.length - 1 ? 'is-today' : undefined
-                    }
-                  />
+                <div className="admin-crm-bar" key={item.date}>
+                  <i style={{ height: `${String(height)}%` }} />
                   <small>{label}</small>
                 </div>
               )
             })}
           </div>
-        </article>
 
-        <article className="admin-panel admin-attention-panel">
-          <header className="admin-panel-heading">
+          <aside className="admin-crm-flow-summary">
             <div>
-              <span>ATTENTION</span>
-              <h2>운영 체크리스트</h2>
-              <p>조치가 필요한 항목입니다.</p>
+              <strong>{periodUsers}</strong> <span>명</span>
+              <p>선택한 기간에 새로 가입한 전체 회원입니다.</p>
             </div>
+            <div className="admin-crm-conversion">
+              <small>활성 크리에이터</small>
+              <strong>
+                {compact(data.totals.creators)} <span>명</span>
+              </strong>
+              <p>현재 활동 가능한 Creator와 Partner 계정입니다.</p>
+              <i>
+                <b
+                  style={{
+                    width: `${String(Math.min(100, publishedRate))}%`,
+                  }}
+                />
+              </i>
+              <footer>
+                <b>{compact(data.totals.creators)} 활성</b>
+                <span>{compact(data.totals.users)} 전체 회원</span>
+              </footer>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="admin-crm-split">
+        <article className="admin-crm-card admin-crm-queue">
+          <header className="admin-crm-card-header">
+            <h2>운영 대기열</h2>
+            <Link className="admin-crm-outline-button" href="/admin/reports">
+              <CalendarDays /> 전체 작업 보기
+            </Link>
           </header>
-          <div className="admin-attention-list">
-            <Link href="/admin/reports?status=OPEN">
-              <span className="is-danger">
-                <Flag />
-              </span>
-              <div>
-                <strong>미처리 신고</strong>
-                <small>우선순위에 따라 검토하세요</small>
-              </div>
-              <b>{data.attention.openReports}</b>
-              <ArrowRight />
-            </Link>
-            <Link href="/admin/assets">
-              <span className="is-info">
-                <Clock3 />
-              </span>
-              <div>
-                <strong>처리 중인 영상</strong>
-                <small>인코딩 파이프라인 동작 중</small>
-              </div>
-              <b>{data.attention.processingAssets}</b>
-              <ArrowRight />
-            </Link>
-            <Link href="/admin/assets?status=FAILED">
-              <span className="is-warning">
-                <FileVideo2 />
-              </span>
-              <div>
-                <strong>트랜스코딩 실패</strong>
-                <small>재처리가 필요한 에셋</small>
-              </div>
-              <b>{data.attention.failedAssets}</b>
-              <ArrowRight />
-            </Link>
-            <Link href="/admin/applications?status=SUBMITTED">
-              <span className="is-success">
-                <UserPlus />
-              </span>
-              <div>
-                <strong>크리에이터 지원</strong>
-                <small>신규 지원서 검토 대기</small>
-              </div>
-              <b>{data.attention.creatorApplications}</b>
-              <ArrowRight />
-            </Link>
+          <div className="admin-crm-queue-track">
+            {queue.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link href={item.href} key={item.label}>
+                  <span>{item.detail}</span>
+                  <i>
+                    <Icon />
+                  </i>
+                  <strong>{item.value}</strong>
+                  <small>{item.label}</small>
+                </Link>
+              )
+            })}
           </div>
         </article>
 
-        <article className="admin-panel admin-users-panel">
-          <header className="admin-panel-heading admin-panel-heading-inline">
-            <div>
-              <span>COMMUNITY</span>
-              <h2>최근 가입 회원</h2>
-            </div>
+        <article className="admin-crm-card admin-crm-goal">
+          <header className="admin-crm-card-header">
+            <h2>콘텐츠 공개 비율</h2>
+          </header>
+          <div className="admin-crm-goal-copy">
+            <strong>{compact(data.totals.publishedEpisodes)}</strong>
+            <span>공개</span>
+            <em>{compact(totalEpisodes)} 전체</em>
+          </div>
+          <div className="admin-crm-goal-bars" aria-hidden="true">
+            {Array.from({ length: 42 }, (_, index) => (
+              <i
+                className={index < activeGoalBars ? 'is-active' : undefined}
+                key={index}
+              />
+            ))}
+          </div>
+          <p>{String(publishedRate)}%의 에피소드가 현재 공개 상태입니다.</p>
+        </article>
+      </section>
+
+      <section className="admin-crm-card admin-crm-table-card">
+        <header className="admin-crm-table-heading">
+          <div>
+            <h2>최근 가입 회원</h2>
+            <p>새로 유입된 회원의 계정 상태와 역할을 확인합니다.</p>
+          </div>
+          <div className="admin-crm-table-actions">
+            <label>
+              <Search />
+              <input placeholder="회원 검색..." aria-label="회원 검색" />
+            </label>
             <Link href="/admin/users">
-              전체 보기 <ArrowRight />
+              <Filter /> 전체 회원 <ChevronDown />
             </Link>
-          </header>
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>회원</th>
-                  <th>권한</th>
-                  <th>상태</th>
-                  <th>가입</th>
+          </div>
+        </header>
+        <div className="admin-table-wrap">
+          <table className="admin-table admin-crm-table">
+            <thead>
+              <tr>
+                <th>회원</th>
+                <th>핸들</th>
+                <th>역할</th>
+                <th>상태</th>
+                <th>가입</th>
+                <th aria-label="상세" />
+              </tr>
+            </thead>
+            <tbody>
+              {data.recentUsers.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <span className="admin-table-avatar">
+                      {user.displayName.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span>
+                      <strong>{user.displayName}</strong>
+                      <small>{user.email}</small>
+                    </span>
+                  </td>
+                  <td>@{user.handle}</td>
+                  <td>
+                    <span className="admin-role-badge">{user.role}</span>
+                  </td>
+                  <td>
+                    <span
+                      className={`admin-status-dot is-${user.status.toLowerCase()}`}
+                    />
+                    {user.status === 'ACTIVE' ? '정상' : '정지'}
+                  </td>
+                  <td>{relativeDate(user.createdAt)}</td>
+                  <td>
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      aria-label="회원 상세"
+                    >
+                      <ArrowRight />
+                    </Link>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.recentUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <span className="admin-table-avatar">
-                        {user.displayName.slice(0, 1).toUpperCase()}
-                      </span>
-                      <span>
-                        <strong>{user.displayName}</strong>
-                        <small>@{user.handle}</small>
-                      </span>
-                    </td>
-                    <td>
-                      <span className="admin-role-badge">{user.role}</span>
-                    </td>
-                    <td>
-                      <span
-                        className={`admin-status-dot is-${user.status.toLowerCase()}`}
-                      />
-                      {user.status === 'ACTIVE' ? '정상' : '정지'}
-                    </td>
-                    <td>{relativeDate(user.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <article className="admin-panel admin-content-panel">
-          <header className="admin-panel-heading admin-panel-heading-inline">
-            <div>
-              <span>CONTENT</span>
-              <h2>인기 콘텐츠</h2>
-            </div>
-            <Link href="/browse">
-              서비스에서 보기 <ArrowRight />
-            </Link>
-          </header>
-          <div className="admin-top-content">
-            {data.topEpisodes.length === 0 ? (
-              <div className="admin-empty">
-                <CheckCircle2 />
-                <strong>아직 게시된 콘텐츠가 없습니다.</strong>
-                <span>첫 작품이 등록되면 이곳에 표시됩니다.</span>
-              </div>
-            ) : (
-              data.topEpisodes.map((episode, index) => (
-                <div key={episode.id}>
-                  <span className="admin-content-rank">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="admin-content-thumb">
-                    <Play />
-                  </span>
-                  <span className="admin-content-copy">
-                    <strong>{episode.title}</strong>
-                    <small>{episode.seriesTitle}</small>
-                  </span>
-                  <span className="admin-content-metric">
-                    <Eye /> {compact(episode.viewCount)}
-                    <small>{compact(episode.likeCount)} likes</small>
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </article>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <footer className="admin-crm-table-footer">
+          <span>
+            최근 회원 {data.recentUsers.length}명을 표시하고 있습니다.
+          </span>
+          <Link href="/admin/users">
+            전체 회원 보기 <ArrowRight />
+          </Link>
+        </footer>
       </section>
     </div>
   )

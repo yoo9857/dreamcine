@@ -27,6 +27,7 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
   '@tanstack/react-query': /@tanstack\/react-query/u,
   zustand: /zustand/u,
   'hls.js': /hls\.js/u,
+  'maplibre-gl': /MapLibre GL JS/u,
   'date-fns': /date-fns/u,
   'next-auth': /next-auth/u,
   '@node-rs/argon2': /@node-rs\/argon2/u,

@@ -1,23 +1,22 @@
 import type { ReactNode } from 'react'
 
-import { requireCapability } from '@/src/auth/server-session'
 import { AdminShell } from '@/src/components/admin/AdminShell'
 
 import '@/src/styles/admin-dashboard.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-export default async function AdminLayout({
+export default function AdminPreviewLayout({
   children,
 }: {
   children: ReactNode
 }) {
-  const session = await requireCapability('report.review', '/admin')
   return (
     <AdminShell
+      previewMode
       user={{
-        displayName: session.user.displayName,
-        email: session.user.email,
-        role: session.user.role,
+        displayName: '개발 관리자',
+        email: 'admin@preview.local',
+        role: 'ADMIN',
       }}
     >
       {children}

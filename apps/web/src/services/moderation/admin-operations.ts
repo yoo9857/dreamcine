@@ -8,6 +8,7 @@ import {
 } from '@aidream/core'
 import {
   findAssetById,
+  getUserDetailForAdmin,
   listAssetsForAdmin,
   listContentForAdmin,
   listCreatorApplicationsForAdmin,
@@ -106,6 +107,11 @@ export async function changeUserRole(
 export function listAdminRoleGrants(session: RouteSession) {
   assertAdmin(session)
   return listRecentRoleGrants()
+}
+
+export function getAdminUserDetail(session: RouteSession, userId: string) {
+  assertAdmin(session)
+  return getUserDetailForAdmin(userId)
 }
 
 export async function retryAdminAsset(

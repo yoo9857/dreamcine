@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { AppError } from '@aidream/core'
+
 import type { RouteSession } from '@/src/auth/types'
 
 const repositories = vi.hoisted(() => ({
   findAssetById: vi.fn(),
+  getUserDetailForAdmin: vi.fn(),
   listAssetsForAdmin: vi.fn(),
   listContentForAdmin: vi.fn(),
   listCreatorApplicationsForAdmin: vi.fn(),
@@ -19,7 +22,7 @@ vi.mock('@aidream/queue', () => ({
   retryJob: vi.fn(),
 }))
 
-import { changeUserRole } from './admin-operations'
+import { changeUserRole, getAdminUserDetail } from './admin-operations'
 
 function session(role: 'MODERATOR' | 'ADMIN' = 'ADMIN'): RouteSession {
   return {
@@ -70,5 +73,26 @@ describe('changeUserRole', () => {
       changeUserRole(session(), 'operator', 'VIEWER', '자기 강등'),
     ).rejects.toMatchObject({ code: 'E_PERM_DENIED' })
     expect(repositories.setUserRoleForAdmin).not.toHaveBeenCalled()
+  })
+})
+
+describe('getAdminUserDetail', () => {
+  beforeEach(() => {
+    repositories.getUserDetailForAdmin.mockReset()
+  })
+
+  it('관리자 요청을 회원 상세 저장소에 전달한다', async () => {
+    const detail = { user: { id: 'user_1' }, counts: { sessions: 2 } }
+    repositories.getUserDetailForAdmin.mockResolvedValue(detail)
+
+    await expect(getAdminUserDetail(session(), 'user_1')).resolves.toBe(detail)
+    expect(repositories.getUserDetailForAdmin).toHaveBeenCalledWith('user_1')
+  })
+
+  it('관리자가 아니면 회원 상세 조회를 거부한다', () => {
+    expect(() =>
+      getAdminUserDetail(session('MODERATOR'), 'user_1'),
+    ).toThrowError(AppError)
+    expect(repositories.getUserDetailForAdmin).not.toHaveBeenCalled()
   })
 })

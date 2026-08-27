@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ChartNoAxesCombined,
   Bell,
   ChevronLeft,
   CircleHelp,
@@ -27,6 +28,7 @@ import { useEffect, useRef, useState } from 'react'
 
 interface AdminShellProps {
   readonly children: ReactNode
+  readonly previewMode?: boolean
   readonly user: {
     readonly displayName: string
     readonly email: string
@@ -36,6 +38,7 @@ interface AdminShellProps {
 
 const navigation = [
   { href: '/admin', label: '대시보드', icon: LayoutDashboard, exact: true },
+  { href: '/admin/analytics', label: '영상 분석', icon: ChartNoAxesCombined },
   { href: '/admin/users', label: '회원 관리', icon: Users },
   { href: '/admin/applications', label: '지원서 심사', icon: ClipboardCheck },
   { href: '/admin/content', label: '콘텐츠 관리', icon: Film },
@@ -44,13 +47,24 @@ const navigation = [
   { href: '/admin/audit', label: '권한 감사', icon: History },
 ] as const
 
-export function AdminShell({ children, user }: AdminShellProps) {
+const previewRoutes = new Set(['/admin', '/admin/analytics', '/admin/users'])
+
+export function AdminShell({
+  children,
+  previewMode = false,
+  user,
+}: AdminShellProps) {
   const pathname = usePathname()
   const isAdmin = user.role === 'ADMIN'
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const initials = user.displayName.trim().slice(0, 2).toUpperCase() || 'AD'
+  const adminHref = (href: string): string => {
+    if (!previewMode) return href
+    if (!previewRoutes.has(href)) return '/admin-preview'
+    return href.replace(/^\/admin/, '/admin-preview')
+  }
 
   useEffect(() => {
     function focusSearch(event: KeyboardEvent): void {
@@ -81,7 +95,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
         <div className="admin-brand-row">
           <Link
             className="admin-brand"
-            href={isAdmin ? '/admin' : '/admin/reports'}
+            href={adminHref(isAdmin ? '/admin' : '/admin/reports')}
             aria-label="ilog 관리자 홈"
           >
             <span className="admin-brand-mark">i</span>
@@ -90,16 +104,6 @@ export function AdminShell({ children, user }: AdminShellProps) {
               <small>CONTROL ROOM</small>
             </span>
           </Link>
-          <button
-            className="admin-icon-button admin-sidebar-close"
-            type="button"
-            aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
-            onClick={() => {
-              setCollapsed((value) => !value)
-            }}
-          >
-            <PanelLeftClose />
-          </button>
           <button
             className="admin-icon-button admin-mobile-close"
             type="button"
@@ -117,16 +121,30 @@ export function AdminShell({ children, user }: AdminShellProps) {
           {navigation
             .filter((item) => isAdmin || item.href === '/admin/reports')
             .map((item) => {
+              const href = adminHref(item.href)
               const active =
                 item.href === '/admin'
-                  ? pathname === item.href
-                  : pathname.startsWith(item.href)
+                  ? pathname === href
+                  : pathname.startsWith(href)
               const Icon = item.icon
+              if (previewMode && !previewRoutes.has(item.href)) {
+                return (
+                  <span
+                    key={item.href}
+                    className="is-preview-disabled"
+                    title="이 메뉴는 운영 관리자 화면에서 확인할 수 있습니다."
+                    aria-disabled="true"
+                  >
+                    <Icon />
+                    <span>{item.label}</span>
+                  </span>
+                )
+              }
               return (
                 <Link
                   key={item.href}
                   className={active ? 'is-active' : undefined}
-                  href={item.href}
+                  href={href}
                   title={collapsed ? item.label : undefined}
                   onClick={() => {
                     setMobileOpen(false)
@@ -165,7 +183,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
           </span>
           <strong>운영 인사이트</strong>
           <p>신고와 콘텐츠 상태를 매일 확인해 주세요.</p>
-          <Link href="/admin/reports">검토 시작하기</Link>
+          <Link href={adminHref('/admin/reports')}>검토 시작하기</Link>
         </div>
 
         <div className="admin-profile">
@@ -180,35 +198,49 @@ export function AdminShell({ children, user }: AdminShellProps) {
 
       <div className="admin-workspace">
         <header className="admin-topbar">
-          <button
-            className="admin-icon-button admin-mobile-menu"
-            type="button"
-            aria-label="메뉴 열기"
-            onClick={() => {
-              setMobileOpen(true)
-            }}
-          >
-            <Menu />
-          </button>
-          {isAdmin ? (
-            <form className="admin-global-search" action="/admin/users">
-              <Search />
-              <input
-                ref={searchRef}
-                name="q"
-                type="search"
-                aria-label="회원 검색"
-                placeholder="회원, 이메일 검색..."
-              />
-              <kbd>⌘ K</kbd>
-            </form>
-          ) : (
-            <span />
-          )}
+          <div className="admin-topbar-start">
+            <button
+              className="admin-icon-button admin-mobile-menu"
+              type="button"
+              aria-label="메뉴 열기"
+              onClick={() => {
+                setMobileOpen(true)
+              }}
+            >
+              <Menu />
+            </button>
+            <button
+              className="admin-icon-button admin-desktop-menu"
+              type="button"
+              aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+              onClick={() => {
+                setCollapsed((value) => !value)
+              }}
+            >
+              <PanelLeftClose />
+            </button>
+            <span className="admin-topbar-start-divider" />
+            {isAdmin ? (
+              <form
+                className="admin-global-search"
+                action={adminHref('/admin/users')}
+              >
+                <Search />
+                <input
+                  ref={searchRef}
+                  name="q"
+                  type="search"
+                  aria-label="회원 검색"
+                  placeholder="회원, 이메일 검색..."
+                />
+                <kbd>⌘ K</kbd>
+              </form>
+            ) : null}
+          </div>
           <div className="admin-topbar-actions">
             <Link
               className="admin-icon-button"
-              href="/admin/reports"
+              href={adminHref('/admin/reports')}
               aria-label="알림"
             >
               <Bell />

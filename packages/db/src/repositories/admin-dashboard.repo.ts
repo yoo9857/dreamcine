@@ -42,6 +42,38 @@ export interface AdminDashboardSnapshot {
   }[]
 }
 
+export interface AdminAnalyticsSnapshot {
+  readonly coverage: 'live'
+  readonly periodLabel: string
+  readonly metrics: {
+    readonly views: number
+    readonly watchHours: number
+    readonly averageViewDurationSec: number
+    readonly uniqueViewers: number
+    readonly viewTrend: number
+    readonly watchTrend: number
+    readonly durationTrend: number
+    readonly viewerTrend: number
+  }
+  readonly timeline: readonly never[]
+  readonly realtime: readonly never[]
+  readonly retentionVideoTitle: string | null
+  readonly retention: readonly never[]
+  readonly countries: readonly never[]
+  readonly trafficSources: readonly never[]
+  readonly devices: readonly never[]
+  readonly topVideos: readonly {
+    readonly id: string
+    readonly title: string
+    readonly seriesTitle: string
+    readonly views: number
+    readonly watchHours: number
+    readonly averageViewDurationSec: number
+    readonly averageViewedPercent: number | null
+    readonly completionRate: number | null
+  }[]
+}
+
 function startOfDay(date: Date): Date {
   const result = new Date(date)
   result.setHours(0, 0, 0, 0)
@@ -176,6 +208,96 @@ export function getAdminDashboardSnapshot(
         seriesTitle: episode.series.title,
         viewCount: episode.viewCount.toString(),
         likeCount: episode.likeCount,
+      })),
+    }
+  })
+}
+
+/**
+ * 현재 스키마가 정직하게 제공할 수 있는 영상 분석 값만 반환한다.
+ *
+ * 일별 추이·실시간·유지율·접속 지역·유입 경로·기기는 재생 이벤트 원장이
+ * 없으면 재구성할 수 없다. 사용자 프로필의 country나 마지막 이어보기 위치를
+ * 접속 국가/유지율로 둔갑시키지 않고 빈 배열로 남긴다.
+ */
+export function getAdminAnalyticsSnapshot(): Promise<AdminAnalyticsSnapshot> {
+  return executeDb(async () => {
+    const [metricEpisodes, episodes, uniqueViewers] = await Promise.all([
+      db.episode.findMany({
+        where: { deletedAt: null, status: 'PUBLISHED' },
+        select: {
+          viewCount: true,
+          avgWatchSec: true,
+        },
+      }),
+      db.episode.findMany({
+        where: { deletedAt: null, status: 'PUBLISHED' },
+        orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          viewCount: true,
+          avgWatchSec: true,
+          durationSec: true,
+          series: { select: { title: true } },
+        },
+      }),
+      db.watchProgress.findMany({
+        where: {
+          episode: { deletedAt: null, status: 'PUBLISHED' },
+          user: { deletedAt: null, status: 'ACTIVE' },
+        },
+        distinct: ['userId'],
+        select: { userId: true },
+      }),
+    ])
+
+    const views = metricEpisodes.reduce(
+      (sum, episode) => sum + episode.viewCount,
+      0n,
+    )
+    const watchSeconds = metricEpisodes.reduce(
+      (sum, episode) => sum + episode.viewCount * BigInt(episode.avgWatchSec),
+      0n,
+    )
+    const averageViewDurationSec =
+      views === 0n ? 0 : Number(watchSeconds / views)
+
+    return {
+      coverage: 'live',
+      periodLabel: '전체 기간',
+      metrics: {
+        views: Number(views),
+        watchHours: Number(watchSeconds / 3600n),
+        averageViewDurationSec,
+        uniqueViewers: uniqueViewers.length,
+        viewTrend: 0,
+        watchTrend: 0,
+        durationTrend: 0,
+        viewerTrend: 0,
+      },
+      timeline: [],
+      realtime: [],
+      retentionVideoTitle: episodes[0]?.title ?? null,
+      retention: [],
+      countries: [],
+      trafficSources: [],
+      devices: [],
+      topVideos: episodes.map((episode) => ({
+        id: episode.id,
+        title: episode.title,
+        seriesTitle: episode.series.title,
+        views: Number(episode.viewCount),
+        watchHours: Number(
+          (episode.viewCount * BigInt(episode.avgWatchSec)) / 3600n,
+        ),
+        averageViewDurationSec: episode.avgWatchSec,
+        averageViewedPercent:
+          episode.durationSec === null || episode.durationSec === 0
+            ? null
+            : Math.round((episode.avgWatchSec / episode.durationSec) * 100),
+        completionRate: null,
       })),
     }
   })

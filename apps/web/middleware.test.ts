@@ -8,6 +8,8 @@ const VARIABLES = [
   'S3_ENDPOINT',
 ] as const
 const saved = new Map<string, string | undefined>()
+const MAP_SOURCES =
+  'https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com'
 
 beforeEach(() => {
   for (const name of VARIABLES) saved.set(name, process.env[name])
@@ -32,7 +34,7 @@ describe('contentSecurityPolicy', () => {
     const connect = directives.find((part) => part.startsWith('connect-src'))
 
     expect(connect).toBe(
-      "connect-src 'self' https://cdn.example.com https://jp-osa-1.linodeobjects.com",
+      `connect-src 'self' https://cdn.example.com https://jp-osa-1.linodeobjects.com ${MAP_SOURCES}`,
     )
   })
 
@@ -45,6 +47,12 @@ describe('contentSecurityPolicy', () => {
       .map((part) => part.trim())
       .find((part) => part.startsWith('connect-src'))
 
-    expect(connect).toBe("connect-src 'self' http://127.0.0.1:9000")
+    expect(connect).toBe(
+      `connect-src 'self' http://127.0.0.1:9000 ${MAP_SOURCES}`,
+    )
+  })
+
+  it('MapLibre 워커는 same-origin만 허용한다', () => {
+    expect(contentSecurityPolicy('test-nonce')).toContain("worker-src 'self'")
   })
 })

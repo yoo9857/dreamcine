@@ -8,6 +8,7 @@ import type {
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
 import { executeDb } from '../errors.js'
+import { mapUser } from '../mappers/user.mapper.js'
 
 export interface AdminPage<T> {
   readonly items: readonly T[]
@@ -297,4 +298,131 @@ export function listRecentRoleGrants(limit = 20) {
       },
     }),
   )
+}
+
+export interface AdminUserDetail {
+  readonly user: ReturnType<typeof mapUser>
+  readonly counts: {
+    readonly sessions: number
+    readonly reports: number
+    readonly comments: number
+    readonly likes: number
+  }
+  readonly series: readonly {
+    readonly id: string
+    readonly slug: string
+    readonly title: string
+    readonly episodeCount: number
+    readonly totalViews: string
+    readonly createdAt: Date
+  }[]
+  readonly roleGrants: readonly {
+    readonly id: string
+    readonly fromRole: string
+    readonly toRole: string
+    readonly reason: string | null
+    readonly createdAt: Date
+    readonly granter: { readonly handle: string } | null
+  }[]
+  readonly authEvents: readonly {
+    readonly id: string
+    readonly kind: string
+    readonly success: boolean
+    readonly detail: string | null
+    readonly createdAt: Date
+  }[]
+  readonly consents: readonly {
+    readonly id: string
+    readonly kind: string
+    readonly version: string
+    readonly granted: boolean
+    readonly grantedAt: Date
+    readonly revokedAt: Date | null
+  }[]
+}
+
+export function getUserDetailForAdmin(
+  userId: string,
+): Promise<AdminUserDetail | null> {
+  return executeDb(async () => {
+    const row = await db.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        _count: {
+          select: {
+            sessions: true,
+            reportsMade: true,
+            comments: true,
+            likes: true,
+          },
+        },
+        series: {
+          where: { deletedAt: null },
+          orderBy: [{ totalViews: 'desc' }, { createdAt: 'desc' }],
+          take: 5,
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            episodeCount: true,
+            totalViews: true,
+            createdAt: true,
+          },
+        },
+        roleGrants: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 8,
+          select: {
+            id: true,
+            fromRole: true,
+            toRole: true,
+            reason: true,
+            createdAt: true,
+            granter: { select: { handle: true } },
+          },
+        },
+        authEvents: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 10,
+          select: {
+            id: true,
+            kind: true,
+            success: true,
+            detail: true,
+            createdAt: true,
+          },
+        },
+        consents: {
+          orderBy: [{ grantedAt: 'desc' }, { id: 'desc' }],
+          take: 12,
+          select: {
+            id: true,
+            kind: true,
+            version: true,
+            granted: true,
+            grantedAt: true,
+            revokedAt: true,
+          },
+        },
+      },
+    })
+    if (row === null) return null
+    const { _count, series, roleGrants, authEvents, consents, ...user } = row
+    return {
+      user: mapUser(user),
+      counts: {
+        sessions: _count.sessions,
+        reports: _count.reportsMade,
+        comments: _count.comments,
+        likes: _count.likes,
+      },
+      series: series.map((item) => ({
+        ...item,
+        totalViews: item.totalViews.toString(),
+      })),
+      roleGrants,
+      authEvents,
+      consents,
+    }
+  })
 }
