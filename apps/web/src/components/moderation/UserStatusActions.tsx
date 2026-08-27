@@ -1,8 +1,8 @@
 'use client'
 
 import { Button, Select, Textarea } from '@aidream/ui'
-import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
 
 export function UserStatusActions({ userId }: { userId: string }) {
   const router = useRouter()
@@ -10,7 +10,6 @@ export function UserStatusActions({ userId }: { userId: string }) {
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | undefined>()
   const [busy, setBusy] = useState(false)
-
   async function submit(): Promise<void> {
     if (reason.trim() === '') {
       setError('상태 변경 사유를 입력해 주세요.')
@@ -24,21 +23,20 @@ export function UserStatusActions({ userId }: { userId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, reason: reason.trim() }),
       })
-      if (!response.ok) throw new Error('사용자 상태를 변경하지 못했습니다.')
+      if (!response.ok) throw new Error('회원 상태를 변경하지 못했습니다.')
       router.refresh()
     } catch (cause: unknown) {
       setError(
         cause instanceof Error
           ? cause.message
-          : '사용자 상태를 변경하지 못했습니다.',
+          : '회원 상태를 변경하지 못했습니다.',
       )
     } finally {
       setBusy(false)
     }
   }
-
   return (
-    <div className="flex min-w-64 flex-col gap-2">
+    <div className="admin-inline-actions">
       <Select
         label="계정 상태"
         value={status}
@@ -46,7 +44,7 @@ export function UserStatusActions({ userId }: { userId: string }) {
           setStatus(value)
         }}
         options={[
-          { value: 'SUSPENDED', label: '정지' },
+          { value: 'SUSPENDED', label: '계정 정지' },
           { value: 'ACTIVE', label: '정지 해제' },
         ]}
       />

@@ -1,4 +1,6 @@
 export * from './health.js'
+export * from './repositories/admin-dashboard.repo.js'
+export * from './repositories/admin-operations.repo.js'
 export * from './repositories/auth.repo.js'
 export * from './repositories/asset.repo.js'
 export * from './repositories/counter.repo.js'

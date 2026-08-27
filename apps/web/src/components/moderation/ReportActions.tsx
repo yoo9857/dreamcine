@@ -1,8 +1,8 @@
 'use client'
 
 import { Button, Select, Textarea } from '@aidream/ui'
-import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
 
 export function ReportActions({
   reportId,
@@ -16,7 +16,6 @@ export function ReportActions({
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | undefined>()
   const [busy, setBusy] = useState(false)
-
   async function submit(): Promise<void> {
     setBusy(true)
     setError(undefined)
@@ -29,23 +28,22 @@ export function ReportActions({
           ...(note.trim() === '' ? {} : { note: note.trim() }),
         }),
       })
-      if (!response.ok) throw new Error('심사 조치를 완료하지 못했습니다.')
+      if (!response.ok) throw new Error('신고 조치를 완료하지 못했습니다.')
       router.refresh()
     } catch (cause: unknown) {
       setError(
         cause instanceof Error
           ? cause.message
-          : '심사 조치를 완료하지 못했습니다.',
+          : '신고 조치를 완료하지 못했습니다.',
       )
     } finally {
       setBusy(false)
     }
   }
-
   return (
-    <div className="flex min-w-64 flex-col gap-2">
+    <div className="admin-inline-actions">
       <Select
-        label="심사 조치"
+        label="신고 조치"
         value={action}
         onValueChange={(value) => {
           setAction(value)

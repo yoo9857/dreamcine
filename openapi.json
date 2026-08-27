@@ -2844,6 +2844,112 @@
         }
       }
     },
+    "/admin/users/{id}/role": {
+      "post": {
+        "tags": ["moderation"],
+        "summary": "사용자 서비스 역할 변경",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role", "reason"],
+                "properties": {
+                  "role": {
+                    "enum": [
+                      "VIEWER",
+                      "CREATOR",
+                      "PARTNER",
+                      "MODERATOR",
+                      "ADMIN"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "역할 변경 완료" },
+          "403": { "description": "ADMIN 필요 또는 자기 역할 변경 거부" }
+        }
+      }
+    },
+    "/admin/creator-applications/{id}/status": {
+      "post": {
+        "tags": ["moderation"],
+        "summary": "크리에이터 지원서 심사 상태 변경",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "SUBMITTED",
+                      "REVIEWING",
+                      "SHORTLISTED",
+                      "ACCEPTED",
+                      "REJECTED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "심사 상태 변경 완료" },
+          "403": { "description": "ADMIN 필요" },
+          "404": { "description": "지원서를 찾을 수 없음" }
+        }
+      }
+    },
+    "/admin/assets/{id}/retry": {
+      "post": {
+        "tags": ["moderation"],
+        "summary": "실패한 영상 에셋 재처리",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "202": { "description": "재처리 요청 접수" },
+          "403": { "description": "ADMIN 필요" },
+          "404": { "description": "에셋을 찾을 수 없음" },
+          "409": { "description": "재처리할 수 없는 상태" }
+        }
+      }
+    },
     "/metrics": {
       "get": {
         "tags": ["system"],
