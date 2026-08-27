@@ -56,7 +56,7 @@ describe('SignupForm plan intent', () => {
 
     render(
       <SignupForm
-        initialEmail="viewer@example.com"
+        initialEmail="viewer@mail.ilog.info"
         locale="ko"
         market="kr"
         plan="ads-standard"
@@ -69,15 +69,19 @@ describe('SignupForm plan intent', () => {
     fireEvent.change(screen.getByLabelText('아이디'), {
       target: { value: 'viewer_01' },
     })
-    fireEvent.change(screen.getByLabelText('표시 이름'), {
-      target: { value: 'Viewer' },
-    })
     fireEvent.change(screen.getByLabelText('비밀번호'), {
       target: { value: 'safe-password-123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '다음' }))
+    expect(await screen.findByText('3단계 중 2단계')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('표시 이름'), {
+      target: { value: 'Viewer' },
     })
     fireEvent.change(screen.getByLabelText('생년월일'), {
       target: { value: '1995-06-15' },
     })
+    fireEvent.click(screen.getByRole('button', { name: '다음' }))
+    expect(await screen.findByText('3단계 중 3단계')).toBeTruthy()
     fireEvent.click(
       screen.getByLabelText(
         '이용약관 및 개인정보 처리방침에 동의합니다. (필수)',
@@ -137,23 +141,24 @@ describe('SignupForm plan intent', () => {
     render(<SignupForm locale="ko" market="kr" />)
 
     fireEvent.change(screen.getByLabelText('이메일'), {
-      target: { value: 'pending@example.com' },
-    })
-    fireEvent.change(screen.getByLabelText('이메일 주소 확인'), {
-      target: { value: 'pending@example.com' },
+      target: { value: 'pending@mail.ilog.info' },
     })
     fireEvent.change(screen.getByLabelText('아이디'), {
       target: { value: 'pending_01' },
     })
-    fireEvent.change(screen.getByLabelText('표시 이름'), {
-      target: { value: 'Pending' },
-    })
     fireEvent.change(screen.getByLabelText('비밀번호'), {
       target: { value: 'safe-password-123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '다음' }))
+    await screen.findByText('3단계 중 2단계')
+    fireEvent.change(screen.getByLabelText('표시 이름'), {
+      target: { value: 'Pending' },
     })
     fireEvent.change(screen.getByLabelText('생년월일'), {
       target: { value: '1995-06-15' },
     })
+    fireEvent.click(screen.getByRole('button', { name: '다음' }))
+    await screen.findByText('3단계 중 3단계')
     fireEvent.click(
       screen.getByLabelText(
         '이용약관 및 개인정보 처리방침에 동의합니다. (필수)',

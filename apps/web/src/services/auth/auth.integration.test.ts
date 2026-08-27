@@ -34,7 +34,6 @@ let RESET_TOKEN_PREFIX: string
 
 interface Credentials {
   email: string
-  emailConfirmation: string
   password: string
   handle: string
   displayName: string
@@ -56,10 +55,9 @@ let counter = 0
 function credentials(): Credentials {
   counter += 1
   const suffix = String(counter).padStart(3, '0')
-  const email = `creator_${suffix}@example.com`
+  const email = `creator_${suffix}@mail.ilog.info`
   return {
     email,
-    emailConfirmation: email,
     password: 'correct horse battery',
     handle: `creator_${suffix}`,
     birthDate: '1995-06-15',

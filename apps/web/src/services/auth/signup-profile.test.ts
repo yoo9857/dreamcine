@@ -41,7 +41,7 @@ beforeEach(() => {
   mocks.createUser.mockResolvedValue({
     id: 'user_1',
     handle: 'creator_01',
-    email: 'creator@example.com',
+    email: 'creator@mail.ilog.info',
   })
   mocks.createToken.mockResolvedValue(undefined)
   mocks.sendVerification.mockResolvedValue(undefined)
@@ -50,8 +50,7 @@ beforeEach(() => {
 describe('signup profile persistence', () => {
   it('stores demographics, purpose, country, and consent history', async () => {
     await signup({
-      email: 'creator@example.com',
-      emailConfirmation: 'creator@example.com',
+      email: 'creator@mail.ilog.info',
       password: 'safe-password-123',
       handle: 'creator_01',
       displayName: 'Creator',

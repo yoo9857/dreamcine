@@ -321,6 +321,82 @@
   min-height: 50px;
 }
 
+.ilog-signup-progress {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ilog-signup-progress::before {
+  position: absolute;
+  top: 15px;
+  right: 16.66%;
+  left: 16.66%;
+  height: 1px;
+  background: rgb(255 255 255 / 12%);
+  content: '';
+}
+
+.ilog-signup-progress > div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: var(--color-fg-muted);
+}
+
+.ilog-signup-progress span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: #101113;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ilog-signup-progress small {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ilog-signup-progress .is-current,
+.ilog-signup-progress .is-complete {
+  color: var(--color-fg);
+}
+
+.ilog-signup-progress .is-current span {
+  border-color: #ff3434;
+  background: #ff1e1e;
+  box-shadow: 0 0 0 4px rgb(255 30 30 / 12%);
+  color: white;
+}
+
+.ilog-signup-progress .is-complete span {
+  border-color: rgb(255 30 30 / 48%);
+  color: #ff7474;
+}
+
+.ilog-signup-step-status {
+  margin: -5px 0 0;
+  color: var(--color-fg-muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.ilog-signup-navigation {
+  display: flex;
+  gap: 10px;
+}
+
+.ilog-signup-navigation > :first-child:not(:only-child) {
+  flex: 0 0 32%;
+}
+
 .ilog-signup-selected-plan {
   display: grid;
   grid-template-columns: 1fr auto;

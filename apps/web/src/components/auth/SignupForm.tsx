@@ -40,11 +40,12 @@ export function SignupForm({
           signupTitle: 'Create your ilog account',
           subtitle: 'Create an account and begin your first scene.',
           email: 'Email address',
-          emailConfirmation: 'Confirm email address',
+          emailHint:
+            'Enter an address where you can open the verification link.',
           verificationHint:
             'We will send a secure verification link after you create your account.',
           handle: 'Username',
-          handleHint: 'Use letters, numbers, periods, or underscores.',
+          handleHint: 'Use 3–20 lowercase letters, numbers, or underscores.',
           handlePlaceholder: 'Your ilog username',
           displayName: 'Display name',
           displayNamePlaceholder: 'The name people will see',
@@ -91,7 +92,8 @@ export function SignupForm({
         }
       : {
           ...text.auth,
-          emailConfirmation: '이메일 주소 확인',
+          emailHint:
+            '인증 링크를 확인할 수 있는 실제 이메일 주소를 입력하세요.',
           verificationHint:
             '가입 신청 후 인증 링크를 보내드립니다. 링크를 열어야 가입이 완료됩니다.',
           birthDate: '생년월일',
@@ -135,6 +137,7 @@ export function SignupForm({
     'idle' | 'sending' | 'accepted'
   >('idle')
   const [verificationComplete, setVerificationComplete] = useState(false)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
   const planReturnPath = `/ads-plan?lang=${locale}&market=${market}#join`
   const loginHref =
     plan === undefined
@@ -147,12 +150,12 @@ export function SignupForm({
     control,
     handleSubmit,
     setError,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<SignupInput>({
     resolver: zodResolver(SignupSchema),
     defaultValues: {
       email: initialEmail,
-      emailConfirmation: initialEmail,
       password: '',
       handle: '',
       displayName: '',
@@ -163,6 +166,17 @@ export function SignupForm({
       marketingConsent: false,
     },
   })
+
+  async function goToNextStep(): Promise<void> {
+    const valid = await trigger(
+      currentStep === 1
+        ? ['email', 'handle', 'password']
+        : ['displayName', 'birthDate', 'gender'],
+      { shouldFocus: true },
+    )
+    if (!valid) return
+    setCurrentStep((step) => (step === 1 ? 2 : 3))
+  }
 
   useEffect(() => {
     if (sent === null) return
@@ -236,7 +250,6 @@ export function SignupForm({
     for (const [field, message] of Object.entries(problem?.fields ?? {})) {
       if (
         field === 'email' ||
-        field === 'emailConfirmation' ||
         field === 'password' ||
         field === 'handle' ||
         field === 'displayName' ||
@@ -346,6 +359,11 @@ export function SignupForm({
       */
       noValidate
       onSubmit={(event) => {
+        if (currentStep < 3) {
+          event.preventDefault()
+          void goToNextStep()
+          return
+        }
         void handleSubmit(submit)(event)
       }}
       className="ilog-login-form ilog-signup-form"
@@ -380,186 +398,249 @@ export function SignupForm({
           </p>
         )}
 
+        <nav
+          className="ilog-signup-progress"
+          aria-label={locale === 'en' ? 'Signup progress' : '가입 진행 단계'}
+        >
+          {[1, 2, 3].map((step) => (
+            <div
+              key={step}
+              className={
+                step === currentStep
+                  ? 'is-current'
+                  : step < currentStep
+                    ? 'is-complete'
+                    : ''
+              }
+              aria-current={step === currentStep ? 'step' : undefined}
+            >
+              <span>{step < currentStep ? '✓' : step}</span>
+              <small>
+                {locale === 'en'
+                  ? ['Account', 'Profile', 'Preferences'][step - 1]
+                  : ['계정', '프로필', '이용 설정'][step - 1]}
+              </small>
+            </div>
+          ))}
+        </nav>
+
+        <p className="ilog-signup-step-status" role="status" aria-live="polite">
+          {locale === 'en'
+            ? `Step ${String(currentStep)} of 3`
+            : `3단계 중 ${String(currentStep)}단계`}
+        </p>
+
         <Stack gap={4}>
-          <div className="ilog-signup-section-heading">
-            <strong>
-              {locale === 'en' ? 'Email verification' : '이메일 인증'}
-            </strong>
-            <span>{copy.verificationHint}</span>
-          </div>
-          <Input
-            label={copy.email}
-            type="email"
-            size="lg"
-            autoComplete="email"
-            placeholder="you@example.com"
-            className="ilog-login-input"
-            {...(errors.email?.message === undefined
-              ? {}
-              : { error: errors.email.message })}
-            {...register('email')}
-          />
-          <Input
-            label={copy.emailConfirmation}
-            type="email"
-            size="lg"
-            autoComplete="email"
-            placeholder="you@example.com"
-            className="ilog-login-input"
-            {...(errors.emailConfirmation?.message === undefined
-              ? {}
-              : { error: errors.emailConfirmation.message })}
-            {...register('emailConfirmation')}
-          />
-          <Input
-            label={copy.handle}
-            hint={copy.handleHint}
-            size="lg"
-            autoComplete="username"
-            placeholder={copy.handlePlaceholder}
-            className="ilog-login-input"
-            {...(errors.handle?.message === undefined
-              ? {}
-              : { error: errors.handle.message })}
-            {...register('handle')}
-          />
-          <Input
-            label={copy.displayName}
-            size="lg"
-            autoComplete="nickname"
-            placeholder={copy.displayNamePlaceholder}
-            className="ilog-login-input"
-            {...(errors.displayName?.message === undefined
-              ? {}
-              : { error: errors.displayName.message })}
-            {...register('displayName')}
-          />
-          <Input
-            label={copy.password}
-            type="password"
-            size="lg"
-            autoComplete="new-password"
-            placeholder={copy.passwordPlaceholder}
-            className="ilog-login-input"
-            {...(errors.password?.message === undefined
-              ? {}
-              : { error: errors.password.message })}
-            {...register('password')}
-          />
-          <div className="ilog-signup-section-heading ilog-signup-survey-heading">
-            <strong>{copy.profileSurvey}</strong>
-            <span>{copy.profileSurveyHint}</span>
-          </div>
-          <Input
-            label={copy.birthDate}
-            type="date"
-            size="lg"
-            autoComplete="bday"
-            max={new Date().toISOString().slice(0, 10)}
-            className="ilog-login-input"
-            {...(errors.birthDate?.message === undefined
-              ? {}
-              : { error: errors.birthDate.message })}
-            {...register('birthDate')}
-          />
-          <Controller
-            control={control}
-            name="gender"
-            render={({ field }) => (
-              <Select
-                label={copy.gender}
-                placeholder={locale === 'en' ? 'Select gender' : '성별 선택'}
-                options={copy.genderOptions}
-                value={field.value}
-                onValueChange={field.onChange}
-                {...(errors.gender?.message === undefined
+          {currentStep === 1 ? (
+            <>
+              <div className="ilog-signup-section-heading">
+                <strong>
+                  {locale === 'en' ? 'Email verification' : '이메일 인증'}
+                </strong>
+                <span>{copy.verificationHint}</span>
+              </div>
+              <Input
+                label={copy.email}
+                hint={copy.emailHint}
+                type="email"
+                size="lg"
+                autoComplete="email"
+                placeholder="name@domain.com"
+                className="ilog-login-input"
+                {...(errors.email?.message === undefined
                   ? {}
-                  : { error: errors.gender.message })}
+                  : { error: errors.email.message })}
+                {...register('email')}
               />
-            )}
-          />
-          <Controller
-            control={control}
-            name="signupPurpose"
-            render={({ field }) => (
-              <Select
-                label={copy.signupPurpose}
-                placeholder={
-                  locale === 'en' ? 'Select your primary use' : '이용 목적 선택'
-                }
-                options={copy.purposeOptions}
-                value={field.value}
-                onValueChange={field.onChange}
-                {...(errors.signupPurpose?.message === undefined
+              <Input
+                label={copy.handle}
+                hint={copy.handleHint}
+                size="lg"
+                autoComplete="username"
+                placeholder={copy.handlePlaceholder}
+                className="ilog-login-input"
+                {...(errors.handle?.message === undefined
                   ? {}
-                  : { error: errors.signupPurpose.message })}
+                  : { error: errors.handle.message })}
+                {...register('handle')}
               />
-            )}
-          />
-          <Controller
-            control={control}
-            name="country"
-            render={({ field }) => (
-              <Select
-                label={copy.country}
-                options={copy.countryOptions}
-                value={field.value}
-                onValueChange={field.onChange}
-                {...(errors.country?.message === undefined
+              <Input
+                label={copy.password}
+                type="password"
+                size="lg"
+                autoComplete="new-password"
+                placeholder={copy.passwordPlaceholder}
+                className="ilog-login-input"
+                {...(errors.password?.message === undefined
                   ? {}
-                  : { error: errors.country.message })}
+                  : { error: errors.password.message })}
+                {...register('password')}
               />
-            )}
-          />
-          <div className="ilog-signup-consents">
-            <Controller
-              control={control}
-              name="acceptTerms"
-              render={({ field }) => (
-                <Checkbox
-                  label={copy.acceptTerms}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  {...(errors.acceptTerms?.message === undefined
-                    ? {}
-                    : { error: errors.acceptTerms.message })}
+            </>
+          ) : null}
+          {currentStep === 2 ? (
+            <>
+              <div className="ilog-signup-section-heading ilog-signup-survey-heading">
+                <strong>{copy.profileSurvey}</strong>
+                <span>{copy.profileSurveyHint}</span>
+              </div>
+              <Input
+                label={copy.displayName}
+                size="lg"
+                autoComplete="nickname"
+                placeholder={copy.displayNamePlaceholder}
+                className="ilog-login-input"
+                {...(errors.displayName?.message === undefined
+                  ? {}
+                  : { error: errors.displayName.message })}
+                {...register('displayName')}
+              />
+              <Input
+                label={copy.birthDate}
+                type="date"
+                size="lg"
+                autoComplete="bday"
+                max={new Date().toISOString().slice(0, 10)}
+                className="ilog-login-input"
+                {...(errors.birthDate?.message === undefined
+                  ? {}
+                  : { error: errors.birthDate.message })}
+                {...register('birthDate')}
+              />
+              <Controller
+                control={control}
+                name="gender"
+                render={({ field }) => (
+                  <Select
+                    label={copy.gender}
+                    placeholder={
+                      locale === 'en' ? 'Select gender' : '성별 선택'
+                    }
+                    options={copy.genderOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    {...(errors.gender?.message === undefined
+                      ? {}
+                      : { error: errors.gender.message })}
+                  />
+                )}
+              />
+            </>
+          ) : null}
+          {currentStep === 3 ? (
+            <>
+              <Controller
+                control={control}
+                name="signupPurpose"
+                render={({ field }) => (
+                  <Select
+                    label={copy.signupPurpose}
+                    placeholder={
+                      locale === 'en'
+                        ? 'Select your primary use'
+                        : '이용 목적 선택'
+                    }
+                    options={copy.purposeOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    {...(errors.signupPurpose?.message === undefined
+                      ? {}
+                      : { error: errors.signupPurpose.message })}
+                  />
+                )}
+              />
+              <Controller
+                control={control}
+                name="country"
+                render={({ field }) => (
+                  <Select
+                    label={copy.country}
+                    options={copy.countryOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    {...(errors.country?.message === undefined
+                      ? {}
+                      : { error: errors.country.message })}
+                  />
+                )}
+              />
+              <div className="ilog-signup-consents">
+                <Controller
+                  control={control}
+                  name="acceptTerms"
+                  render={({ field }) => (
+                    <Checkbox
+                      label={copy.acceptTerms}
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      {...(errors.acceptTerms?.message === undefined
+                        ? {}
+                        : { error: errors.acceptTerms.message })}
+                    />
+                  )}
                 />
-              )}
-            />
-            <p className="ilog-signup-policy-links">
-              <Link href="/terms" target="_blank">
-                이용약관
-              </Link>
-              과{' '}
-              <Link href="/privacy" target="_blank">
-                개인정보 처리방침
-              </Link>
-              을 확인하세요.
-            </p>
-            <Controller
-              control={control}
-              name="marketingConsent"
-              render={({ field }) => (
-                <Checkbox
-                  label={copy.marketingConsent}
-                  hint={copy.marketingHint}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+                <p className="ilog-signup-policy-links">
+                  <Link href="/terms" target="_blank">
+                    이용약관
+                  </Link>
+                  과{' '}
+                  <Link href="/privacy" target="_blank">
+                    개인정보 처리방침
+                  </Link>
+                  을 확인하세요.
+                </p>
+                <Controller
+                  control={control}
+                  name="marketingConsent"
+                  render={({ field }) => (
+                    <Checkbox
+                      label={copy.marketingConsent}
+                      hint={copy.marketingHint}
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
                 />
-              )}
-            />
-          </div>
+              </div>
+            </>
+          ) : null}
         </Stack>
 
-        <Button
-          type="submit"
-          size="lg"
-          loading={isSubmitting}
-          fullWidth
-          className="ilog-login-submit"
-        >
-          {isSubmitting ? copy.signupSubmitting : copy.signupSubmit}
-        </Button>
+        <div className="ilog-signup-navigation">
+          {currentStep > 1 ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="secondary"
+              onClick={() => {
+                setCurrentStep(currentStep === 3 ? 2 : 1)
+              }}
+            >
+              {locale === 'en' ? 'Back' : '이전'}
+            </Button>
+          ) : null}
+          {currentStep < 3 ? (
+            <Button
+              type="button"
+              size="lg"
+              fullWidth
+              className="ilog-login-submit"
+              onClick={() => void goToNextStep()}
+            >
+              {locale === 'en' ? 'Continue' : '다음'}
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              size="lg"
+              loading={isSubmitting}
+              fullWidth
+              className="ilog-login-submit"
+            >
+              {isSubmitting ? copy.signupSubmitting : copy.signupSubmit}
+            </Button>
+          )}
+        </div>
 
         <div className="ilog-login-divider">
           <span>{copy.hasAccount}</span>

@@ -167,6 +167,7 @@ export {
   RESERVED_HANDLES,
   RequestPasswordResetSchema,
   ResetPasswordSchema,
+  SignupEmailSchema,
   SignupSchema,
   UpdateProfileSchema,
   VerifyEmailSchema,

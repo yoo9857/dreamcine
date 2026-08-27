@@ -9,6 +9,8 @@ import React, { useEffect, useState, type ReactNode } from 'react'
 import { readApiError, staticMessageFor } from '@/src/lib/error-messages'
 import { messages } from '@/src/lib/messages'
 
+import { VerificationResendForm } from './VerificationResendForm'
+
 type VerifyState = 'checking' | 'success' | 'expired' | 'error'
 
 interface Outcome {
@@ -84,17 +86,12 @@ export function VerifyStatus(): ReactNode {
         ? '/login?lang=en'
         : '/login'
       : `/login?lang=${locale}&next=${encodeURIComponent(planReturnPath)}`
-  const retryHref =
-    plan === null
-      ? locale === 'en'
-        ? '/signup?lang=en'
-        : '/signup'
-      : `/signup?plan=${plan}&lang=${locale}&market=${market}`
   const [outcome, setOutcome] = useState<Outcome>({
     state: 'checking',
     message: null,
     userId: null,
   })
+  const [showResend, setShowResend] = useState(false)
 
   useEffect(() => {
     if (token === null || token === '') {
@@ -205,11 +202,22 @@ export function VerifyStatus(): ReactNode {
             : text.auth.verifyFailedTitle
         }
         description={outcome.message ?? staticMessageFor('E_INTERNAL')}
-        retryLabel={text.auth.resendVerification}
+        retryLabel={
+          outcome.state === 'expired'
+            ? text.auth.resendVerification
+            : locale === 'en'
+              ? 'Try again'
+              : '다시 확인하기'
+        }
         onRetry={() => {
-          window.location.assign(retryHref)
+          if (outcome.state === 'expired') {
+            setShowResend(true)
+            return
+          }
+          window.location.reload()
         }}
       />
+      {showResend ? <VerificationResendForm locale={locale} /> : null}
     </div>
   )
 }

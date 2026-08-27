@@ -47,6 +47,18 @@ export function sanitizeText(value: string): string {
 
 export const EmailSchema = z.string().trim().toLowerCase().email()
 
+const RESERVED_EXAMPLE_DOMAINS = new Set([
+  'example.com',
+  'example.net',
+  'example.org',
+])
+
+/** 가입 인증 메일을 실제로 받을 수 없는 문서 예시 전용 주소를 거부한다. */
+export const SignupEmailSchema = EmailSchema.refine(
+  (value) => !RESERVED_EXAMPLE_DOMAINS.has(value.split('@').at(-1) ?? ''),
+  { message: 'Enter an email address that can receive verification mail' },
+)
+
 export const PasswordSchema = z.string().min(10)
 
 export const HandleSchema = z
@@ -78,42 +90,36 @@ export const BioSchema = z
   .transform(sanitizeText)
   .pipe(z.string().max(LIMITS.BIO_MAX_LEN))
 
-export const SignupSchema = z
-  .object({
-    email: EmailSchema,
-    emailConfirmation: EmailSchema,
-    password: PasswordSchema,
-    handle: HandleSchema,
-    displayName: DisplayNameSchema,
-    birthDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/u, { message: 'Invalid birth date' })
-      .refine(
-        (value) => {
-          const date = new Date(`${value}T00:00:00.000Z`)
-          const oldest = new Date()
-          oldest.setUTCFullYear(oldest.getUTCFullYear() - 120)
-          return (
-            !Number.isNaN(date.getTime()) &&
-            date.toISOString().startsWith(value) &&
-            date <= new Date() &&
-            date >= oldest
-          )
-        },
-        { message: 'Invalid birth date' },
-      ),
-    gender: z.enum(Gender),
-    signupPurpose: z.enum(SignupPurpose),
-    country: z.enum(['KR', 'US', 'CN', 'JP']),
-    acceptTerms: z.boolean().refine((value) => value, {
-      message: 'Terms and privacy consent is required',
-    }),
-    marketingConsent: z.boolean(),
-  })
-  .refine((input) => input.email === input.emailConfirmation, {
-    path: ['emailConfirmation'],
-    message: 'Email addresses do not match',
-  })
+export const SignupSchema = z.object({
+  email: SignupEmailSchema,
+  password: PasswordSchema,
+  handle: HandleSchema,
+  displayName: DisplayNameSchema,
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/u, { message: 'Invalid birth date' })
+    .refine(
+      (value) => {
+        const date = new Date(`${value}T00:00:00.000Z`)
+        const oldest = new Date()
+        oldest.setUTCFullYear(oldest.getUTCFullYear() - 120)
+        return (
+          !Number.isNaN(date.getTime()) &&
+          date.toISOString().startsWith(value) &&
+          date <= new Date() &&
+          date >= oldest
+        )
+      },
+      { message: 'Invalid birth date' },
+    ),
+  gender: z.enum(Gender),
+  signupPurpose: z.enum(SignupPurpose),
+  country: z.enum(['KR', 'US', 'CN', 'JP']),
+  acceptTerms: z.boolean().refine((value) => value, {
+    message: 'Terms and privacy consent is required',
+  }),
+  marketingConsent: z.boolean(),
+})
 
 export const LoginSchema = z.object({
   email: LoginIdentifierSchema,
