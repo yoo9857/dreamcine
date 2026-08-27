@@ -160,7 +160,7 @@ services:
                -c effective_cache_size=512MB -c work_mem=4MB
                -c maintenance_work_mem=64MB
   redis:
-    command: redis-server --appendonly yes --maxmemory 96mb --maxmemory-policy volatile-lru
+    command: redis-server --appendonly yes --maxmemory 96mb --maxmemory-policy noeviction
   web:
     mem_limit: 700m
     environment:

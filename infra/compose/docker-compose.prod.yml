@@ -130,7 +130,7 @@ services:
         '--maxmemory',
         '${REDIS_MAXMEMORY:-256mb}',
         '--maxmemory-policy',
-        'volatile-lru',
+        'noeviction',
       ]
     volumes:
       - redis-data:/data
