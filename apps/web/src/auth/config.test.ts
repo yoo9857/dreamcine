@@ -76,11 +76,12 @@ describe('createAuthConfig', () => {
     expect(rejectedByAuthjs(createAuthConfig())).toBe(false)
   })
 
-  it('Google 이 있는 환경에서도 설정을 거부하지 않는다', () => {
+  it('OAuth 환경 변수가 있어도 자체 Credentials 가입만 사용한다', () => {
     process.env.AUTH_GOOGLE_ID = 'google-client-id'
     process.env.AUTH_GOOGLE_SECRET = 'google-client-secret'
 
     expect(rejectedByAuthjs(createAuthConfig())).toBe(false)
+    expect(providerIds(createAuthConfig())).toEqual(['credentials'])
   })
 
   /**
@@ -118,11 +119,11 @@ describe('createAuthConfig', () => {
     expect(providerIds(createAuthConfig())).toEqual(['credentials'])
   })
 
-  it('Google 자격증명이 있으면 Google 공급자를 추가한다', () => {
+  it('Google 자격증명이 있어도 Google 공급자를 추가하지 않는다', () => {
     process.env.AUTH_GOOGLE_ID = 'google-client-id'
     process.env.AUTH_GOOGLE_SECRET = 'google-client-secret'
 
-    expect(providerIds(createAuthConfig())).toEqual(['credentials', 'google'])
+    expect(providerIds(createAuthConfig())).toEqual(['credentials'])
   })
 
   it('Google 자격증명이 빈 문자열이면 추가하지 않는다', () => {

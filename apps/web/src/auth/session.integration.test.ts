@@ -33,13 +33,18 @@ function unique(prefix: string): string {
   return `${prefix}${String(counter).padStart(3, '0')}`
 }
 
-async function makeUser(): Promise<{ id: string; email: string }> {
+async function makeUser(
+  options: { verified?: boolean } = {},
+): Promise<{ id: string; email: string }> {
   const handle = unique('member_')
   const user = await db.createUser({
     handle,
     email: `${handle}@example.com`,
     displayName: '회원',
   })
+  if (options.verified !== false) {
+    await db.setUserEmailVerified(user.id, new Date())
+  }
   return { id: user.id, email: user.email }
 }
 
@@ -124,9 +129,24 @@ describe('getSessionFromRequest', () => {
     expect(session?.userId).toBe(user.id)
     expect(session?.user.email).toBe(user.email)
     expect(session?.user.status).toBe('ACTIVE')
-    expect(session?.user.emailVerified).toBe(false)
+    expect(session?.user.emailVerified).toBe(true)
     // 세션 사용자 계약에 비밀번호 해시가 새지 않아야 한다.
     expect(session?.user).not.toHaveProperty('passwordHash')
+  })
+
+  it('미인증 계정의 기존 세션을 폐기하고 로그인 상태로 돌려주지 않는다', async () => {
+    const user = await makeUser({ verified: false })
+    const token = unique('token_')
+    await db.createAuthSession({
+      sessionToken: token,
+      userId: user.id,
+      expires: new Date(Date.now() + SESSION_MAX_AGE_SEC * 1000),
+    })
+
+    await expect(
+      getSessionFromRequest(requestWithCookie('authjs.session-token', token)),
+    ).resolves.toBeNull()
+    await expect(db.findSessionAndUser(token)).resolves.toBeNull()
   })
 
   it('secure 접두 쿠키도 읽는다', async () => {

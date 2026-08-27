@@ -36,7 +36,7 @@ afterEach(() => {
 })
 
 describe('SignupForm plan intent', () => {
-  it('keeps the selected ads plan in the signup request and login handoff', async () => {
+  it('keeps the selected ads plan and requires email verification before login', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({ verificationEmailSent: true }),
@@ -90,8 +90,51 @@ describe('SignupForm plan intent', () => {
       marketingConsent: false,
     })
 
-    const loginLink = await screen.findByTestId('signup-sent')
-    expect(loginLink.getAttribute('href')).toContain('next=')
-    expect(loginLink.getAttribute('href')).toContain('%2Fads-plan')
+    expect(await screen.findByText('인증 메일을 보냈습니다')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '로그인' })).toBeNull()
+    expect(
+      screen.getByText(/메일의 링크를 열면 가입이 완료됩니다/u),
+    ).toBeTruthy()
+  })
+
+  it('does not describe a failed verification email as completed signup', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ verificationEmailSent: false }),
+      }),
+    )
+
+    render(<SignupForm locale="ko" market="kr" />)
+
+    fireEvent.change(screen.getByLabelText('이메일'), {
+      target: { value: 'pending@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('이메일 주소 확인'), {
+      target: { value: 'pending@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('아이디'), {
+      target: { value: 'pending_01' },
+    })
+    fireEvent.change(screen.getByLabelText('표시 이름'), {
+      target: { value: 'Pending' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'safe-password-123' },
+    })
+    fireEvent.change(screen.getByLabelText('생년월일'), {
+      target: { value: '1995-06-15' },
+    })
+    fireEvent.click(
+      screen.getByLabelText(
+        '이용약관 및 개인정보 처리방침에 동의합니다. (필수)',
+      ),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '가입하기' }))
+
+    expect(await screen.findByText('가입이 완료되지 않았습니다')).toBeTruthy()
+    expect(screen.getByText(/인증 전에는 로그인할 수 없습니다/u)).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '로그인' })).toBeNull()
   })
 })

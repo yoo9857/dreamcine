@@ -87,7 +87,7 @@ export function SignupForm({
           ...text.auth,
           emailConfirmation: '이메일 주소 확인',
           verificationHint:
-            '가입 완료 후 안전한 이메일 인증 링크를 보내드립니다.',
+            '가입 신청 후 인증 링크를 보내드립니다. 링크를 열어야 가입이 완료됩니다.',
           birthDate: '생년월일',
           profileSurvey: '회원 정보',
           profileSurveyHint:
@@ -226,23 +226,18 @@ export function SignupForm({
             sent.verificationEmailSent
               ? copy.signupSentTitle
               : locale === 'en'
-                ? 'Your account was created'
-                : '계정이 생성되었습니다'
+                ? 'Signup is not complete'
+                : '가입이 완료되지 않았습니다'
           }
           description={
             sent.verificationEmailSent
               ? copy.signupSentBody(sent.email)
               : locale === 'en'
-                ? 'Email delivery is temporarily unavailable. You can sign in now and request verification again later.'
-                : '현재 인증 메일 발송을 준비하고 있습니다. 먼저 로그인한 뒤 인증 메일을 다시 요청할 수 있습니다.'
+                ? 'We could not send the verification email. Request it again below; sign-in stays disabled until verification.'
+                : '인증 메일을 보내지 못했습니다. 아래에서 다시 요청해 주세요. 인증 전에는 로그인할 수 없습니다.'
           }
           action={
             <div className="ilog-auth-actions">
-              <Button variant="secondary" asChild>
-                <Link href={loginHref} data-testid="signup-sent">
-                  {copy.toLogin}
-                </Link>
-              </Button>
               {resendState === 'accepted' ? (
                 <p role="status">
                   {locale === 'en'

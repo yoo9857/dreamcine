@@ -8,11 +8,32 @@ import {
 } from '@aidream/db'
 import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import Google from 'next-auth/providers/google'
 
 import { createAuthAdapter } from './adapter'
 import { verifyPassword } from './password'
 import { SESSION_MAX_AGE_SEC, SESSION_UPDATE_AGE_SEC } from './session'
+
+export async function authorizeCredentials(
+  raw: Partial<Record<'email' | 'password', unknown>>,
+): Promise<{ id: string; email: string; name: string } | null> {
+  const parsed = LoginSchema.safeParse(raw)
+  if (!parsed.success) return null
+
+  const { email: identifier, password } = parsed.data
+  const user = identifier.includes('@')
+    ? await findUserByEmail(identifier)
+    : await findUserByHandle(identifier)
+  const valid = await verifyPassword(user?.passwordHash ?? null, password)
+  if (
+    user === null ||
+    !valid ||
+    user.status !== 'ACTIVE' ||
+    user.emailVerified === null
+  ) {
+    return null
+  }
+  return { id: user.id, email: user.email, name: user.displayName }
+}
 
 function credentialsProvider(): NextAuthConfig['providers'][number] {
   return Credentials({
@@ -30,36 +51,8 @@ function credentialsProvider(): NextAuthConfig['providers'][number] {
      * `verifyPassword` 는 해시가 없어도 더미 해시로 검증을 수행하므로
      * 응답 시간도 비슷하게 유지된다.
      */
-    authorize: async (raw) => {
-      const parsed = LoginSchema.safeParse(raw)
-      if (!parsed.success) {
-        return null
-      }
-      const { email: identifier, password } = parsed.data
-      const user = identifier.includes('@')
-        ? await findUserByEmail(identifier)
-        : await findUserByHandle(identifier)
-      const valid = await verifyPassword(user?.passwordHash ?? null, password)
-      if (user === null || !valid || user.status !== 'ACTIVE') {
-        return null
-      }
-      return { id: user.id, email: user.email, name: user.displayName }
-    },
+    authorize: authorizeCredentials,
   })
-}
-
-function googleProvider(): NextAuthConfig['providers'][number] | null {
-  const clientId = process.env.AUTH_GOOGLE_ID
-  const clientSecret = process.env.AUTH_GOOGLE_SECRET
-  if (
-    clientId === undefined ||
-    clientId === '' ||
-    clientSecret === undefined ||
-    clientSecret === ''
-  ) {
-    return null
-  }
-  return Google({ clientId, clientSecret })
 }
 
 /**
@@ -130,11 +123,7 @@ function databaseSessionBridge(): NonNullable<NextAuthConfig['jwt']> {
 }
 
 export function createAuthConfig(): NextAuthConfig {
-  const google = googleProvider()
   const providers: NextAuthConfig['providers'] = [credentialsProvider()]
-  if (google !== null) {
-    providers.push(google)
-  }
 
   return {
     adapter: createAuthAdapter(),
