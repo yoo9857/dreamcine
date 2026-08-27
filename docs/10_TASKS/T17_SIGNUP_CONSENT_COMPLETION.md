@@ -4,7 +4,7 @@
 
 - [x] S1 Spec — 2026-08-27 / OAuth 제외·자체 가입 유지 결정 반영
 - [x] S2 Skeleton — 2026-08-27 / 정책·동의·수신거부·연령 판정 경계 확정
-- [ ] S3 구현 — 로컬 정적/계약/단위 게이트 통과, Linux CI·운영 배포 확인 대기
+- [x] S3 구현 — 2026-08-27 / 운영 배포·마이그레이션·외부 readiness 확인
 
 ## 1. 목적
 
@@ -84,7 +84,12 @@ checkAgeGate({ viewer.birthDate, now, confirmed }): AgeGateResult
 - [x] A19 자기신고 출생연도 제거
 - [x] 로컬 `gate:static`, `gate:contract` 통과
 - [x] 비컨테이너 테스트 1,715개 통과 (Testcontainers 11 suite는 Docker 부재)
-- [ ] GitHub Actions Linux gate·이미지 게시 통과
-- [ ] `20260827000000`·`010000`·`020000` 마이그레이션 운영 적용
-- [ ] 운영 `/`, `/signup`, `/terms`, `/privacy`, `/api/health`, `/api/ready` 확인
+- [x] GitHub Actions 웹·워커 이미지 게시 통과
+- [x] `20260827000000`·`010000`·`020000` 마이그레이션 운영 적용
+- [x] 운영 `/`, `/signup`, `/terms`, `/privacy`, `/api/health`, `/api/ready` 확인
 - [ ] 출시 전 실제 약관·개인정보 처리방침 법률 검토
+
+Linux 전체 gate run `33047557689`는 모든 테스트와 빌드를 완료한 뒤 DB 패키지 커버리지
+66.95%로 기준 70%에 미달했다. 신규 동의 저장소 통합 테스트를 `1b8ca3a1`에 추가했으며,
+사용자 결정에 따라 전체 CI 재실행은 후속 작업으로 미뤘다. 운영 배포는 이미지 게시 성공,
+로컬 정적·계약 검사, DB 사전 덤프, 운영 마이그레이션 및 사후 상태 검사로 완료했다.

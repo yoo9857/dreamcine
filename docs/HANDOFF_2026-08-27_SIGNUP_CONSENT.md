@@ -6,6 +6,26 @@ T15 메타데이터, T16 역할·등급, 가입 프로필·이메일 시스템 �
 있다. T17에서 남아 있던 정책 문서, 동의 철회, 마케팅 수신거부, 저장 생년월일 A19
 판정을 연결했다. OAuth는 제품 결정에 따라 도입하지 않았다.
 
+## 운영 배포 결과
+
+- 앱·워커 이미지 SHA: `1b8ca3a1b8030a04418be8aa4bf935aff693f6cb`
+- 운영 Compose 설정 SHA: `aa8e032e872daefb436a6abffa0d99df16e535bd`
+- 이미지 게시 run: `33048336639` 성공
+- 신규 Prisma 마이그레이션 3개 적용, 전체 완료 10개, 실패 0개
+- 외부 `/`, `/signup`, `/terms`, `/privacy`, `/unsubscribe`, `/api/health`,
+  `/api/ready` 모두 200
+- readiness: DB·Redis·스토리지·큐·메일 모두 `ok`
+- 웹·워커·스케줄러·PostgreSQL·Redis healthy, 재시작 0회
+- SMTP는 `smtp.resend.com` 대체 TLS 포트 2465에서 실제 인증 성공
+- Redis는 BullMQ 큐 데이터 보호를 위해 `noeviction` 적용
+- 배포 전 DB 덤프: `/opt/dreamcine/backups/predeploy-6720969.dump`, 모드 600,
+  `pg_restore --list` 검증 완료
+
+Linux 전체 gate run `33047557689`는 빌드·정적·계약 검사와 테스트 자체는 통과했으나
+신규 DB 저장소 코드로 패키지 커버리지가 66.95%가 되어 70% 기준에서 종료됐다. 해당
+경로의 실제 PostgreSQL 통합 테스트는 후속 커밋에 추가했다. 전체 gate 재실행은 사용자
+결정에 따라 후속 CI 정리로 남긴다.
+
 로컬 검증:
 
 - `gate:static` 통과: lint, typecheck, dependency-cruiser, Playwright 28개 수집, format
@@ -42,3 +62,5 @@ T15 메타데이터, T16 역할·등급, 가입 프로필·이메일 시스템 �
 - 마케팅 캠페인은 반드시 `getMarketingRecipients()`와 `sendMarketingEventMail()`을 쓴다.
   미리보기 전용 `sendEventMailPreviewOnly()`를 운영 코드에서 호출하지 않는다.
 - `.env`, SMTP 자격증명, SSH 키, 실제 사용자 개인정보를 문서·로그·커밋에 남기지 않는다.
+- 일간 원격 암호화 백업 timer는 아직 설치되지 않았다. 현재 배포 전 로컬 DB 덤프만
+  있으므로 `O04_BACKUP_DR.md`의 Object Storage 백업 자동화를 별도 운영 작업으로 완료한다.

@@ -3,15 +3,21 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
-## 2026-08-27 가입·동의·연령 제한 배포 대기
+## 2026-08-27 가입·동의·연령 제한 운영 배포 완료
 
 - OAuth 없이 자체 이메일 가입과 가입 후 인증 링크 방식을 유지했다.
 - 가입 프로필·동의 저장에 이어 정책 문서, 계정 동의 관리, 마케팅 후보 필터,
   서명 수신거부 링크, 발송 직전 재검사, 저장 생년월일 기반 A19 판정을 연결했다.
-- 로컬 정적·계약 게이트와 비컨테이너 테스트 1,715개가 통과했다. Docker 부재로
-  Testcontainers 11 suite는 Linux CI에서 확인해야 하며 Windows 빌드는 standalone
-  symlink `EPERM`까지 진행됐다.
-- 정확한 배포 순서와 남은 수동 검증은
+- 운영 앱·워커 이미지는 `1b8ca3a1b8030a04418be8aa4bf935aff693f6cb`, 운영 Compose
+  설정은 `aa8e032e872daefb436a6abffa0d99df16e535bd`다. 신규 마이그레이션 3개가 적용됐고
+  실패 마이그레이션은 0개다.
+- `/`, `/signup`, `/terms`, `/privacy`, `/unsubscribe`, `/api/health`, `/api/ready`가
+  외부에서 모두 200이며 readiness의 DB·Redis·스토리지·큐·메일 검사가 모두 `ok`다.
+- 웹·워커·스케줄러·PostgreSQL·Redis는 모두 healthy다. T0/T1 워커 실행 조건 누락을
+  수정했고 Redis 큐 정책은 BullMQ 권고에 맞춰 `noeviction`으로 바꿨다.
+- 서버 SMTP는 Resend 대체 TLS 포트 2465로 실제 인증 검증을 통과했다. GHCR pull
+  자격증명은 `deploy` 사용자에 권한 600으로 저장돼 있다. 비밀값은 저장소에 없다.
+- 자세한 검증 결과와 남은 비출시 항목은
   `HANDOFF_2026-08-27_SIGNUP_CONSENT.md` 및
   `10_TASKS/T17_SIGNUP_CONSENT_COMPLETION.md`를 먼저 읽는다.
 
