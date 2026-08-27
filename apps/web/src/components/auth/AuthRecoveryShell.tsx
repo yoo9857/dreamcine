@@ -8,10 +8,13 @@ import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion
 export function AuthRecoveryShell({
   children,
   english,
+  mode = 'recovery',
 }: {
   readonly children: ReactNode
   readonly english: boolean
+  readonly mode?: 'recovery' | 'verification'
 }): ReactNode {
+  const verification = mode === 'verification'
   return (
     <main className="ilog-login-page">
       <header className="ilog-login-header">
@@ -26,7 +29,15 @@ export function AuthRecoveryShell({
       <div className="ilog-login-layout">
         <section
           className="ilog-login-form-panel"
-          aria-label={english ? 'Account recovery' : '계정 복구'}
+          aria-label={
+            verification
+              ? english
+                ? 'Email verification'
+                : '이메일 인증'
+              : english
+                ? 'Account recovery'
+                : '계정 복구'
+          }
         >
           <div className="ilog-login-form-shell">{children}</div>
         </section>
@@ -36,8 +47,8 @@ export function AuthRecoveryShell({
           aria-hidden="true"
         >
           <CinematicHeroMotion
-            chapter="02 / RECOVER"
-            label="RETURN TO YOUR STORY"
+            chapter={verification ? '03 / VERIFY' : '02 / RECOVER'}
+            label={verification ? 'CONFIRM YOUR ENTRY' : 'RETURN TO YOUR STORY'}
           />
           <Image
             src="/brand/login-welcome.png"

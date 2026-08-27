@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from 'react'
 
+import { AuthRecoveryShell } from '@/src/components/auth/AuthRecoveryShell'
 import { VerifyStatus } from '@/src/components/auth/VerifyStatus'
 
 /**
@@ -10,20 +11,25 @@ import { VerifyStatus } from '@/src/components/auth/VerifyStatus'
  */
 export const dynamic = 'force-dynamic'
 
-export default function VerifyPage(): ReactNode {
+export default async function VerifyPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<{ lang?: string }>
+}): Promise<ReactNode> {
+  const english = (await searchParams).lang === 'en'
   return (
-    <main className="auth-shell">
-      <h1 className="sr-only">이메일 인증</h1>
+    <AuthRecoveryShell english={english} mode="verification">
       {/* useSearchParams 를 쓰는 컴포넌트는 Suspense 경계가 필요하다. */}
       <Suspense
         fallback={
-          <div className="auth-card">
-            <p>인증 확인 중…</p>
+          <div className="ilog-verify-card" role="status" aria-live="polite">
+            <div className="ilog-verify-loader" aria-hidden="true" />
+            <p>{english ? 'Checking verification…' : '인증 확인 중…'}</p>
           </div>
         }
       >
         <VerifyStatus />
       </Suspense>
-    </main>
+    </AuthRecoveryShell>
   )
 }

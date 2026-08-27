@@ -12,6 +12,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SignupForm } from './SignupForm'
 
+const navigation = vi.hoisted(() => ({
+  replace: vi.fn(),
+  refresh: vi.fn(),
+}))
+
+vi.mock('next/navigation', () => ({ useRouter: () => navigation }))
+
 class ResizeObserverStub {
   observe(): void {
     return undefined
@@ -28,6 +35,8 @@ class ResizeObserverStub {
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+  navigation.replace.mockReset()
+  navigation.refresh.mockReset()
 })
 
 afterEach(() => {
@@ -39,7 +48,9 @@ describe('SignupForm plan intent', () => {
   it('keeps the selected ads plan and requires email verification before login', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue({ verificationEmailSent: true }),
+      json: vi
+        .fn()
+        .mockResolvedValue({ id: 'user_1', verificationEmailSent: true }),
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -92,9 +103,24 @@ describe('SignupForm plan intent', () => {
 
     expect(await screen.findByText('인증 메일을 보냈습니다')).toBeTruthy()
     expect(screen.queryByRole('link', { name: '로그인' })).toBeNull()
-    expect(
-      screen.getByText(/메일의 링크를 열면 가입이 완료됩니다/u),
-    ).toBeTruthy()
+    expect(screen.getByText(/메일 서버에 전달했습니다/u)).toBeTruthy()
+    expect(screen.getByText('인증 완료 대기 중')).toBeTruthy()
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'ilog:email-verification-complete',
+        newValue: JSON.stringify({ userId: 'user_1' }),
+      }),
+    )
+    expect(await screen.findByText('인증 완료')).toBeTruthy()
+    await waitFor(
+      () => {
+        expect(navigation.replace).toHaveBeenCalledOnce()
+        expect(navigation.replace.mock.calls[0]?.[0]).toContain('next=')
+        expect(navigation.refresh).toHaveBeenCalledOnce()
+      },
+      { timeout: 1_500 },
+    )
   })
 
   it('does not describe a failed verification email as completed signup', async () => {
@@ -102,7 +128,9 @@ describe('SignupForm plan intent', () => {
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: vi.fn().mockResolvedValue({ verificationEmailSent: false }),
+        json: vi
+          .fn()
+          .mockResolvedValue({ id: 'user_2', verificationEmailSent: false }),
       }),
     )
 

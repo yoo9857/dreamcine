@@ -3,7 +3,7 @@
 import { Button, EmptyState, ErrorState, Spinner, Stack } from '@aidream/ui'
 import { MailCheck } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState, type ReactNode } from 'react'
 
 import { readApiError, staticMessageFor } from '@/src/lib/error-messages'
@@ -14,7 +14,11 @@ type VerifyState = 'checking' | 'success' | 'expired' | 'error'
 interface Outcome {
   state: VerifyState
   message: string | null
+  userId: string | null
 }
+
+const VERIFICATION_EVENT_KEY = 'ilog:email-verification-complete'
+const VERIFICATION_CHANNEL = 'ilog-email-verification'
 
 const verificationRequests = new Map<string, Promise<Outcome>>()
 
@@ -26,15 +30,25 @@ async function requestVerification(token: string): Promise<Outcome> {
       body: JSON.stringify({ token }),
     })
     if (response.ok) {
-      return { state: 'success', message: null }
+      const result = (await response.json()) as { userId?: string }
+      return {
+        state: 'success',
+        message: null,
+        userId: result.userId ?? null,
+      }
     }
     const problem = readApiError(await response.json().catch(() => null))
     return {
       state: problem?.code === 'E_VALIDATION' ? 'expired' : 'error',
       message: problem?.message ?? staticMessageFor('E_INTERNAL'),
+      userId: null,
     }
   } catch {
-    return { state: 'error', message: staticMessageFor('E_INTERNAL') }
+    return {
+      state: 'error',
+      message: staticMessageFor('E_INTERNAL'),
+      userId: null,
+    }
   }
 }
 
@@ -56,6 +70,7 @@ function verifyOnce(token: string): Promise<Outcome> {
 
 export function VerifyStatus(): ReactNode {
   const text = messages()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   const plan =
@@ -78,6 +93,7 @@ export function VerifyStatus(): ReactNode {
   const [outcome, setOutcome] = useState<Outcome>({
     state: 'checking',
     message: null,
+    userId: null,
   })
 
   useEffect(() => {
@@ -85,6 +101,7 @@ export function VerifyStatus(): ReactNode {
       setOutcome({
         state: 'expired',
         message: staticMessageFor('E_VALIDATION'),
+        userId: null,
       })
       return
     }
@@ -112,10 +129,38 @@ export function VerifyStatus(): ReactNode {
     }
   }, [token])
 
+  useEffect(() => {
+    if (outcome.state !== 'success') return
+    if (outcome.userId !== null) {
+      const payload = JSON.stringify({
+        userId: outcome.userId,
+        verifiedAt: Date.now(),
+      })
+      try {
+        window.localStorage.setItem(VERIFICATION_EVENT_KEY, payload)
+      } catch (error: unknown) {
+        // 사생활 보호 모드 등으로 저장소가 막혀도 현재 탭 자동 이동은 유지한다.
+        void error
+      }
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel(VERIFICATION_CHANNEL)
+        channel.postMessage({ userId: outcome.userId })
+        channel.close()
+      }
+    }
+    const timer = window.setTimeout(() => {
+      router.replace(loginHref)
+      router.refresh()
+    }, 1_200)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [loginHref, outcome.state, outcome.userId, router])
+
   if (outcome.state === 'checking') {
     return (
-      <div className="w-full max-w-md">
-        <Stack gap={3} align="center">
+      <div className="ilog-verify-card" role="status" aria-live="polite">
+        <Stack gap={4} align="center">
           <Spinner size="lg" label={text.auth.verifyChecking} />
           <p
             data-testid="verify-checking"
@@ -130,15 +175,19 @@ export function VerifyStatus(): ReactNode {
 
   if (outcome.state === 'success') {
     return (
-      <div className="w-full max-w-md">
+      <div className="ilog-verify-card" aria-live="polite">
         <EmptyState
           icon={<MailCheck aria-hidden="true" className="size-8" />}
           title={text.auth.verifySuccessTitle}
-          description={text.auth.verifySuccessBody}
+          description={
+            locale === 'en'
+              ? 'Verification is complete. Taking you to sign in…'
+              : '이메일 인증이 완료되었습니다. 로그인 화면으로 이동합니다…'
+          }
           action={
             <Button asChild>
               <Link href={loginHref} data-testid="verify-success">
-                {text.auth.toLogin}
+                {locale === 'en' ? 'Continue now' : '지금 이동하기'}
               </Link>
             </Button>
           }
@@ -148,7 +197,7 @@ export function VerifyStatus(): ReactNode {
   }
 
   return (
-    <div className="w-full max-w-md" data-testid="verify-error">
+    <div className="ilog-verify-card" data-testid="verify-error">
       <ErrorState
         title={
           outcome.state === 'expired'

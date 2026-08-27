@@ -4,7 +4,8 @@ import { SignupSchema, type SignupInput } from '@aidream/core'
 import { Button, Checkbox, EmptyState, Input, Select, Stack } from '@aidream/ui'
 import { MailCheck } from 'lucide-react'
 import Link from 'next/link'
-import React, { useState, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useState, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
 import { readApiError, staticMessageFor } from '@/src/lib/error-messages'
@@ -12,9 +13,13 @@ import { messages } from '@/src/lib/messages'
 import { zodResolver } from '@/src/lib/zod-resolver'
 
 interface SentState {
+  userId: string
   email: string
   verificationEmailSent: boolean
 }
+
+const VERIFICATION_EVENT_KEY = 'ilog:email-verification-complete'
+const VERIFICATION_CHANNEL = 'ilog-email-verification'
 
 export function SignupForm({
   initialEmail = '',
@@ -28,6 +33,7 @@ export function SignupForm({
   readonly plan?: 'ads-standard'
 }): ReactNode {
   const text = messages()
+  const router = useRouter()
   const copy =
     locale === 'en'
       ? {
@@ -128,6 +134,7 @@ export function SignupForm({
   const [resendState, setResendState] = useState<
     'idle' | 'sending' | 'accepted'
   >('idle')
+  const [verificationComplete, setVerificationComplete] = useState(false)
   const planReturnPath = `/ads-plan?lang=${locale}&market=${market}#join`
   const loginHref =
     plan === undefined
@@ -157,6 +164,46 @@ export function SignupForm({
     },
   })
 
+  useEffect(() => {
+    if (sent === null) return
+
+    function complete(userId: string | undefined): void {
+      if (userId !== sent?.userId) return
+      setVerificationComplete(true)
+      window.setTimeout(() => {
+        router.replace(loginHref)
+        router.refresh()
+      }, 500)
+    }
+
+    function onStorage(event: StorageEvent): void {
+      if (event.key !== VERIFICATION_EVENT_KEY || event.newValue === null)
+        return
+      try {
+        complete((JSON.parse(event.newValue) as { userId?: string }).userId)
+      } catch (error: unknown) {
+        // 다른 버전에서 남은 손상된 로컬 값은 무시한다.
+        void error
+      }
+    }
+
+    const channel =
+      typeof BroadcastChannel === 'undefined'
+        ? null
+        : new BroadcastChannel(VERIFICATION_CHANNEL)
+    if (channel !== null) {
+      channel.onmessage = (event: MessageEvent<unknown>) => {
+        const data = event.data as { userId?: string } | null
+        complete(data?.userId)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      channel?.close()
+    }
+  }, [loginHref, router, sent])
+
   async function submit(values: SignupInput): Promise<void> {
     setFailure(null)
 
@@ -173,9 +220,11 @@ export function SignupForm({
 
     if (response.ok) {
       const result = (await response.json()) as {
+        id?: string
         verificationEmailSent?: boolean
       }
       setSent({
+        userId: result.id ?? '',
         email: values.email,
         verificationEmailSent: result.verificationEmailSent === true,
       })
@@ -230,14 +279,36 @@ export function SignupForm({
                 : '가입이 완료되지 않았습니다'
           }
           description={
-            sent.verificationEmailSent
-              ? copy.signupSentBody(sent.email)
-              : locale === 'en'
-                ? 'We could not send the verification email. Request it again below; sign-in stays disabled until verification.'
-                : '인증 메일을 보내지 못했습니다. 아래에서 다시 요청해 주세요. 인증 전에는 로그인할 수 없습니다.'
+            verificationComplete
+              ? locale === 'en'
+                ? 'Verification complete. Taking you to sign in…'
+                : '인증이 완료되었습니다. 로그인 화면으로 이동합니다…'
+              : sent.verificationEmailSent
+                ? locale === 'en'
+                  ? `The mail server accepted the message for ${sent.email}. Check your inbox or spam folder. This page will continue automatically after verification.`
+                  : `${sent.email} 인증 메일을 메일 서버에 전달했습니다. 받은편지함과 스팸함을 확인해 주세요. 같은 브라우저에서 인증하면 이 화면도 자동으로 이동합니다.`
+                : locale === 'en'
+                  ? 'We could not send the verification email. Request it again below; sign-in stays disabled until verification.'
+                  : '인증 메일을 보내지 못했습니다. 아래에서 다시 요청해 주세요. 인증 전에는 로그인할 수 없습니다.'
           }
           action={
             <div className="ilog-auth-actions">
+              {sent.verificationEmailSent ? (
+                <p
+                  className="ilog-verification-waiting"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span aria-hidden="true" />
+                  {verificationComplete
+                    ? locale === 'en'
+                      ? 'Verified'
+                      : '인증 완료'
+                    : locale === 'en'
+                      ? 'Waiting for verification'
+                      : '인증 완료 대기 중'}
+                </p>
+              ) : null}
               {resendState === 'accepted' ? (
                 <p role="status">
                   {locale === 'en'
