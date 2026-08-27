@@ -8,8 +8,8 @@
 - OAuth 없이 자체 이메일 가입과 가입 후 인증 링크 방식을 유지했다.
 - 가입 프로필·동의 저장에 이어 정책 문서, 계정 동의 관리, 마케팅 후보 필터,
   서명 수신거부 링크, 발송 직전 재검사, 저장 생년월일 기반 A19 판정을 연결했다.
-- 운영 앱·워커 이미지는 `1b8ca3a1b8030a04418be8aa4bf935aff693f6cb`, 운영 Compose
-  설정은 `aa8e032e872daefb436a6abffa0d99df16e535bd`다. 신규 마이그레이션 3개가 적용됐고
+- 운영 웹 이미지는 `3b09e21fa11c02884f6e9dd02c127aadb3284660`, 워커 이미지는
+  `1b8ca3a1b8030a04418be8aa4bf935aff693f6cb`다. 신규 마이그레이션 3개가 적용됐고
   실패 마이그레이션은 0개다.
 - `/`, `/signup`, `/terms`, `/privacy`, `/unsubscribe`, `/api/health`, `/api/ready`가
   외부에서 모두 200이며 readiness의 DB·Redis·스토리지·큐·메일 검사가 모두 `ok`다.
@@ -17,6 +17,8 @@
   수정했고 Redis 큐 정책은 BullMQ 권고에 맞춰 `noeviction`으로 바꿨다.
 - 서버 SMTP는 Resend 대체 TLS 포트 2465로 실제 인증 검증을 통과했다. GHCR pull
   자격증명은 `deploy` 사용자에 권한 600으로 저장돼 있다. 비밀값은 저장소에 없다.
+- 미인증 계정이 비밀번호 로그인과 기존 세션을 사용할 수 있던 결함을 수정했다.
+  Credentials 로그인과 세션 조회가 모두 `emailVerified`를 요구하며 OAuth 공급자는 없다.
 - 자세한 검증 결과와 남은 비출시 항목은
   `HANDOFF_2026-08-27_SIGNUP_CONSENT.md` 및
   `10_TASKS/T17_SIGNUP_CONSENT_COMPLETION.md`를 먼저 읽는다.

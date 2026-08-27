@@ -8,8 +8,9 @@ T15 메타데이터, T16 역할·등급, 가입 프로필·이메일 시스템 �
 
 ## 운영 배포 결과
 
-- 앱·워커 이미지 SHA: `1b8ca3a1b8030a04418be8aa4bf935aff693f6cb`
-- 운영 Compose 설정 SHA: `aa8e032e872daefb436a6abffa0d99df16e535bd`
+- 웹 이미지 SHA: `3b09e21fa11c02884f6e9dd02c127aadb3284660`
+- 워커 이미지 SHA: `1b8ca3a1b8030a04418be8aa4bf935aff693f6cb`
+- 운영 설정은 웹 SHA에 포함된 `noeviction`·worker condition 수정본 사용
 - 이미지 게시 run: `33048336639` 성공
 - 신규 Prisma 마이그레이션 3개 적용, 전체 완료 10개, 실패 0개
 - 외부 `/`, `/signup`, `/terms`, `/privacy`, `/unsubscribe`, `/api/health`,
@@ -18,6 +19,10 @@ T15 메타데이터, T16 역할·등급, 가입 프로필·이메일 시스템 �
 - 웹·워커·스케줄러·PostgreSQL·Redis healthy, 재시작 0회
 - SMTP는 `smtp.resend.com` 대체 TLS 포트 2465에서 실제 인증 성공
 - Redis는 BullMQ 큐 데이터 보호를 위해 `noeviction` 적용
+- 미인증 Credentials 로그인과 기존 미인증 세션을 모두 차단했다. 공개 Auth 공급자는
+  `credentials` 하나이며 Google 등 OAuth는 환경변수가 있어도 활성화되지 않는다.
+- 잘못 생성된 미인증 계정 2개와 해당 토큰을 삭제했다. 삭제 직전 복구 덤프는
+  `/opt/dreamcine/backups/predelete-unverified-20260827.dump`이며 검증·모드 600 상태다.
 - 배포 전 DB 덤프: `/opt/dreamcine/backups/predeploy-6720969.dump`, 모드 600,
   `pg_restore --list` 검증 완료
 
