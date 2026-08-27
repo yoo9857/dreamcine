@@ -10,7 +10,8 @@ services:
     environment:
       WORKER_CONCURRENCY: 2
       CAPACITY_TIER: T1
-    entrypoint: ['nice', '-n', '10', 'node', 'dist/index.js']
+    entrypoint:
+      ['nice', '-n', '10', 'node', '--conditions=worker', 'dist/index.js']
 
   scheduler:
     environment:

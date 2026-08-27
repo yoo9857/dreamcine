@@ -11,7 +11,8 @@ services:
     environment:
       WORKER_CONCURRENCY: 1
       CAPACITY_TIER: T0
-    entrypoint: ['nice', '-n', '10', 'node', 'dist/index.js']
+    entrypoint:
+      ['nice', '-n', '10', 'node', '--conditions=worker', 'dist/index.js']
     logging:
       <<: *t0-logging
 
