@@ -188,12 +188,27 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               </p>
               <span>@{user.handle}</span>
               <small>{user.email}</small>
-              <TierBadge tier={user.tier} size="sm" />
             </div>
-            <Sparkles aria-hidden="true" />
+            <span className="browse-account-status">
+              <i aria-hidden="true" /> ACTIVE
+            </span>
           </header>
 
+          <div className="browse-account-membership">
+            <span aria-hidden="true">
+              <Sparkles />
+            </span>
+            <div>
+              <small>ILOG MEMBERSHIP</small>
+              <strong>나의 크리에이터 등급</strong>
+            </div>
+            <TierBadge tier={user.tier} size="sm" />
+          </div>
+
           <div className="browse-account-links">
+            <p className="browse-account-section-label">
+              PROFILE &amp; ACCOUNT
+            </p>
             <Link
               href={`/u/${encodeURIComponent(user.handle)}`}
               role="menuitem"
@@ -236,6 +251,9 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               </span>
               <b aria-hidden="true">→</b>
             </Link>
+            <p className="browse-account-section-label is-support">
+              SUPPORT &amp; MANAGEMENT
+            </p>
             <a
               href="mailto:support@ilog.kr?subject=ilog%20고객센터%20문의"
               role="menuitem"
