@@ -3,6 +3,7 @@
 import type { EpisodeResponse, WorkType } from '@aidream/core'
 import { Button } from '@aidream/ui'
 import { ArrowRight, CheckCircle2, Plus, UploadCloud, X } from 'lucide-react'
+import Link from 'next/link'
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { Uploader } from '@/src/components/upload/Uploader'
@@ -30,6 +31,9 @@ export function EpisodeCreateWorkspace({
   )
   const [preferredAssetId, setPreferredAssetId] = useState<string>()
   const [createdEpisode, setCreatedEpisode] = useState<EpisodeResponse>()
+  const [publishing, setPublishing] = useState(false)
+  const [published, setPublished] = useState(false)
+  const [publishError, setPublishError] = useState<string>()
   const episodic = workType === 'SERIES'
 
   useEffect(() => {
@@ -40,6 +44,9 @@ export function EpisodeCreateWorkspace({
     setOpen(false)
     setCreatedEpisode(undefined)
     setPreferredAssetId(undefined)
+    setPublishing(false)
+    setPublished(false)
+    setPublishError(undefined)
     setTab(assets.length === 0 ? 'UPLOAD' : 'DETAILS')
     if (window.location.hash === '#new-episode') {
       window.history.replaceState(
@@ -62,6 +69,25 @@ export function EpisodeCreateWorkspace({
     setAssets(nextAssets)
     setPreferredAssetId(assetId)
     setTab('DETAILS')
+  }
+
+  const publishCreatedEpisode = async (): Promise<void> => {
+    if (createdEpisode === undefined) return
+    setPublishing(true)
+    setPublishError(undefined)
+    const response = await fetch(`/api/episodes/${createdEpisode.id}/publish`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'PUBLISH' }),
+    })
+    setPublishing(false)
+    if (!response.ok) {
+      setPublishError(
+        '공개하지 못했습니다. 영상 변환 상태와 AI 제작 표기를 확인해 주세요.',
+      )
+      return
+    }
+    setPublished(true)
   }
 
   useEffect(() => {
@@ -182,6 +208,8 @@ export function EpisodeCreateWorkspace({
                   availableAssets={assets}
                   onCreated={(episode) => {
                     setCreatedEpisode(episode)
+                    setPublished(false)
+                    setPublishError(undefined)
                     setTab('COMPLETE')
                   }}
                   {...(preferredAssetId === undefined
@@ -194,15 +222,40 @@ export function EpisodeCreateWorkspace({
                 <section className="studio-registration-complete" role="status">
                   <CheckCircle2 aria-hidden="true" />
                   <span>REGISTRATION COMPLETE</span>
-                  <h3>영상 등록이 완료되었습니다</h3>
+                  <h3>
+                    {published
+                      ? '영상 공개가 완료되었습니다'
+                      : '영상 등록이 완료되었습니다'}
+                  </h3>
                   <strong>{createdEpisode?.title}</strong>
                   <p>
-                    작품의 콘텐츠 목록에 초안으로 안전하게 저장했습니다.
-                    목록에서 공개·예약·수정 상태를 이어서 관리할 수 있습니다.
+                    {published
+                      ? '이제 모든 시청자가 재생 페이지에서 영상을 볼 수 있습니다.'
+                      : '작품의 콘텐츠 목록에 초안으로 안전하게 저장했습니다. 지금 공개하거나 목록에서 예약·수정 상태를 이어서 관리할 수 있습니다.'}
                   </p>
-                  <Button type="button" onClick={close}>
-                    등록된 영상 확인 <ArrowRight aria-hidden="true" />
-                  </Button>
+                  {publishError === undefined ? null : (
+                    <small role="alert">{publishError}</small>
+                  )}
+                  <div className="studio-registration-actions">
+                    {published && createdEpisode !== undefined ? (
+                      <Button asChild>
+                        <Link href={`/watch/${createdEpisode.id}`}>
+                          재생 페이지 열기 <ArrowRight aria-hidden="true" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        loading={publishing}
+                        onClick={() => void publishCreatedEpisode()}
+                      >
+                        지금 공개
+                      </Button>
+                    )}
+                    <Button type="button" variant="secondary" onClick={close}>
+                      콘텐츠 목록으로
+                    </Button>
+                  </div>
                 </section>
               )}
             </div>

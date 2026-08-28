@@ -7,6 +7,7 @@ import {
 } from '@aidream/db'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
@@ -347,6 +348,29 @@ export default async function WatchPage(
           <p>잠시 후 페이지를 새로고침해 주세요.</p>
         </main>
       )
+    if (error instanceof AppError && error.code === 'E_EPISODE_NOT_PUBLISHED') {
+      return (
+        <main className="watch-availability-notice">
+          <span>NOT PUBLISHED</span>
+          <h1>아직 공개되지 않은 영상입니다</h1>
+          <p>
+            영상은 등록되어 있지만 현재 초안·예약·숨김 상태입니다. 제작자가
+            공개하면 이 주소에서 바로 시청할 수 있습니다.
+          </p>
+          <div>
+            <Link href="/">홈으로 이동</Link>
+            {session === null ? (
+              <Link
+                href={`/login?next=${encodeURIComponent(`/watch/${episodeId}`)}`}
+                className="secondary"
+              >
+                제작자 계정으로 로그인
+              </Link>
+            ) : null}
+          </div>
+        </main>
+      )
+    }
     notFound()
   }
 }
