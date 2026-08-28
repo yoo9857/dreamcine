@@ -20,6 +20,8 @@ export interface AccountDeletionResult {
   readonly scheduledPurgeAt: Date
 }
 
+export const ACCOUNT_DELETION_CANCEL_TOKEN_PREFIX = 'delete-cancel:'
+
 export function requestAccountDeletion(input: {
   readonly userId: string
   readonly reason?: string
@@ -28,7 +30,7 @@ export function requestAccountDeletion(input: {
   return executeDb(async () =>
     db.$transaction(async (transaction) => {
       const user = await transaction.user.findFirst({
-        where: { id: input.userId, deletedAt: null },
+        where: { id: input.userId, status: 'ACTIVE', deletedAt: null },
         select: { id: true, role: true },
       })
       if (user === null) throw new AppError('E_USER_NOT_FOUND')
@@ -62,11 +64,14 @@ export function requestAccountDeletion(input: {
         },
       })
       await transaction.episode.updateMany({
-        where: { series: { ownerId: input.userId } },
-        data: { status: 'HIDDEN', deletedAt: input.now },
+        where: {
+          deletedAt: null,
+          series: { ownerId: input.userId },
+        },
+        data: { deletedAt: input.now },
       })
       await transaction.series.updateMany({
-        where: { ownerId: input.userId },
+        where: { ownerId: input.userId, deletedAt: null },
         data: { deletedAt: input.now },
       })
       await transaction.uploadSession.updateMany({
@@ -82,6 +87,82 @@ export function requestAccountDeletion(input: {
         data: { status: 'DELETED', deletedAt: input.now },
       })
       return { scheduledPurgeAt }
+    }),
+  )
+}
+
+/**
+ * One-time recovery link for the 30-day deletion grace period.
+ * Restoration is intentionally scoped to rows stamped by the deletion request,
+ * so content that was already deleted remains deleted.
+ */
+export function cancelAccountDeletion(
+  token: string,
+  now: Date,
+): Promise<{ userId: string } | null> {
+  return executeDb(async () =>
+    db.$transaction(async (transaction) => {
+      const verification = await transaction.verificationToken.findUnique({
+        where: { token },
+      })
+      if (
+        verification === null ||
+        verification.expires <= now ||
+        !verification.identifier.startsWith(
+          ACCOUNT_DELETION_CANCEL_TOKEN_PREFIX,
+        )
+      ) {
+        return null
+      }
+
+      const userId = verification.identifier.slice(
+        ACCOUNT_DELETION_CANCEL_TOKEN_PREFIX.length,
+      )
+      if (userId === '') return null
+
+      const request = await transaction.userDeletionRequest.findUnique({
+        where: { userId },
+        select: {
+          requestedAt: true,
+          scheduledPurgeAt: true,
+          status: true,
+        },
+      })
+      if (
+        request === null ||
+        request.status !== 'PENDING' ||
+        request.scheduledPurgeAt <= now
+      ) {
+        return null
+      }
+
+      const restored = await transaction.user.updateMany({
+        where: {
+          id: userId,
+          status: 'DELETED',
+          deletedAt: request.requestedAt,
+        },
+        data: { status: 'ACTIVE', deletedAt: null },
+      })
+      if (restored.count !== 1) return null
+
+      await transaction.series.updateMany({
+        where: { ownerId: userId, deletedAt: request.requestedAt },
+        data: { deletedAt: null },
+      })
+      await transaction.episode.updateMany({
+        where: {
+          deletedAt: request.requestedAt,
+          series: { ownerId: userId },
+        },
+        data: { deletedAt: null },
+      })
+      await transaction.userDeletionRequest.update({
+        where: { userId },
+        data: { status: 'CANCELLED', cancelledAt: now },
+      })
+      await transaction.verificationToken.delete({ where: { token } })
+      return { userId }
     }),
   )
 }
@@ -256,6 +337,7 @@ export function purgeAccountDatabase(
               manifest.email,
               `verify:${manifest.email}`,
               `reset:${manifest.email}`,
+              `${ACCOUNT_DELETION_CANCEL_TOKEN_PREFIX}${manifest.userId}`,
             ],
           },
         },

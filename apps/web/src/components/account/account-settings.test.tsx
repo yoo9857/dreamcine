@@ -111,7 +111,7 @@ describe('account settings', () => {
       target: { value: 'current password' },
     })
     fireEvent.click(
-      screen.getByLabelText('삭제 절차와 복구 제한을 확인했습니다.'),
+      screen.getByLabelText('30일 복구 기간과 영구 삭제 절차를 확인했습니다.'),
     )
     expect(deleteButton.hasAttribute('disabled')).toBe(false)
     fireEvent.click(deleteButton)

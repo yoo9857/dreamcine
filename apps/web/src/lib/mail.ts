@@ -7,6 +7,7 @@ import { getLogger } from './logger'
 import { createMarketingUnsubscribeToken } from './marketing-unsubscribe'
 import { absoluteUrl } from './site-url'
 import {
+  accountDeletionCancelTemplate,
   eventTemplate,
   passwordResetTemplate,
   refundTemplate,
@@ -25,6 +26,11 @@ export interface MailRecipientToken {
 
 export interface PasswordResetMailInput extends MailRecipientToken {
   readonly locale?: MailLocale
+}
+
+export interface AccountDeletionCancelMailInput extends MailRecipientToken {
+  readonly locale?: MailLocale
+  readonly purgeDate: string
 }
 
 export interface WelcomeMailInput {
@@ -162,6 +168,23 @@ export function sendPasswordResetMail(
     passwordResetTemplate({
       brandDomain: brandDomain(),
       href: link.toString(),
+      ...(input.locale === undefined ? {} : { locale: input.locale }),
+    }),
+  )
+}
+
+export function sendAccountDeletionCancelMail(
+  input: AccountDeletionCancelMailInput,
+): Promise<void> {
+  const link = new URL('/deletion/cancel', `${appUrl()}/`)
+  link.searchParams.set('token', input.token)
+  if (input.locale === 'en') link.searchParams.set('lang', 'en')
+  return send(
+    input.to,
+    accountDeletionCancelTemplate({
+      brandDomain: brandDomain(),
+      href: link.toString(),
+      purgeDate: input.purgeDate,
       ...(input.locale === undefined ? {} : { locale: input.locale }),
     }),
   )

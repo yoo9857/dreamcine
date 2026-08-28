@@ -1,9 +1,21 @@
 import { AppError } from '@aidream/core'
-import { findUserById, requestAccountDeletion } from '@aidream/db'
+import {
+  ACCOUNT_DELETION_CANCEL_TOKEN_PREFIX,
+  createVerificationToken,
+  deleteVerificationTokensFor,
+  findUserById,
+  requestAccountDeletion,
+} from '@aidream/db'
 import { enqueue, QUEUE } from '@aidream/queue'
 
 import { verifyPassword } from '@/src/auth/password'
 import { getLogger } from '@/src/lib/logger'
+import {
+  mailTransportConfigured,
+  sendAccountDeletionCancelMail,
+} from '@/src/lib/mail'
+
+import { createOneTimeToken } from './signup'
 
 const GRACE_MS = 30 * 24 * 60 * 60 * 1000
 
@@ -19,6 +31,10 @@ export interface DeleteAccountDependencies {
   readonly findUser: typeof findUserById
   readonly verifyPassword: typeof verifyPassword
   readonly requestDeletion: typeof requestAccountDeletion
+  readonly createRecoveryToken: typeof createVerificationToken
+  readonly deleteRecoveryTokens: typeof deleteVerificationTokensFor
+  readonly mailConfigured: typeof mailTransportConfigured
+  readonly sendRecoveryMail: typeof sendAccountDeletionCancelMail
   readonly schedulePurge: (userId: string, delayMs: number) => Promise<void>
   readonly reportScheduleFailure: (error: unknown, userId: string) => void
 }
@@ -27,6 +43,10 @@ const PRODUCTION_DEPENDENCIES: DeleteAccountDependencies = {
   findUser: findUserById,
   verifyPassword,
   requestDeletion: requestAccountDeletion,
+  createRecoveryToken: createVerificationToken,
+  deleteRecoveryTokens: deleteVerificationTokensFor,
+  mailConfigured: mailTransportConfigured,
+  sendRecoveryMail: sendAccountDeletionCancelMail,
   schedulePurge: (userId, delayMs) =>
     enqueue(
       QUEUE.ACCOUNT_PURGE,
@@ -60,12 +80,51 @@ export async function deleteAccount(
     if (!valid) throw new AppError('E_AUTH_INVALID_CREDENTIALS')
   }
 
+  if (!dependencies.mailConfigured()) {
+    getLogger().error(
+      { userId: input.userId, reason: 'mail-transport-missing' },
+      'account deletion blocked because recovery mail is unavailable',
+    )
+    throw new AppError('E_INTERNAL', { reason: 'mail-transport-missing' })
+  }
+
   const now = input.now ?? new Date()
-  const result = await dependencies.requestDeletion({
-    userId: input.userId,
-    ...(input.reason === undefined ? {} : { reason: input.reason }),
-    now,
+  const scheduledPurgeAt = new Date(now.getTime() + GRACE_MS)
+  const recoveryIdentifier = `${ACCOUNT_DELETION_CANCEL_TOKEN_PREFIX}${input.userId}`
+  const recoveryToken = createOneTimeToken()
+  await dependencies.deleteRecoveryTokens(recoveryIdentifier)
+  await dependencies.createRecoveryToken({
+    identifier: recoveryIdentifier,
+    token: recoveryToken,
+    expires: scheduledPurgeAt,
   })
+
+  try {
+    await dependencies.sendRecoveryMail({
+      to: user.email,
+      token: recoveryToken,
+      locale: user.locale.startsWith('en') ? 'en' : 'ko',
+      purgeDate: new Intl.DateTimeFormat(
+        user.locale.startsWith('en') ? 'en-US' : 'ko-KR',
+        { dateStyle: 'long', timeZone: 'Asia/Seoul' },
+      ).format(scheduledPurgeAt),
+    })
+  } catch (error: unknown) {
+    await dependencies.deleteRecoveryTokens(recoveryIdentifier)
+    throw error
+  }
+
+  let result: Awaited<ReturnType<typeof requestAccountDeletion>>
+  try {
+    result = await dependencies.requestDeletion({
+      userId: input.userId,
+      ...(input.reason === undefined ? {} : { reason: input.reason }),
+      now,
+    })
+  } catch (error: unknown) {
+    await dependencies.deleteRecoveryTokens(recoveryIdentifier)
+    throw error
+  }
   const delayMs = Math.max(0, result.scheduledPurgeAt.getTime() - now.getTime())
   try {
     await dependencies.schedulePurge(input.userId, delayMs || GRACE_MS)

@@ -748,6 +748,40 @@
   text-align: center;
 }
 
+.account-recovery-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid rgba(104, 211, 145, 0.22);
+  border-radius: 14px;
+  color: var(--text-secondary, #a9b4ba);
+  background: rgba(104, 211, 145, 0.06);
+}
+
+.account-recovery-note svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #68d391;
+}
+
+.account-recovery-note p,
+.account-recovery-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.account-recovery-error {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 64, 85, 0.28);
+  border-radius: 12px;
+  color: #ff8b98;
+  background: rgba(255, 64, 85, 0.08);
+}
+
 .ilog-verify-loader {
   width: 42px;
   height: 42px;

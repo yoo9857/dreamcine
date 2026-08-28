@@ -18,6 +18,13 @@ export interface PasswordResetTemplateInput {
   readonly locale?: MailLocale
 }
 
+export interface AccountDeletionCancelTemplateInput {
+  readonly brandDomain?: string
+  readonly href: string
+  readonly locale?: MailLocale
+  readonly purgeDate: string
+}
+
 export interface WelcomeTemplateInput {
   readonly brandDomain?: string
   readonly handle: string
@@ -259,6 +266,59 @@ export function passwordResetTemplate(
       intro,
       locale,
       notice: ignore,
+      preheader: intro,
+      title,
+    }),
+  }
+}
+
+export function accountDeletionCancelTemplate(
+  input: AccountDeletionCancelTemplateInput,
+): RenderedMail {
+  const locale = input.locale ?? 'ko'
+  const english = locale === 'en'
+  const title = english
+    ? 'Your account deletion is scheduled'
+    : '계정 탈퇴가 예약되었습니다'
+  const intro = english
+    ? 'Your profile and works are now private. You can restore the account using the secure link below before permanent deletion.'
+    : '프로필과 작품은 지금부터 비공개 상태입니다. 영구 삭제 전까지 아래 보안 링크로 계정을 복구할 수 있습니다.'
+  const notice = english
+    ? 'If you requested deletion, no action is needed. This one-time recovery link expires when permanent deletion begins.'
+    : '직접 탈퇴를 요청했다면 별도 조치는 필요하지 않습니다. 이 일회용 복구 링크는 영구 삭제가 시작되면 만료됩니다.'
+  return {
+    subject: english
+      ? '[ILOG] Account deletion scheduled'
+      : '[ILOG] 계정 탈퇴 예약 및 복구 안내',
+    text: [
+      title,
+      '',
+      intro,
+      input.href,
+      '',
+      `${english ? 'Permanent deletion' : '영구 삭제 예정'}: ${input.purgeDate}`,
+      notice,
+    ].join('\n'),
+    html: mailFrame({
+      brandDomain: input.brandDomain ?? 'ilog.info',
+      action: {
+        href: input.href,
+        label: english ? 'Restore my account' : '계정 복구하기',
+      },
+      details: [
+        {
+          label: english ? 'Permanent deletion' : '영구 삭제 예정',
+          value: input.purgeDate,
+        },
+        {
+          label: english ? 'Recovery link' : '복구 링크',
+          value: english ? 'One time' : '1회 사용',
+        },
+      ],
+      eyebrow: 'ACCOUNT RECOVERY',
+      intro,
+      locale,
+      notice,
       preheader: intro,
       title,
     }),

@@ -22,6 +22,10 @@ function dependencies(): DeleteAccountDependencies {
     findUser: vi.fn().mockResolvedValue(USER),
     verifyPassword: vi.fn().mockResolvedValue(true),
     requestDeletion: vi.fn().mockResolvedValue({ scheduledPurgeAt: PURGE_AT }),
+    createRecoveryToken: vi.fn().mockResolvedValue({}),
+    deleteRecoveryTokens: vi.fn().mockResolvedValue(0),
+    mailConfigured: vi.fn().mockReturnValue(true),
+    sendRecoveryMail: vi.fn().mockResolvedValue(undefined),
     schedulePurge: vi.fn().mockResolvedValue(undefined),
     reportScheduleFailure: vi.fn(),
   }
@@ -49,6 +53,13 @@ describe('deleteAccount', () => {
       userId: USER.id,
       now: NOW,
     })
+    expect(deps.sendRecoveryMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: USER.email,
+        locale: 'ko',
+        purgeDate: '2026년 9월 27일',
+      }),
+    )
     expect(deps.schedulePurge).toHaveBeenCalledWith(
       USER.id,
       30 * 24 * 60 * 60 * 1000,
@@ -98,5 +109,45 @@ describe('deleteAccount', () => {
       ),
     ).resolves.toEqual({ scheduledPurgeAt: PURGE_AT.toISOString() })
     expect(deps.reportScheduleFailure).toHaveBeenCalledOnce()
+  })
+
+  it('does not hide the account when a recovery email cannot be delivered', async () => {
+    const deps = dependencies()
+    vi.mocked(deps.sendRecoveryMail).mockRejectedValue(
+      new Error('smtp unavailable'),
+    )
+    await expect(
+      deleteAccount(
+        {
+          userId: USER.id,
+          confirmation: USER.handle,
+          password: 'current password',
+          now: NOW,
+        },
+        deps,
+      ),
+    ).rejects.toThrow('smtp unavailable')
+    expect(deps.requestDeletion).not.toHaveBeenCalled()
+    expect(deps.deleteRecoveryTokens).toHaveBeenLastCalledWith(
+      'delete-cancel:user_1',
+    )
+  })
+
+  it('blocks deletion when the recovery mail channel is unavailable', async () => {
+    const deps = dependencies()
+    vi.mocked(deps.mailConfigured).mockReturnValue(false)
+    await expect(
+      deleteAccount(
+        {
+          userId: USER.id,
+          confirmation: USER.handle,
+          password: 'current password',
+          now: NOW,
+        },
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: 'E_INTERNAL' })
+    expect(deps.createRecoveryToken).not.toHaveBeenCalled()
+    expect(deps.requestDeletion).not.toHaveBeenCalled()
   })
 })

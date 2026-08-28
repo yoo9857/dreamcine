@@ -45,6 +45,7 @@ module.exports = tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.next-*/**',
       '**/.turbo/**',
       '**/coverage/**',
       '**/dist/**',

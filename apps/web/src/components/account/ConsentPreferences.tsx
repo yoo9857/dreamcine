@@ -80,11 +80,9 @@ export function ConsentPreferences(props: ConsentPreferencesProps): ReactNode {
         <strong>필수 동의를 철회하려면</strong>
         <p>
           이용약관과 개인정보 처리 동의 철회에는 서비스 계약 종료와 계정 삭제가
-          필요합니다. privacy@ilog.kr에서 철회·삭제 요청을 접수할 수 있습니다.
+          필요합니다. 아래 회원탈퇴에서 본인 확인 후 직접 처리할 수 있습니다.
         </p>
-        <a href="mailto:privacy@ilog.kr?subject=ilog%20필수%20동의%20철회%20및%20계정%20삭제">
-          철회 요청하기 ↗
-        </a>
+        <a href="#delete-account">회원탈퇴로 이동 ↓</a>
       </div>
     </div>
   )

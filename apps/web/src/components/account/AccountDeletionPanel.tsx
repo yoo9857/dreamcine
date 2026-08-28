@@ -78,7 +78,7 @@ export function AccountDeletionPanel({
       <div className="account-deletion-row">
         <div>
           <strong>회원탈퇴</strong>
-          <p>계정 접근을 즉시 종료하고 연결된 데이터를 안전하게 정리합니다.</p>
+          <p>30일 복구 기간을 거쳐 계정과 미디어를 안전하게 정리합니다.</p>
         </div>
         <button
           type="button"
@@ -119,10 +119,17 @@ export function AccountDeletionPanel({
               탈퇴 즉시 로그아웃되고 프로필과 작품이 비공개 처리됩니다. 30일 뒤
               아래 데이터가 물리적으로 제거됩니다.
             </p>
+            <p className="account-delete-backup-note">
+              등록된 이메일로 일회용 복구 링크를 보내드립니다. 30일 안에는 해당
+              링크로 탈퇴를 취소할 수 있습니다.
+            </p>
             <ul>
               <li>프로필, 작품, 댓글, 좋아요, 시청 기록과 알림</li>
               <li>업로드 원본, 변환 영상(HLS), 썸네일과 자막</li>
               <li>로그인 세션, 연결 계정과 내부 계정 데이터</li>
+              <li>
+                진행 중인 업로드는 중단되며 복구 후에도 자동 재개되지 않음
+              </li>
             </ul>
             <p className="account-delete-backup-note">
               재해 복구용 암호화 백업의 사본은 정해진 보존주기가 끝나면 자동
@@ -163,7 +170,7 @@ export function AccountDeletionPanel({
                   setUnderstood(event.currentTarget.checked)
                 }}
               />
-              <span>삭제 절차와 복구 제한을 확인했습니다.</span>
+              <span>30일 복구 기간과 영구 삭제 절차를 확인했습니다.</span>
             </label>
             <p className="account-delete-message" role="alert">
               {message}

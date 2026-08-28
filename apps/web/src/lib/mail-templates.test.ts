@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  accountDeletionCancelTemplate,
   eventTemplate,
   passwordResetTemplate,
   refundTemplate,
@@ -12,6 +13,11 @@ const HTTPS_URL = 'https://ilog.info/action?token=secure-token'
 
 describe('transactional mail templates', () => {
   it.each([
+    accountDeletionCancelTemplate({
+      href: HTTPS_URL,
+      locale: 'ko',
+      purgeDate: '2026년 9월 27일',
+    }),
     verificationTemplate({ href: HTTPS_URL, locale: 'ko' }),
     passwordResetTemplate({ href: HTTPS_URL, locale: 'ko' }),
     welcomeTemplate({
