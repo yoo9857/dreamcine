@@ -298,6 +298,15 @@ describe('publishEpisode', () => {
     )
   })
 
+  it('신작 알림 큐가 실패해도 이미 확정된 공개 상태는 성공으로 응답한다', async () => {
+    mocks.enqueue.mockRejectedValueOnce(new Error('queue unavailable'))
+    await expect(publishEpisode(serviceInput)).resolves.toMatchObject({
+      id: EPISODE.id,
+      status: 'PUBLISHED',
+    })
+    expect(mocks.transitionEpisode).toHaveBeenCalledOnce()
+  })
+
   it('자산 미준비와 AI 표기 누락을 정확한 코드로 거부한다', async () => {
     mocks.findEpisodeForTransition.mockResolvedValueOnce({
       episode: EPISODE,

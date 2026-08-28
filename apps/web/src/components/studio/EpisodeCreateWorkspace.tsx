@@ -7,6 +7,7 @@ import Link from 'next/link'
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { Uploader } from '@/src/components/upload/Uploader'
+import { readApiError } from '@/src/lib/error-messages'
 import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
 
 import { CreateEpisodeForm } from './CreateEpisodeForm'
@@ -75,19 +76,30 @@ export function EpisodeCreateWorkspace({
     if (createdEpisode === undefined) return
     setPublishing(true)
     setPublishError(undefined)
-    const response = await fetch(`/api/episodes/${createdEpisode.id}/publish`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'PUBLISH' }),
-    })
-    setPublishing(false)
-    if (!response.ok) {
-      setPublishError(
-        '공개하지 못했습니다. 영상 변환 상태와 AI 제작 표기를 확인해 주세요.',
+    try {
+      const response = await fetch(
+        `/api/episodes/${createdEpisode.id}/publish`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'PUBLISH' }),
+        },
       )
-      return
+      if (!response.ok) {
+        const payload: unknown = await response.json().catch(() => null)
+        const apiError = readApiError(payload)
+        setPublishError(
+          apiError?.message ??
+            '공개하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        )
+        return
+      }
+      setPublished(true)
+    } catch {
+      setPublishError('네트워크 연결을 확인한 뒤 다시 시도해 주세요.')
+    } finally {
+      setPublishing(false)
     }
-    setPublished(true)
   }
 
   useEffect(() => {

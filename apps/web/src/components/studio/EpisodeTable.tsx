@@ -1,10 +1,15 @@
 'use client'
 
-import type { EpisodeResponse, WorkType } from '@aidream/core'
-import { Badge, Button, EmptyState } from '@aidream/ui'
+import type {
+  EpisodeResponse,
+  PublishEpisodeResponse,
+  WorkType,
+} from '@aidream/core'
+import { Button, EmptyState } from '@aidream/ui'
 import {
   BarChart3,
   CalendarClock,
+  ChevronDown,
   Clapperboard,
   Edit3,
   Eye,
@@ -17,8 +22,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { useMemo, useState, type ReactNode } from 'react'
+import React, { useEffect, useMemo, useState, type ReactNode } from 'react'
 
+import { readApiError } from '@/src/lib/error-messages'
 import type {
   StudioAssetOption,
   StudioEpisodeAnalytics,
@@ -28,12 +34,18 @@ import { EditEpisodeForm } from './EditEpisodeForm'
 import { openEpisodeCreator } from './episode-create-events'
 
 const STATUS = {
-  DRAFT: { label: '초안', tone: 'neutral' },
-  SCHEDULED: { label: '예약', tone: 'warning' },
-  PUBLISHED: { label: '공개', tone: 'success' },
-  HIDDEN: { label: '숨김', tone: 'danger' },
-  REMOVED: { label: '삭제됨', tone: 'danger' },
+  DRAFT: { label: '초안', icon: Clapperboard },
+  SCHEDULED: { label: '예약', icon: CalendarClock },
+  PUBLISHED: { label: '공개', icon: Globe2 },
+  HIDDEN: { label: '숨김', icon: EyeOff },
+  REMOVED: { label: '삭제됨', icon: Trash2 },
 } as const
+
+function defaultScheduleValue(): string {
+  const date = new Date(Date.now() + 60 * 60 * 1000)
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 16)
+}
 
 export function EpisodeTable({
   availableAssets = [],
@@ -47,8 +59,11 @@ export function EpisodeTable({
   readonly workType?: WorkType
 }): ReactNode {
   const router = useRouter()
+  const [rows, setRows] = useState<readonly EpisodeResponse[]>(episodes)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [schedulingId, setSchedulingId] = useState<string | null>(null)
+  const [scheduleValue, setScheduleValue] = useState(defaultScheduleValue)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<
@@ -56,6 +71,9 @@ export function EpisodeTable({
   >('ALL')
   const [seasonFilter, setSeasonFilter] = useState('ALL')
   const episodic = workType === 'SERIES'
+  useEffect(() => {
+    setRows(episodes)
+  }, [episodes])
   const structureById = useMemo(
     () => new Map(structure.map((item) => [item.id, item])),
     [structure],
@@ -69,7 +87,7 @@ export function EpisodeTable({
   )
   const visibleEpisodes = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('ko-KR')
-    return [...episodes]
+    return [...rows]
       .filter((episode) => {
         const meta = structureById.get(episode.id)
         return (
@@ -86,9 +104,9 @@ export function EpisodeTable({
         const rightSeason = structureById.get(right.id)?.seasonNumber ?? 1
         return leftSeason - rightSeason || left.number - right.number
       })
-  }, [episodes, query, seasonFilter, statusFilter, structureById])
+  }, [query, rows, seasonFilter, statusFilter, structureById])
 
-  if (episodes.length === 0) {
+  if (rows.length === 0) {
     return (
       <EmptyState
         title={
@@ -111,40 +129,59 @@ export function EpisodeTable({
   const transition = async (
     episodeId: string,
     action: 'PUBLISH' | 'SCHEDULE' | 'HIDE' | 'UNHIDE',
+    publishAt?: string,
   ): Promise<void> => {
-    let publishAt: string | undefined
-    if (action === 'SCHEDULE') {
-      const value = window.prompt(
-        '예약 시각을 입력하세요. 예: 2026-08-26T18:00',
-      )
-      if (value === null) return
-      const parsed = new Date(value)
-      if (Number.isNaN(parsed.getTime())) {
-        setError('올바른 예약 시각을 입력해 주세요.')
-        return
-      }
-      publishAt = parsed.toISOString()
-    }
     setBusyId(episodeId)
     setError(null)
-    const response = await fetch(`/api/episodes/${episodeId}/publish`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        ...(publishAt === undefined ? {} : { publishAt }),
-      }),
-    })
-    setBusyId(null)
-    if (!response.ok) {
-      setError(
-        action === 'PUBLISH'
-          ? '공개하지 못했습니다. 영상 변환 상태와 AI 제작 표기를 확인해 주세요.'
-          : '상태를 변경하지 못했습니다.',
+    try {
+      const response = await fetch(`/api/episodes/${episodeId}/publish`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          ...(publishAt === undefined ? {} : { publishAt }),
+        }),
+      })
+      const payload: unknown = await response.json().catch(() => null)
+      if (!response.ok) {
+        const apiError = readApiError(payload)
+        setError(
+          apiError?.message ??
+            '상태를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        )
+        // 구버전 서버에서 핵심 변경 후 부가 작업만 실패한 경우도 복구한다.
+        router.refresh()
+        return
+      }
+      const result = payload as PublishEpisodeResponse
+      setRows((current) =>
+        current.map((episode) =>
+          episode.id === episodeId
+            ? {
+                ...episode,
+                status: result.status,
+                publishAt: result.publishAt,
+                publishedAt: result.publishedAt,
+              }
+            : episode,
+        ),
       )
+      setSchedulingId(null)
+      router.refresh()
+    } catch {
+      setError('네트워크 연결을 확인한 뒤 다시 시도해 주세요.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const schedule = (episodeId: string): void => {
+    const parsed = new Date(scheduleValue)
+    if (Number.isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+      setError('현재보다 뒤의 예약 시각을 선택해 주세요.')
       return
     }
-    router.refresh()
+    void transition(episodeId, 'SCHEDULE', parsed.toISOString())
   }
 
   const remove = async (episodeId: string): Promise<void> => {
@@ -218,7 +255,7 @@ export function EpisodeTable({
           </select>
         </label>
         <span>
-          전체 {episodes.length}개 · 표시 {visibleEpisodes.length}개
+          전체 {rows.length}개 · 표시 {visibleEpisodes.length}개
         </span>
       </div>
       <div className="studio-table-scroll">
@@ -235,6 +272,7 @@ export function EpisodeTable({
           <tbody>
             {visibleEpisodes.map((episode) => {
               const status = STATUS[episode.status]
+              const StatusIcon = status.icon
               const busy = busyId === episode.id
               const episodeStructure = structureById.get(episode.id)
               return (
@@ -261,7 +299,96 @@ export function EpisodeTable({
                       </div>
                     </td>
                     <td>
-                      <Badge tone={status.tone}>{status.label}</Badge>
+                      <div className="studio-visibility-cell">
+                        <div
+                          className="studio-visibility-control"
+                          data-status={episode.status}
+                        >
+                          <StatusIcon aria-hidden="true" />
+                          <select
+                            aria-label={`${episode.title} 공개 상태`}
+                            value={episode.status}
+                            disabled={busy || episode.status === 'REMOVED'}
+                            onChange={(event) => {
+                              const next = event.currentTarget.value
+                              if (next === episode.status) return
+                              if (next === 'SCHEDULED') {
+                                setError(null)
+                                setScheduleValue(defaultScheduleValue())
+                                setSchedulingId(episode.id)
+                                return
+                              }
+                              if (next === 'HIDDEN') {
+                                void transition(episode.id, 'HIDE')
+                                return
+                              }
+                              if (next === 'PUBLISHED') {
+                                void transition(
+                                  episode.id,
+                                  episode.status === 'HIDDEN'
+                                    ? 'UNHIDE'
+                                    : 'PUBLISH',
+                                )
+                              }
+                            }}
+                          >
+                            <option value={episode.status}>
+                              {status.label}
+                            </option>
+                            {episode.status === 'DRAFT' ? (
+                              <>
+                                <option value="PUBLISHED">공개</option>
+                                <option value="SCHEDULED">예약</option>
+                              </>
+                            ) : null}
+                            {episode.status === 'SCHEDULED' ? (
+                              <option value="PUBLISHED">지금 공개</option>
+                            ) : null}
+                            {episode.status === 'PUBLISHED' ? (
+                              <option value="HIDDEN">숨김</option>
+                            ) : null}
+                            {episode.status === 'HIDDEN' ? (
+                              <option value="PUBLISHED">다시 공개</option>
+                            ) : null}
+                          </select>
+                          <ChevronDown aria-hidden="true" />
+                        </div>
+                        {schedulingId === episode.id ? (
+                          <div className="studio-schedule-editor">
+                            <label>
+                              <span>공개 예약 시각</span>
+                              <input
+                                type="datetime-local"
+                                value={scheduleValue}
+                                onChange={(event) => {
+                                  setScheduleValue(event.currentTarget.value)
+                                }}
+                              />
+                            </label>
+                            <div>
+                              <Button
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => {
+                                  schedule(episode.id)
+                                }}
+                              >
+                                예약 적용
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={busy}
+                                onClick={() => {
+                                  setSchedulingId(null)
+                                }}
+                              >
+                                취소
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
                     </td>
                     <td>
                       {episode.publishAt === null
@@ -316,66 +443,6 @@ export function EpisodeTable({
                             </Button>
                           </>
                         )}
-                        {episode.status === 'DRAFT' ? (
-                          <>
-                            <Button
-                              size="sm"
-                              className="studio-episode-action is-primary"
-                              disabled={busy}
-                              onClick={() =>
-                                void transition(episode.id, 'PUBLISH')
-                              }
-                            >
-                              <Globe2 aria-hidden="true" /> 공개
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="studio-episode-action"
-                              disabled={busy}
-                              onClick={() =>
-                                void transition(episode.id, 'SCHEDULE')
-                              }
-                            >
-                              <CalendarClock aria-hidden="true" /> 예약
-                            </Button>
-                          </>
-                        ) : null}
-                        {episode.status === 'SCHEDULED' ? (
-                          <Button
-                            size="sm"
-                            className="studio-episode-action is-primary"
-                            disabled={busy}
-                            onClick={() =>
-                              void transition(episode.id, 'PUBLISH')
-                            }
-                          >
-                            <Globe2 aria-hidden="true" /> 지금 공개
-                          </Button>
-                        ) : null}
-                        {episode.status === 'PUBLISHED' ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="studio-episode-action"
-                            disabled={busy}
-                            onClick={() => void transition(episode.id, 'HIDE')}
-                          >
-                            <EyeOff aria-hidden="true" /> 숨기기
-                          </Button>
-                        ) : null}
-                        {episode.status === 'HIDDEN' ? (
-                          <Button
-                            size="sm"
-                            className="studio-episode-action is-primary"
-                            disabled={busy}
-                            onClick={() =>
-                              void transition(episode.id, 'UNHIDE')
-                            }
-                          >
-                            <Globe2 aria-hidden="true" /> 다시 공개
-                          </Button>
-                        ) : null}
                         {episode.status === 'REMOVED' ? null : (
                           <Button
                             size="sm"

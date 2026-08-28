@@ -1983,6 +1983,88 @@ body.studio-modal-open {
   color: var(--aidream-fg-muted);
   font-size: 9px;
 }
+.studio-visibility-cell {
+  min-width: 138px;
+  display: grid;
+  gap: 8px;
+}
+.studio-visibility-control {
+  width: fit-content;
+  min-width: 104px;
+  height: 34px;
+  display: grid;
+  grid-template-columns: 14px minmax(52px, 1fr) 13px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 8px;
+  color: var(--aidream-fg-secondary);
+  background: var(--aidream-bg);
+}
+.studio-visibility-control[data-status='PUBLISHED'] {
+  border-color: color-mix(in srgb, var(--aidream-success) 42%, transparent);
+  color: var(--aidream-success);
+}
+.studio-visibility-control[data-status='SCHEDULED'] {
+  border-color: color-mix(in srgb, var(--aidream-warning) 42%, transparent);
+  color: var(--aidream-warning);
+}
+.studio-visibility-control[data-status='HIDDEN'],
+.studio-visibility-control[data-status='REMOVED'] {
+  color: var(--aidream-fg-muted);
+}
+.studio-visibility-control > svg {
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
+}
+.studio-visibility-control select {
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.studio-visibility-control select:disabled {
+  cursor: default;
+}
+.studio-schedule-editor {
+  min-width: 244px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--aidream-accent) 30%, transparent);
+  border-radius: 9px;
+  background: var(--aidream-bg-elevated);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.16);
+}
+.studio-schedule-editor label {
+  display: grid;
+  gap: 5px;
+  color: var(--aidream-fg-muted);
+  font-size: 9px;
+}
+.studio-schedule-editor input {
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 7px;
+  color: var(--aidream-fg);
+  background: var(--aidream-bg);
+  color-scheme: dark;
+  font: inherit;
+}
+.studio-schedule-editor > div {
+  display: flex;
+  gap: 6px;
+}
 .studio-episode-metrics {
   display: flex;
   gap: 9px;

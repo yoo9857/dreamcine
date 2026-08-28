@@ -260,7 +260,19 @@ describe('StudioSeriesTable', () => {
 
 describe('EpisodeTable', () => {
   it('shows all management states and publishes a draft', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: 'episode_1',
+            status: 'PUBLISHED',
+            publishAt: null,
+            publishedAt: '2026-08-25T01:00:00.000Z',
+          }),
+      }),
+    )
     render(
       <EpisodeTable
         episodes={[
@@ -275,14 +287,49 @@ describe('EpisodeTable', () => {
     expect(screen.getAllByText('예약').length).toBeGreaterThan(0)
     expect(screen.getAllByText('공개').length).toBeGreaterThan(0)
     expect(screen.getAllByText('숨김').length).toBeGreaterThan(0)
-    fireEvent.click(screen.getByRole('button', { name: '공개' }))
+    const visibility = screen.getAllByRole('combobox', {
+      name: '첫 번째 꿈 공개 상태',
+    })[0]
+    expect(visibility).toBeDefined()
+    if (visibility === undefined) throw new Error('visibility control missing')
+    fireEvent.change(visibility, { target: { value: 'PUBLISHED' } })
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
         '/api/episodes/episode_1/publish',
         expect.objectContaining({ method: 'POST' }),
       )
     })
+    expect(visibility).toHaveProperty('value', 'PUBLISHED')
     expect(router.refresh).toHaveBeenCalledOnce()
+  })
+
+  it('opens an inline scheduler and reports exact publish API errors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () =>
+        Promise.resolve({
+          error: {
+            code: 'E_EPISODE_AI_DISCLOSURE_REQUIRED',
+            message:
+              'AI 제작 표기는 필수입니다. 사용한 도구와 모델을 적어주세요.',
+          },
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<EpisodeTable episodes={[EPISODE]} />)
+
+    const visibility = screen.getByRole('combobox', {
+      name: '첫 번째 꿈 공개 상태',
+    })
+    fireEvent.change(visibility, { target: { value: 'SCHEDULED' } })
+    expect(screen.getByLabelText('공개 예약 시각')).toBeDefined()
+    fireEvent.change(visibility, { target: { value: 'PUBLISHED' } })
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain(
+        'AI 제작 표기는 필수입니다.',
+      )
+    })
   })
 
   it('renders an honest empty state', () => {

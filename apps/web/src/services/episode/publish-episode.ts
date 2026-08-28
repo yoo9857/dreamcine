@@ -12,6 +12,7 @@ import { QUEUE } from '@aidream/queue'
 
 import type { RouteSession } from '@/src/auth/types'
 import { enqueue } from '@/src/lib/enqueue'
+import { getLogger } from '@/src/lib/logger'
 
 export interface PublishEpisodeServiceInput {
   readonly episodeId: string
@@ -76,11 +77,20 @@ async function runPublishEpisode(
     verdict.patch,
   )
   if (next === 'PUBLISHED' && record.episode.publishedAt === null) {
-    await enqueue(
-      QUEUE.NOTIFY_FANOUT,
-      { type: 'NEW_EPISODE', episodeId: episode.id },
-      { jobId: `new-episode-${episode.id}`, attempts: 3 },
-    )
+    try {
+      await enqueue(
+        QUEUE.NOTIFY_FANOUT,
+        { type: 'NEW_EPISODE', episodeId: episode.id },
+        { jobId: `new-episode-${episode.id}`, attempts: 3 },
+      )
+    } catch (error) {
+      // 공개 상태는 이미 확정됐다. 부가 알림 장애가 핵심 상태 변경을
+      // 실패처럼 응답하게 만들면 클라이언트와 DB가 서로 어긋난다.
+      getLogger().error(
+        { err: error, episodeId: episode.id },
+        'new episode notification enqueue failed',
+      )
+    }
   }
   return {
     id: episode.id,
