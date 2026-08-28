@@ -7,8 +7,12 @@ import { requireCapability } from '@/src/auth/server-session'
 import { CreateEpisodeForm } from '@/src/components/studio/CreateEpisodeForm'
 import { EditSeriesForm } from '@/src/components/studio/EditSeriesForm'
 import { EpisodeTable } from '@/src/components/studio/EpisodeTable'
+import { SeriesPerformancePanel } from '@/src/components/studio/SeriesPerformancePanel'
 import { getStudioSeries } from '@/src/services/series/get-studio-series'
-import { getAvailableStudioAssets } from '@/src/services/studio/get-studio-dashboard'
+import {
+  getAvailableStudioAssets,
+  getStudioSeriesAnalytics,
+} from '@/src/services/studio/get-studio-dashboard'
 
 export default async function StudioSeriesPage({
   params,
@@ -20,11 +24,12 @@ export default async function StudioSeriesPage({
     'episode.create',
     `/studio/series/${seriesId}`,
   )
-  const [detail, availableAssets] = await Promise.all([
+  const [detail, availableAssets, analytics] = await Promise.all([
     getStudioSeries(session, seriesId).catch(() => null),
     getAvailableStudioAssets(session),
+    getStudioSeriesAnalytics(session, seriesId),
   ])
-  if (detail === null) notFound()
+  if (detail === null || analytics === null) notFound()
 
   return (
     <main className="studio-series-page">
@@ -61,6 +66,17 @@ export default async function StudioSeriesPage({
           </div>
         </div>
       </header>
+
+      <section className="studio-series-section" id="performance">
+        <div className="studio-section-title-row">
+          <div>
+            <span>SERIES PERFORMANCE</span>
+            <h2>시리즈 콘텐츠 데이터</h2>
+            <p>전체 성과를 비교하고 개선할 에피소드를 빠르게 찾습니다.</p>
+          </div>
+        </div>
+        <SeriesPerformancePanel analytics={analytics} />
+      </section>
 
       <section className="studio-series-section">
         <div className="studio-section-title-row">

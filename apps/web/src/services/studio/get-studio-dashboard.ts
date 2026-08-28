@@ -1,5 +1,6 @@
 import {
   getStudioDashboardRecord,
+  getStudioSeriesAnalyticsRecord,
   listAvailableStudioAssets,
   listStudioMediaRecords,
 } from '@aidream/db'
@@ -40,6 +41,26 @@ export async function getStudioMediaLibrary(session: RouteSession) {
   }))
 }
 
+export async function getStudioSeriesAnalytics(
+  session: RouteSession,
+  seriesId: string,
+) {
+  const analytics = await getStudioSeriesAnalyticsRecord(
+    session.userId,
+    seriesId,
+  )
+  if (analytics === null) return null
+  return {
+    ...analytics,
+    episodes: analytics.episodes.map((episode) => ({
+      ...episode,
+      thumbUrl: episode.thumbKey === null ? null : cdnUrl(episode.thumbKey),
+      publishedAt: episode.publishedAt?.toISOString() ?? null,
+      updatedAt: episode.updatedAt.toISOString(),
+    })),
+  }
+}
+
 export type StudioDashboard = Awaited<ReturnType<typeof getStudioDashboard>>
 export type StudioAssetOption = Awaited<
   ReturnType<typeof getAvailableStudioAssets>
@@ -47,3 +68,7 @@ export type StudioAssetOption = Awaited<
 export type StudioMediaItem = Awaited<
   ReturnType<typeof getStudioMediaLibrary>
 >[number]
+export type StudioSeriesAnalytics = NonNullable<
+  Awaited<ReturnType<typeof getStudioSeriesAnalytics>>
+>
+export type StudioEpisodeAnalytics = StudioSeriesAnalytics['episodes'][number]

@@ -15,6 +15,7 @@ import { AiDisclosureField } from './AiDisclosureField'
 import { CreateEpisodeForm } from './CreateEpisodeForm'
 import { EditSeriesForm } from './EditSeriesForm'
 import { EpisodeTable } from './EpisodeTable'
+import { SeriesPerformancePanel } from './SeriesPerformancePanel'
 import { StudioMediaLibrary } from './StudioMediaLibrary'
 import { StudioSeriesTable } from './StudioSeriesTable'
 
@@ -237,5 +238,56 @@ describe('StudioMediaLibrary', () => {
       })
     })
     expect(router.refresh).toHaveBeenCalledOnce()
+  })
+})
+
+describe('SeriesPerformancePanel', () => {
+  it('shows comparable episode metrics and links to content analytics', () => {
+    render(
+      <SeriesPerformancePanel
+        analytics={{
+          series: { id: 'series_1', title: '첫 번째 꿈' },
+          totals: {
+            episodes: 1,
+            views: '100',
+            impressions: '500',
+            likes: 10,
+            comments: 5,
+            shares: 2,
+            watchSeconds: '3000',
+            uniqueViewers: 20,
+            completedViewers: 8,
+          },
+          episodes: [
+            {
+              id: 'episode_1',
+              title: '첫 장면',
+              number: 1,
+              status: 'PUBLISHED',
+              seasonNumber: 1,
+              seasonTitle: null,
+              thumbKey: null,
+              thumbUrl: null,
+              durationSec: 60,
+              viewCount: '100',
+              impressionCount: '500',
+              likeCount: 10,
+              commentCount: 5,
+              shareCount: 2,
+              avgWatchSec: 30,
+              uniqueViewers: 20,
+              completedViewers: 8,
+              publishedAt: '2026-08-25T00:00:00.000Z',
+              updatedAt: '2026-08-25T00:00:00.000Z',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText('평균 시청률 50%')).toBeDefined()
+    expect(screen.getByText('기록 사용자 20명')).toBeDefined()
+    expect(
+      screen.getByRole('link', { name: '데이터 보기' }).getAttribute('href'),
+    ).toBe('/studio/series/series_1/episodes/episode_1')
   })
 })
