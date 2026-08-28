@@ -40,12 +40,14 @@ export function Uploader({
   onReady,
 }: {
   readonly context?: 'library' | 'episode'
-  readonly onReady?: () => void
+  readonly onReady?: (assetId: string) => Promise<void> | void
 } = {}): ReactNode {
   const upload = useUpload()
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
+  const [advancing, setAdvancing] = useState(false)
+  const [handoffError, setHandoffError] = useState<string | null>(null)
   const isBusy = [
     'validating',
     'creating',
@@ -57,9 +59,22 @@ export function Uploader({
   useEffect(() => {
     if (upload.state.phase === 'ready') {
       router.refresh()
-      onReady?.()
     }
-  }, [onReady, router, upload.state.phase])
+  }, [router, upload.state.phase])
+
+  const openDetails = async (): Promise<void> => {
+    if (upload.state.assetId === null || onReady === undefined) return
+    setAdvancing(true)
+    setHandoffError(null)
+    try {
+      await onReady(upload.state.assetId)
+    } catch {
+      setHandoffError(
+        '업로드한 영상을 정보 입력 화면과 연결하지 못했습니다. 다시 시도해 주세요.',
+      )
+      setAdvancing(false)
+    }
+  }
 
   const choose = (next: File | null): void => {
     if (next === null || isBusy) return
@@ -161,8 +176,18 @@ export function Uploader({
         <section className="studio-upload-inline-ready" role="status">
           <CheckCircle2 aria-hidden="true" />
           <div>
-            <strong>영상 준비가 완료되었습니다</strong>
-            <p>회차 정보 단계로 이동해 방금 올린 영상을 연결합니다.</p>
+            <strong>영상 업로드가 완료되었습니다</strong>
+            <p>이제 제목과 공개 정보를 입력해 작품에 영상을 등록해 주세요.</p>
+            {handoffError === null ? null : (
+              <small role="alert">{handoffError}</small>
+            )}
+            <Button
+              type="button"
+              loading={advancing}
+              onClick={() => void openDetails()}
+            >
+              영상 정보 입력하기 <ArrowRight aria-hidden="true" />
+            </Button>
           </div>
         </section>
       ) : null}

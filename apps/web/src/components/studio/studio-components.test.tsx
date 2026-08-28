@@ -136,6 +136,7 @@ describe('CreateEpisodeForm', () => {
     render(
       <CreateEpisodeForm
         seriesId="series_1"
+        preferredAssetId="asset_ready"
         availableAssets={[
           {
             id: 'asset_ready',
@@ -152,6 +153,9 @@ describe('CreateEpisodeForm', () => {
     expect(
       screen.getByRole('radio', { name: /opening-scene\.mp4/u }),
     ).toBeDefined()
+    expect(
+      screen.getByRole('radio', { name: /opening-scene\.mp4/u }),
+    ).toHaveProperty('checked', true)
   })
 })
 

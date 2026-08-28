@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -115,6 +121,24 @@ describe('Uploader', () => {
     expect(screen.getByRole('link', { name: /작품 선택/u })).not.toBeNull()
     expect(screen.getByRole('link', { name: /새 작품 만들기/u })).not.toBeNull()
     expect(router.refresh).toHaveBeenCalledOnce()
+  })
+
+  it('회차 업로드 완료를 확인한 뒤 정보 입력 단계로 넘긴다', async () => {
+    const onReady = vi.fn().mockResolvedValue(undefined)
+    mocks.state = initialState({
+      phase: 'ready',
+      uploadId: 'upl_1',
+      assetId: 'asset_1',
+      transcodeProgress: 100,
+    })
+    render(<Uploader context="episode" onReady={onReady} />)
+
+    expect(screen.getByText('영상 업로드가 완료되었습니다')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /영상 정보 입력하기/u }))
+
+    await waitFor(() => {
+      expect(onReady).toHaveBeenCalledWith('asset_1')
+    })
   })
 })
 

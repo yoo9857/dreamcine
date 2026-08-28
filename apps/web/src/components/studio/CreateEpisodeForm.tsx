@@ -1,6 +1,6 @@
 'use client'
 
-import type { WorkType } from '@aidream/core'
+import type { EpisodeResponse, WorkType } from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -46,17 +46,19 @@ function previewFrameStyles(
 export function CreateEpisodeForm({
   availableAssets = [],
   onCreated,
+  preferredAssetId,
   seriesId,
   workType = 'SERIES',
 }: {
   readonly availableAssets?: readonly StudioAssetOption[]
-  readonly onCreated?: () => void
+  readonly onCreated?: (episode: EpisodeResponse) => void
+  readonly preferredAssetId?: string
   readonly seriesId: string
   readonly workType?: WorkType
 }): ReactNode {
   const router = useRouter()
   const [aiDisclosure, setAiDisclosure] = useState('')
-  const [selectedAssetId, setSelectedAssetId] = useState('')
+  const [selectedAssetId, setSelectedAssetId] = useState(preferredAssetId ?? '')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const episodic = workType === 'SERIES'
@@ -111,12 +113,13 @@ export function CreateEpisodeForm({
       setBusy(false)
       return
     }
+    const episode = (await response.json()) as EpisodeResponse
     form.reset()
     setSelectedAssetId('')
     setAiDisclosure('')
     setBusy(false)
     router.refresh()
-    onCreated?.()
+    onCreated?.(episode)
   }
 
   return (

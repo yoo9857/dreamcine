@@ -69,7 +69,7 @@ body.studio-modal-open {
 }
 .studio-create-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   padding: 0 26px;
   border-bottom: 1px solid var(--aidream-border-subtle);
 }
@@ -87,6 +87,10 @@ body.studio-modal-open {
 }
 .studio-create-tabs button[aria-current='step'] {
   color: var(--aidream-fg);
+}
+.studio-create-tabs button:disabled:not([aria-current='step']) {
+  cursor: default;
+  opacity: 0.42;
 }
 .studio-create-tabs button[aria-current='step']::after {
   position: absolute;
@@ -133,6 +137,10 @@ body.studio-modal-open {
   width: 22px;
   color: var(--aidream-success);
 }
+.studio-upload-inline-ready > div {
+  min-width: 0;
+  flex: 1;
+}
 .studio-upload-inline-ready strong,
 .studio-upload-inline-ready p {
   margin: 0;
@@ -141,6 +149,52 @@ body.studio-modal-open {
   margin-top: 2px;
   color: var(--aidream-fg-muted);
   font-size: 10px;
+}
+.studio-upload-inline-ready small {
+  display: block;
+  margin-top: 7px;
+  color: var(--aidream-danger);
+  font-size: 10px;
+}
+.studio-upload-inline-ready button {
+  margin-top: 12px;
+}
+.studio-registration-complete {
+  min-height: 430px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+.studio-registration-complete > svg {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 18px;
+  color: var(--aidream-success);
+}
+.studio-registration-complete > span {
+  color: var(--aidream-accent);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+.studio-registration-complete h3 {
+  margin: 7px 0 14px;
+  color: var(--aidream-fg);
+  font-size: 25px;
+  letter-spacing: -0.035em;
+}
+.studio-registration-complete > strong {
+  color: var(--aidream-fg-secondary);
+  font-size: 14px;
+}
+.studio-registration-complete p {
+  max-width: 460px;
+  margin: 8px 0 22px;
+  color: var(--aidream-fg-muted);
+  font-size: 11px;
+  line-height: 1.65;
 }
 
 .studio-series-page .studio-episode-form {
@@ -444,6 +498,13 @@ body.studio-modal-open {
   }
   .studio-create-tabs {
     padding-inline: 16px;
+  }
+  .studio-create-tabs button {
+    gap: 5px;
+    padding-inline: 5px;
+  }
+  .studio-create-tabs svg {
+    display: none;
   }
   .studio-series-page .studio-episode-form {
     grid-template-columns: 1fr;

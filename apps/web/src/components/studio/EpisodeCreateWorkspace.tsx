@@ -1,15 +1,17 @@
 'use client'
 
-import type { WorkType } from '@aidream/core'
+import type { EpisodeResponse, WorkType } from '@aidream/core'
 import { Button } from '@aidream/ui'
-import { Plus, UploadCloud, X } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Plus, UploadCloud, X } from 'lucide-react'
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 
-import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
 import { Uploader } from '@/src/components/upload/Uploader'
+import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
 
 import { CreateEpisodeForm } from './CreateEpisodeForm'
 import { OPEN_EPISODE_CREATOR } from './episode-create-events'
+
+type CreatorStep = 'UPLOAD' | 'DETAILS' | 'COMPLETE'
 
 export function EpisodeCreateWorkspace({
   availableAssets,
@@ -21,12 +23,24 @@ export function EpisodeCreateWorkspace({
   readonly workType: WorkType
 }): ReactNode {
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState<'UPLOAD' | 'DETAILS'>(
+  const [assets, setAssets] =
+    useState<readonly StudioAssetOption[]>(availableAssets)
+  const [tab, setTab] = useState<CreatorStep>(
     availableAssets.length === 0 ? 'UPLOAD' : 'DETAILS',
   )
+  const [preferredAssetId, setPreferredAssetId] = useState<string>()
+  const [createdEpisode, setCreatedEpisode] = useState<EpisodeResponse>()
   const episodic = workType === 'SERIES'
+
+  useEffect(() => {
+    setAssets(availableAssets)
+  }, [availableAssets])
+
   const close = useCallback((): void => {
     setOpen(false)
+    setCreatedEpisode(undefined)
+    setPreferredAssetId(undefined)
+    setTab(assets.length === 0 ? 'UPLOAD' : 'DETAILS')
     if (window.location.hash === '#new-episode') {
       window.history.replaceState(
         null,
@@ -34,7 +48,21 @@ export function EpisodeCreateWorkspace({
         `${window.location.pathname}#episodes`,
       )
     }
-  }, [])
+  }, [assets.length])
+
+  const openUploadedAsset = async (assetId: string): Promise<void> => {
+    const response = await fetch('/api/studio/assets/available', {
+      cache: 'no-store',
+    })
+    if (!response.ok) throw new Error('asset-sync-failed')
+    const nextAssets = (await response.json()) as StudioAssetOption[]
+    if (!nextAssets.some((asset) => asset.id === assetId)) {
+      throw new Error('uploaded-asset-missing')
+    }
+    setAssets(nextAssets)
+    setPreferredAssetId(assetId)
+    setTab('DETAILS')
+  }
 
   useEffect(() => {
     const show = (): void => {
@@ -95,7 +123,7 @@ export function EpisodeCreateWorkspace({
                 <h2 id="studio-create-title">
                   {episodic ? '새 회차 만들기' : '새 영상 연결하기'}
                 </h2>
-                <p>업로드부터 작품 연결까지 이 화면에서 완료합니다.</p>
+                <p>업로드부터 작품 연결 확인까지 이 화면에서 완료합니다.</p>
               </div>
               <button
                 type="button"
@@ -111,6 +139,7 @@ export function EpisodeCreateWorkspace({
               <button
                 type="button"
                 aria-current={tab === 'UPLOAD' ? 'step' : undefined}
+                disabled={tab === 'COMPLETE'}
                 onClick={() => {
                   setTab('UPLOAD')
                 }}
@@ -123,6 +152,7 @@ export function EpisodeCreateWorkspace({
               <button
                 type="button"
                 aria-current={tab === 'DETAILS' ? 'step' : undefined}
+                disabled={tab === 'COMPLETE'}
                 onClick={() => {
                   setTab('DETAILS')
                 }}
@@ -133,22 +163,47 @@ export function EpisodeCreateWorkspace({
                   {episodic ? '회차 정보' : '영상 정보'}
                 </span>
               </button>
+              <button
+                type="button"
+                aria-current={tab === 'COMPLETE' ? 'step' : undefined}
+                disabled={tab !== 'COMPLETE'}
+              >
+                <CheckCircle2 aria-hidden="true" />
+                <span>
+                  <small>STEP 3</small>등록 완료
+                </span>
+              </button>
             </nav>
             <div className="studio-create-workspace-body">
               {tab === 'UPLOAD' ? (
-                <Uploader
-                  context="episode"
-                  onReady={() => {
-                    setTab('DETAILS')
-                  }}
-                />
-              ) : (
+                <Uploader context="episode" onReady={openUploadedAsset} />
+              ) : tab === 'DETAILS' ? (
                 <CreateEpisodeForm
-                  availableAssets={availableAssets}
-                  onCreated={close}
+                  availableAssets={assets}
+                  onCreated={(episode) => {
+                    setCreatedEpisode(episode)
+                    setTab('COMPLETE')
+                  }}
+                  {...(preferredAssetId === undefined
+                    ? {}
+                    : { preferredAssetId })}
                   seriesId={seriesId}
                   workType={workType}
                 />
+              ) : (
+                <section className="studio-registration-complete" role="status">
+                  <CheckCircle2 aria-hidden="true" />
+                  <span>REGISTRATION COMPLETE</span>
+                  <h3>영상 등록이 완료되었습니다</h3>
+                  <strong>{createdEpisode?.title}</strong>
+                  <p>
+                    작품의 콘텐츠 목록에 초안으로 안전하게 저장했습니다.
+                    목록에서 공개·예약·수정 상태를 이어서 관리할 수 있습니다.
+                  </p>
+                  <Button type="button" onClick={close}>
+                    등록된 영상 확인 <ArrowRight aria-hidden="true" />
+                  </Button>
+                </section>
               )}
             </div>
           </section>
