@@ -25,9 +25,13 @@ vi.mock('next/navigation', () => ({
 }))
 
 const user = {
+  id: 'user_hanbin',
   handle: 'hanbin',
   displayName: '한빈',
   email: 'hanbin@example.com',
+  role: 'CREATOR',
+  status: 'ACTIVE',
+  emailVerified: true,
   tier: 'GOLD',
   isVerified: true,
 } as const
@@ -58,6 +62,21 @@ describe('BrowseAccountMenu', () => {
     expect(
       screen.getByRole('menuitem', { name: /고객센터/u }).getAttribute('href'),
     ).toContain('mailto:support@ilog.kr')
+    expect(
+      screen.queryByRole('menuitem', { name: /관리자 페이지/u }),
+    ).toBeNull()
+  })
+
+  it('places the admin dashboard directly after support for administrators', () => {
+    render(<BrowseAccountMenu user={{ ...user, role: 'ADMIN' }} />)
+    fireEvent.click(screen.getByRole('button', { name: '한빈 계정 메뉴' }))
+
+    const support = screen.getByRole('menuitem', { name: /고객센터/u })
+    const admin = screen.getByRole('menuitem', { name: /관리자 페이지/u })
+    const items = screen.getAllByRole('menuitem')
+
+    expect(admin.getAttribute('href')).toBe('/admin')
+    expect(items.indexOf(admin)).toBe(items.indexOf(support) + 1)
   })
 
   it('closes with Escape and restores focus to the character button', () => {

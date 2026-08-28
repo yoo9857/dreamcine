@@ -288,6 +288,10 @@
   overflow: auto;
 }
 
+.ilog-signup-page .ilog-login-header {
+  position: absolute;
+}
+
 .ilog-signup-layout {
   grid-template-columns: minmax(500px, 0.94fr) minmax(520px, 1.06fr);
 }
@@ -482,7 +486,7 @@
 
 .ilog-signup-visual-copy {
   position: absolute;
-  top: clamp(76px, 11vh, 120px);
+  top: clamp(116px, 14vh, 148px);
   left: clamp(34px, 5vw, 76px);
   z-index: 4;
 }
@@ -557,6 +561,150 @@
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 22px;
   background: rgb(14 18 21 / 78%);
+}
+
+/* Keep every signup step visible on common 768px-tall laptops. */
+@media (min-width: 981px) and (max-height: 820px) {
+  .ilog-signup-page .ilog-login-header {
+    min-height: calc(70px + env(safe-area-inset-top));
+  }
+
+  .ilog-signup-page .ilog-login-brand img {
+    width: 122px;
+  }
+
+  .ilog-signup-page .ilog-login-form-panel {
+    padding: 72px clamp(34px, 5vw, 72px) 14px;
+  }
+
+  .ilog-signup-form-shell {
+    width: min(100%, 450px);
+  }
+
+  .ilog-signup-form > div {
+    gap: 0.62rem;
+  }
+
+  .ilog-signup-form .ilog-login-form-heading > span {
+    margin-bottom: 6px;
+  }
+
+  .ilog-signup-form .ilog-login-form-heading h1 {
+    font-size: 36px;
+  }
+
+  .ilog-signup-form .ilog-login-form-heading p {
+    margin-top: 7px;
+    font-size: 12px;
+  }
+
+  .ilog-signup-progress {
+    gap: 6px;
+  }
+
+  .ilog-signup-progress::before {
+    top: 13px;
+  }
+
+  .ilog-signup-progress > div {
+    gap: 3px;
+  }
+
+  .ilog-signup-progress span {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+
+  .ilog-signup-progress small {
+    font-size: 9px;
+  }
+
+  .ilog-signup-step-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ilog-signup-step-status + div {
+    gap: 0.58rem;
+  }
+
+  .ilog-signup-section-heading {
+    gap: 3px;
+    padding: 8px 11px;
+  }
+
+  .ilog-signup-section-heading strong {
+    font-size: 12px;
+  }
+
+  .ilog-signup-section-heading span {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .ilog-signup-form .ilog-login-input {
+    height: 43px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+
+  .ilog-signup-form .ilog-login-input + p {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .ilog-signup-form .ilog-login-input ~ p {
+    margin-top: 0;
+  }
+
+  .ilog-signup-navigation {
+    gap: 8px;
+  }
+
+  .ilog-signup-form .ilog-login-submit,
+  .ilog-signup-navigation button {
+    min-height: 43px;
+    height: 43px;
+    font-size: 13px;
+  }
+
+  .ilog-signup-form .ilog-login-divider {
+    font-size: 10px;
+  }
+
+  .ilog-signup-form .ilog-login-signup-link {
+    min-height: 41px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  .ilog-signup-visual {
+    margin: 10px;
+    border-radius: 24px;
+  }
+
+  .ilog-signup-visual-copy {
+    top: 116px;
+  }
+
+  .ilog-signup-visual-copy h2 {
+    margin-top: 10px;
+    font-size: clamp(36px, 4vw, 56px);
+  }
+
+  .ilog-signup-visual-copy p {
+    margin-top: 11px;
+  }
+
+  .ilog-signup-poster-stack {
+    bottom: 28px;
+    height: min(43vh, 330px);
+  }
 }
 
 .ilog-verification-waiting {

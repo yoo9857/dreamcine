@@ -75,11 +75,11 @@ export const TIER_LADDER: readonly MemberTier[] = [
 ]
 
 export const TIER_LABELS: Readonly<Record<MemberTier, string>> = {
-  BRONZE: '브론즈',
-  SILVER: '실버',
-  GOLD: '골드',
-  PLATINUM: '플래티넘',
-  DIAMOND: '다이아몬드',
+  BRONZE: 'BRONZE',
+  SILVER: 'SILVER',
+  GOLD: 'GOLD',
+  PLATINUM: 'PLATINUM',
+  DIAMOND: 'DIAMOND',
 }
 
 export interface TierActivity {

@@ -32,13 +32,13 @@ describe('UserBadges', () => {
 
   it('DIAMOND 는 등급 이름을 보여준다', () => {
     render(<UserBadges user={publicUserFixture({ tier: 'DIAMOND' })} />)
-    expect(screen.getByText('다이아몬드')).toBeTruthy()
+    expect(screen.getByText('DIAMOND')).toBeTruthy()
   })
 
   it('compact 는 이름을 접근성 레이블로만 남긴다', () => {
     render(<UserBadges user={publicUserFixture({ tier: 'GOLD' })} compact />)
-    expect(screen.queryByText('골드')).toBeNull()
-    expect(screen.getByLabelText('골드 등급')).toBeTruthy()
+    expect(screen.queryByText('GOLD')).toBeNull()
+    expect(screen.getByLabelText('GOLD 등급')).toBeTruthy()
   })
 })
 
@@ -55,7 +55,7 @@ describe('UserTierLine', () => {
     )
     const link = screen.getByRole('link', { name: '한빈' })
     expect(link.getAttribute('href')).toBe('/u/hanbin')
-    expect(screen.getByText('플래티넘')).toBeTruthy()
+    expect(screen.getByText('PLATINUM')).toBeTruthy()
   })
 
   it('link=false 면 링크를 만들지 않는다', () => {

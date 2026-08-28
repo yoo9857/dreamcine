@@ -193,6 +193,12 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
         }
       }
     }
+    const onReady = (): void => {
+      patch({
+        status: video.ended ? 'ended' : video.paused ? 'paused' : 'playing',
+      })
+      sync()
+    }
     const handlers: readonly [string, EventListener][] = [
       [
         'loadstart',
@@ -206,6 +212,8 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
           patch({ status: 'playing' })
         },
       ],
+      ['loadeddata', onReady],
+      ['canplay', onReady],
       [
         'pause',
         () => {
@@ -215,7 +223,7 @@ export function usePlayer(video: HTMLVideoElement | null): PlayerController {
       [
         'waiting',
         () => {
-          patch({ status: 'buffering' })
+          patch({ status: video.paused ? 'paused' : 'buffering' })
         },
       ],
       [

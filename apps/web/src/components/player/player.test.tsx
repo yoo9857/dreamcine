@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AgeGate } from '../AgeGate'
 import { HlsPlayer } from './HlsPlayer'
@@ -58,6 +65,10 @@ beforeEach(() => {
   vi.restoreAllMocks()
 })
 
+afterEach(() => {
+  cleanup()
+})
+
 describe('PlayerControls', () => {
   it('exposes accessible playback, seek, sound, quality, and fullscreen controls', () => {
     const toggle = vi.fn()
@@ -91,6 +102,52 @@ describe('PlayerControls', () => {
 })
 
 describe('HlsPlayer', () => {
+  it('replaces the initial loader with play controls when media is ready', async () => {
+    render(
+      <HlsPlayer
+        masterUrl="https://cdn.example.com/master.m3u8"
+        startAtSec={0}
+        durationSec={120}
+        onProgress={vi.fn()}
+        onWatchedSeconds={vi.fn()}
+        onEnded={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    const video = await screen.findByLabelText('에피소드 동영상')
+
+    fireEvent.loadStart(video)
+    expect(screen.getByLabelText('영상을 불러오는 중')).toBeDefined()
+
+    fireEvent.canPlay(video)
+    await waitFor(() => {
+      expect(screen.queryByLabelText('영상을 불러오는 중')).toBeNull()
+    })
+    expect(screen.getAllByRole('button', { name: '재생' })).toHaveLength(2)
+  })
+
+  it('does not report buffering while media is intentionally paused', async () => {
+    render(
+      <HlsPlayer
+        masterUrl="https://cdn.example.com/master.m3u8"
+        startAtSec={0}
+        durationSec={120}
+        onProgress={vi.fn()}
+        onWatchedSeconds={vi.fn()}
+        onEnded={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    const video = await screen.findByLabelText('에피소드 동영상')
+
+    fireEvent.loadStart(video)
+    fireEvent.waiting(video)
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('영상을 불러오는 중')).toBeNull()
+    })
+  })
+
   it('uses native HLS on Safari without creating hls.js', async () => {
     MockHls.supported = false
     vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('maybe')

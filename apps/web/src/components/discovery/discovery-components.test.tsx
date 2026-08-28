@@ -94,4 +94,22 @@ describe('discovery home controls', () => {
     expect(fetchMock).not.toHaveBeenCalled()
     expect(container.querySelector('video')).toBeNull()
   })
+
+  it('loads the primary landing video on a constrained viewport', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query === '(max-width: 767px)',
+      })),
+    )
+    const fetchMock = vi.fn().mockReturnValue(new Promise(() => undefined))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<DiscoveryBackdrop episodeId="episode_1" loadOnMobile />)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/episodes/episode_1/playback',
+      expect.objectContaining({ credentials: 'same-origin' }),
+    )
+  })
 })

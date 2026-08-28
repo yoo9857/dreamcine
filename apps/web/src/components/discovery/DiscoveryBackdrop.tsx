@@ -6,8 +6,10 @@ import React, { useEffect, useRef, useState, type ReactNode } from 'react'
 
 export function DiscoveryBackdrop({
   episodeId,
+  loadOnMobile = false,
 }: {
   readonly episodeId: string
+  readonly loadOnMobile?: boolean
 }): ReactNode {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [masterUrl, setMasterUrl] = useState<string | null>(null)
@@ -21,7 +23,7 @@ export function DiscoveryBackdrop({
 
     // The backdrop is decorative. On small screens, loading HLS alongside the
     // priority hero image delays the useful first paint and spends mobile data.
-    if (reduceMotion || constrainedViewport) return
+    if (reduceMotion || (constrainedViewport && !loadOnMobile)) return
 
     const controller = new AbortController()
     void fetch(`/api/episodes/${episodeId}/playback`, {
@@ -40,7 +42,7 @@ export function DiscoveryBackdrop({
     return () => {
       controller.abort()
     }
-  }, [episodeId])
+  }, [episodeId, loadOnMobile])
 
   useEffect(() => {
     const video = videoRef.current

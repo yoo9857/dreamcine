@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Clapperboard, Compass, Heart } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -5,9 +6,10 @@ import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
+import { DiscoveryBackdrop } from '@/src/components/discovery/DiscoveryBackdrop'
 import { GuestCoverflow } from '@/src/components/discovery/GuestCoverflow'
 import { IndustryPerspectives } from '@/src/components/discovery/IndustryPerspectives'
-import { CinematicHeroMotion } from '@/src/components/motion/CinematicHeroMotion'
+import { getFeed } from '@/src/services/feed/get-feed'
 
 const landingPreviewItems = [
   {
@@ -51,20 +53,52 @@ const landingPreviewItems = [
  * 비회원 공개 랜딩은 `/` 하나만 유지한다. 검수용 또는 캠페인용 화면도 별도
  * 랜딩 라우트로 복제하지 않고 이 컴포넌트의 섹션으로 통합한다.
  */
-function GuestLanding(): ReactNode {
+interface LandingHero {
+  readonly episodeId: string
+  readonly thumbUrl: string | null
+}
+
+async function getLandingHero(): Promise<LandingHero | null> {
+  if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
+    return null
+  }
+
+  try {
+    const page = await getFeed({ type: 'popular', limit: 1 }, null)
+    const lead = page.items[0]
+    return lead === undefined
+      ? null
+      : { episodeId: lead.episodeId, thumbUrl: lead.thumbUrl }
+  } catch {
+    // The landing page must remain available during a media or database outage.
+    return null
+  }
+}
+
+function GuestLanding({
+  hero,
+}: {
+  readonly hero: LandingHero | null
+}): ReactNode {
   return (
     <div className="guest-landing-content" id="guest-top">
-      <section
-        className="guest-hero"
-        aria-labelledby="guest-title"
-        data-cinematic-hero
-      >
-        <CinematicHeroMotion
-          chapter="01 / PREMIERE"
-          label="STORIES BEYOND THE FRAME"
-          tone="lime"
-        />
-        <div className="guest-hero-art" aria-hidden="true" />
+      <section className="guest-hero" aria-labelledby="guest-title">
+        {hero?.thumbUrl === null || hero === null ? (
+          <div className="guest-hero-art" aria-hidden="true" />
+        ) : (
+          <Image
+            src={hero.thumbUrl}
+            alt=""
+            fill
+            priority
+            unoptimized
+            sizes="100vw"
+            className="guest-hero-image"
+          />
+        )}
+        {hero === null ? null : (
+          <DiscoveryBackdrop episodeId={hero.episodeId} loadOnMobile />
+        )}
         <div className="guest-hero-shade" />
         <header className="guest-header">
           <Link href="/" className="guest-wordmark" aria-label="ilog 홈">
@@ -94,7 +128,6 @@ function GuestLanding(): ReactNode {
             <Link href="/login">이미 계정이 있어요</Link>
           </div>
           <small>가입은 무료이며 언제든 바로 시작할 수 있습니다.</small>
-          <div className="guest-hero-beams" aria-hidden="true" />
         </div>
       </section>
 
@@ -227,9 +260,11 @@ export default async function HomePage(): Promise<ReactNode> {
     redirect('/browse')
   }
 
+  const hero = await getLandingHero()
+
   return (
     <div className="guest-landing">
-      <GuestLanding />
+      <GuestLanding hero={hero} />
     </div>
   )
 }

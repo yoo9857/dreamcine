@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
-import { FeedSkeleton } from '@/src/components/feed/FeedSkeleton'
+import { AppRouteLoading } from '@/src/components/layout/AppRouteLoading'
 
 export default function Loading(): ReactNode {
-  return <FeedSkeleton count={8} />
+  return <AppRouteLoading />
 }

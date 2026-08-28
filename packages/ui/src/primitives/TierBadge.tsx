@@ -29,10 +29,77 @@ const TIER_STYLE: Readonly<Record<Exclude<MemberTier, 'BRONZE'>, string>> = {
 }
 
 const DOT_STYLE: Readonly<Record<Exclude<MemberTier, 'BRONZE'>, string>> = {
-  SILVER: 'bg-tier-silver',
-  GOLD: 'bg-tier-gold',
-  PLATINUM: 'bg-tier-platinum',
-  DIAMOND: 'bg-tier-diamond',
+  SILVER: 'text-tier-silver',
+  GOLD: 'text-tier-gold',
+  PLATINUM: 'text-tier-platinum',
+  DIAMOND: 'text-tier-diamond',
+}
+
+function TierMark({
+  tier,
+  labelled = false,
+}: {
+  readonly tier: Exclude<MemberTier, 'BRONZE'>
+  readonly labelled?: boolean
+}): ReactNode {
+  const label = `${TIER_LABELS[tier]} 등급`
+
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className={cn('size-3 shrink-0', DOT_STYLE[tier])}
+      fill="none"
+      aria-hidden={labelled ? undefined : true}
+      aria-label={labelled ? label : undefined}
+      role={labelled ? 'img' : undefined}
+    >
+      {tier === 'SILVER' ? (
+        <>
+          <circle
+            cx="8"
+            cy="8"
+            r="5.25"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M5 10.5 10.5 5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </>
+      ) : null}
+      {tier === 'GOLD' ? (
+        <path
+          d="m8 1.8 1.45 4.75L14.2 8l-4.75 1.45L8 14.2 6.55 9.45 1.8 8l4.75-1.45L8 1.8Z"
+          fill="currentColor"
+        />
+      ) : null}
+      {tier === 'PLATINUM' ? (
+        <path
+          d="M8 1.75 13.4 4.9v6.2L8 14.25 2.6 11.1V4.9L8 1.75Zm0 2.1L4.45 5.92v4.16L8 12.15l3.55-2.07V5.92L8 3.85Z"
+          fill="currentColor"
+        />
+      ) : null}
+      {tier === 'DIAMOND' ? (
+        <>
+          <path
+            d="m2.1 6.15 2.25-3h7.3l2.25 3L8 13.35 2.1 6.15Z"
+            stroke="currentColor"
+            strokeWidth="1.25"
+            strokeLinejoin="round"
+          />
+          <path
+            d="m4.35 3.15 1.4 3L8 13.35l2.25-7.2 1.4-3M2.1 6.15h11.8"
+            stroke="currentColor"
+            strokeWidth="1.05"
+            strokeLinejoin="round"
+          />
+        </>
+      ) : null}
+    </svg>
+  )
 }
 
 /**
@@ -70,15 +137,15 @@ export function TierBadge({
     return (
       <span
         className={cn(
-          'inline-block size-2 shrink-0 rounded-full',
-          DOT_STYLE[tier],
+          'inline-grid size-4 shrink-0 place-items-center rounded-full border',
+          TIER_STYLE[tier],
           className,
         )}
-        role="img"
-        aria-label={`${label} 등급`}
         title={`${label} 등급`}
         {...rest}
-      />
+      >
+        <TierMark tier={tier} labelled />
+      </span>
     )
   }
 
@@ -93,7 +160,7 @@ export function TierBadge({
       title={`${label} 등급`}
       {...rest}
     >
-      <span className={cn('size-1.5 rounded-full', DOT_STYLE[tier])} />
+      <TierMark tier={tier} />
       {label}
     </span>
   )

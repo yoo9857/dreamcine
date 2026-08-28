@@ -1,12 +1,18 @@
 'use client'
 
-import type { MemberTier } from '@aidream/core'
+import {
+  can,
+  type MemberTier,
+  type UserRole,
+  type UserStatus,
+} from '@aidream/core'
 import { TierBadge } from '@aidream/ui'
 import {
   BadgeCheck,
   CircleHelp,
   LogOut,
   Settings,
+  ShieldCheck,
   Sparkles,
   UserRound,
 } from 'lucide-react'
@@ -17,9 +23,13 @@ import React, { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface BrowseAccountMenuProps {
   readonly user: {
+    readonly id: string
     readonly handle: string
     readonly displayName: string
     readonly email: string
+    readonly role: UserRole
+    readonly status: UserStatus
+    readonly emailVerified: boolean
     readonly tier: MemberTier
     readonly isVerified: boolean
   }
@@ -105,6 +115,15 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
   }
 
   const initial = user.displayName.trim().slice(0, 1).toLocaleUpperCase()
+  const hasAdminAccess = can(
+    {
+      id: user.id,
+      role: user.role,
+      status: user.status,
+      emailVerified: user.emailVerified,
+    },
+    'report.review',
+  )
 
   return (
     <div className="browse-account" ref={rootRef}>
@@ -231,6 +250,22 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               </span>
               <b aria-hidden="true">↗</b>
             </a>
+            {hasAdminAccess ? (
+              <Link
+                href="/admin"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
+                <ShieldCheck aria-hidden="true" />
+                <span>
+                  <strong>관리자 페이지</strong>
+                  <small>서비스 운영 대시보드</small>
+                </span>
+                <b aria-hidden="true">→</b>
+              </Link>
+            ) : null}
           </div>
 
           <button

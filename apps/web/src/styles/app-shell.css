@@ -16,6 +16,47 @@
   min-height: 100dvh;
 }
 
+.main-route-loading {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  color: #7f8d97;
+  background: #07131a;
+}
+
+.main-route-loading > span {
+  width: 28px;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 10%);
+}
+
+.main-route-loading > span::after {
+  width: 50%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  content: '';
+  background: #ff3030;
+  animation: main-route-loading 900ms ease-in-out infinite alternate;
+}
+
+.main-route-loading > p {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@keyframes main-route-loading {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 .aidream-route-view:not(.is-discovery-home) {
   width: min(100%, 80rem);
   margin-inline: auto;

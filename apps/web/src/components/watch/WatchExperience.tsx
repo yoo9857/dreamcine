@@ -3,6 +3,7 @@ import type { PublicUserSummary } from '@aidream/core'
 import {
   ArrowUpRight,
   Clock3,
+  Compass,
   Eye,
   Maximize,
   PictureInPicture2,
@@ -94,6 +95,29 @@ function LongCard({
         <Eye /> 조회 {count(item.viewCount)} · 좋아요 {count(item.likeCount)}
       </small>
     </Link>
+  )
+}
+
+function RecommendationEmpty({
+  compact = false,
+}: {
+  readonly compact?: boolean
+}): ReactNode {
+  return (
+    <div
+      className={`watch-recommendation-empty${compact ? ' is-compact' : ''}`}
+    >
+      <span>
+        <Compass aria-hidden="true" />
+      </span>
+      <div>
+        <strong>새로운 작품을 찾고 있어요</strong>
+        <p>공개되는 다음 이야기를 작품 탐색에서 먼저 만나보세요.</p>
+      </div>
+      <Link href="/works">
+        작품 둘러보기 <ArrowUpRight aria-hidden="true" />
+      </Link>
+    </div>
   )
 }
 
@@ -254,9 +278,15 @@ export function WatchExperience({
               <Link href="/works">전체 보기</Link>
             </header>
             <div>
-              {shortItems.slice(0, 3).map((item, index) => (
-                <ShortCard item={item} index={index} key={item.episodeId} />
-              ))}
+              {shortItems.length === 0 ? (
+                <RecommendationEmpty compact />
+              ) : (
+                shortItems
+                  .slice(0, 3)
+                  .map((item, index) => (
+                    <ShortCard item={item} index={index} key={item.episodeId} />
+                  ))
+              )}
             </div>
           </section>
         </aside>
@@ -274,9 +304,15 @@ export function WatchExperience({
           </Link>
         </header>
         <div className="watch-long-grid">
-          {longItems.slice(0, 6).map((item, index) => (
-            <LongCard item={item} index={index} key={item.episodeId} />
-          ))}
+          {longItems.length === 0 ? (
+            <RecommendationEmpty />
+          ) : (
+            longItems
+              .slice(0, 6)
+              .map((item, index) => (
+                <LongCard item={item} index={index} key={item.episodeId} />
+              ))
+          )}
         </div>
       </section>
     </main>

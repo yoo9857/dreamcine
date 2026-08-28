@@ -5,7 +5,6 @@ import { Suspense, type ReactNode } from 'react'
 import type { FeedItem } from '@aidream/core'
 
 import type { RouteSession } from '@/src/auth/types'
-import { FeedSkeleton } from '@/src/components/feed/FeedSkeleton'
 import { getFeed } from '@/src/services/feed/get-feed'
 import { getSeries } from '@/src/services/series/get-series'
 
@@ -62,7 +61,6 @@ function DiscoveryFallback(): ReactNode {
           ilog.
         </h1>
       </div>
-      <FeedSkeleton count={3} />
     </div>
   )
 }
