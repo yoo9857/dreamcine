@@ -2,11 +2,23 @@
 
 import type { EpisodeResponse } from '@aidream/core'
 import { Badge, Button, EmptyState } from '@aidream/ui'
-import { Clapperboard, Edit3, Eye, Heart, MessageCircle } from 'lucide-react'
+import {
+  BarChart3,
+  Clapperboard,
+  Edit3,
+  Eye,
+  Heart,
+  MessageCircle,
+  Search,
+} from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { useState, type ReactNode } from 'react'
+import React, { useMemo, useState, type ReactNode } from 'react'
 
-import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
+import type {
+  StudioAssetOption,
+  StudioEpisodeAnalytics,
+} from '@/src/services/studio/get-studio-dashboard'
 
 import { EditEpisodeForm } from './EditEpisodeForm'
 
@@ -21,14 +33,52 @@ const STATUS = {
 export function EpisodeTable({
   availableAssets = [],
   episodes,
+  structure = [],
 }: {
   readonly availableAssets?: readonly StudioAssetOption[]
   readonly episodes: readonly EpisodeResponse[]
+  readonly structure?: readonly StudioEpisodeAnalytics[]
 }): ReactNode {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<
+    'ALL' | EpisodeResponse['status']
+  >('ALL')
+  const [seasonFilter, setSeasonFilter] = useState('ALL')
+  const structureById = useMemo(
+    () => new Map(structure.map((item) => [item.id, item])),
+    [structure],
+  )
+  const seasons = useMemo(
+    () =>
+      [...new Set(structure.flatMap((item) => item.seasonNumber ?? []))].sort(
+        (left, right) => left - right,
+      ),
+    [structure],
+  )
+  const visibleEpisodes = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase('ko-KR')
+    return [...episodes]
+      .filter((episode) => {
+        const meta = structureById.get(episode.id)
+        return (
+          (statusFilter === 'ALL' || episode.status === statusFilter) &&
+          (seasonFilter === 'ALL' ||
+            String(meta?.seasonNumber ?? 1) === seasonFilter) &&
+          (normalized === '' ||
+            episode.title.toLocaleLowerCase('ko-KR').includes(normalized) ||
+            String(episode.number) === normalized)
+        )
+      })
+      .sort((left, right) => {
+        const leftSeason = structureById.get(left.id)?.seasonNumber ?? 1
+        const rightSeason = structureById.get(right.id)?.seasonNumber ?? 1
+        return leftSeason - rightSeason || left.number - right.number
+      })
+  }, [episodes, query, seasonFilter, statusFilter, structureById])
 
   if (episodes.length === 0) {
     return (
@@ -100,6 +150,56 @@ export function EpisodeTable({
           {error}
         </p>
       )}
+      <div className="studio-episode-toolbar">
+        <label className="studio-episode-search">
+          <Search aria-hidden="true" />
+          <span className="sr-only">회차 검색</span>
+          <input
+            type="search"
+            value={query}
+            placeholder="제목 또는 회차 검색"
+            onChange={(event) => {
+              setQuery(event.currentTarget.value)
+            }}
+          />
+        </label>
+        <label>
+          <span>시즌</span>
+          <select
+            value={seasonFilter}
+            onChange={(event) => {
+              setSeasonFilter(event.currentTarget.value)
+            }}
+          >
+            <option value="ALL">전체 시즌</option>
+            {seasons.map((season) => (
+              <option key={season} value={String(season)}>
+                시즌 {season}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>상태</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(
+                event.currentTarget.value as 'ALL' | EpisodeResponse['status'],
+              )
+            }}
+          >
+            <option value="ALL">전체 상태</option>
+            <option value="DRAFT">초안</option>
+            <option value="SCHEDULED">예약</option>
+            <option value="PUBLISHED">공개</option>
+            <option value="HIDDEN">숨김</option>
+          </select>
+        </label>
+        <span>
+          전체 {episodes.length}개 · 표시 {visibleEpisodes.length}개
+        </span>
+      </div>
       <div className="studio-table-scroll">
         <table className="studio-episode-table">
           <thead>
@@ -112,9 +212,10 @@ export function EpisodeTable({
             </tr>
           </thead>
           <tbody>
-            {episodes.map((episode) => {
+            {visibleEpisodes.map((episode) => {
               const status = STATUS[episode.status]
               const busy = busyId === episode.id
+              const episodeStructure = structureById.get(episode.id)
               return (
                 <React.Fragment key={episode.id}>
                   <tr>
@@ -130,6 +231,7 @@ export function EpisodeTable({
                         <span>
                           <strong>{episode.title}</strong>
                           <small>
+                            시즌 {episodeStructure?.seasonNumber ?? 1} ·{' '}
                             {episode.number}화 · {episode.ageRating}
                           </small>
                         </span>
@@ -163,18 +265,26 @@ export function EpisodeTable({
                     <td>
                       <div className="studio-episode-actions">
                         {episode.status === 'REMOVED' ? null : (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={busy}
-                            onClick={() => {
-                              setEditingId(
-                                editingId === episode.id ? null : episode.id,
-                              )
-                            }}
-                          >
-                            <Edit3 aria-hidden="true" /> 수정
-                          </Button>
+                          <>
+                            <Link
+                              href={`/studio/series/${episode.seriesId}/episodes/${episode.id}`}
+                              className="studio-episode-data-link"
+                            >
+                              <BarChart3 aria-hidden="true" /> 데이터
+                            </Link>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={busy}
+                              onClick={() => {
+                                setEditingId(
+                                  editingId === episode.id ? null : episode.id,
+                                )
+                              }}
+                            >
+                              <Edit3 aria-hidden="true" /> 수정
+                            </Button>
+                          </>
                         )}
                         {episode.status === 'DRAFT' ? (
                           <>
@@ -260,6 +370,13 @@ export function EpisodeTable({
                 </React.Fragment>
               )
             })}
+            {visibleEpisodes.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="studio-episode-filter-empty">
+                  조건에 맞는 회차가 없습니다. 검색어나 필터를 변경해 주세요.
+                </td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>

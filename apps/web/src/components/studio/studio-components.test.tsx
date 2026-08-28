@@ -168,7 +168,7 @@ describe('EpisodeTable', () => {
         ]}
       />,
     )
-    expect(screen.getByText('초안')).toBeDefined()
+    expect(screen.getAllByText('초안').length).toBeGreaterThan(0)
     expect(screen.getAllByText('예약').length).toBeGreaterThan(0)
     expect(screen.getAllByText('공개').length).toBeGreaterThan(0)
     expect(screen.getAllByText('숨김').length).toBeGreaterThan(0)
@@ -185,6 +185,67 @@ describe('EpisodeTable', () => {
   it('renders an honest empty state', () => {
     render(<EpisodeTable episodes={[]} />)
     expect(screen.getByText('아직 에피소드가 없습니다')).toBeDefined()
+  })
+
+  it('filters a series library by season and keeps per-episode data access', () => {
+    render(
+      <EpisodeTable
+        episodes={[
+          EPISODE,
+          { ...EPISODE, id: 'episode_2', number: 2, title: '두 번째 꿈' },
+        ]}
+        structure={[
+          {
+            id: 'episode_1',
+            title: '첫 번째 꿈',
+            number: 1,
+            status: 'DRAFT',
+            seasonNumber: 1,
+            seasonTitle: null,
+            thumbKey: null,
+            thumbUrl: null,
+            durationSec: 60,
+            viewCount: '0',
+            impressionCount: '0',
+            likeCount: 0,
+            commentCount: 0,
+            shareCount: 0,
+            avgWatchSec: 0,
+            uniqueViewers: 0,
+            completedViewers: 0,
+            publishedAt: null,
+            updatedAt: '2026-08-25T00:00:00.000Z',
+          },
+          {
+            id: 'episode_2',
+            title: '두 번째 꿈',
+            number: 2,
+            status: 'DRAFT',
+            seasonNumber: 2,
+            seasonTitle: null,
+            thumbKey: null,
+            thumbUrl: null,
+            durationSec: 60,
+            viewCount: '0',
+            impressionCount: '0',
+            likeCount: 0,
+            commentCount: 0,
+            shareCount: 0,
+            avgWatchSec: 0,
+            uniqueViewers: 0,
+            completedViewers: 0,
+            publishedAt: null,
+            updatedAt: '2026-08-25T00:00:00.000Z',
+          },
+        ]}
+      />,
+    )
+    fireEvent.change(screen.getByRole('combobox', { name: '시즌' }), {
+      target: { value: '2' },
+    })
+    expect(screen.queryByText('첫 번째 꿈')).toBeNull()
+    expect(screen.getByText('두 번째 꿈')).toBeDefined()
+    expect(screen.getByRole('link', { name: '데이터' })).toBeDefined()
   })
 
   it('edits episode metadata from the content table', async () => {

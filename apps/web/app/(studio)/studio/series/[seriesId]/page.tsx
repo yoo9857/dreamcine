@@ -67,32 +67,32 @@ export default async function StudioSeriesPage({
         </div>
       </header>
 
-      <section className="studio-series-section" id="performance">
-        <div className="studio-section-title-row">
-          <div>
-            <span>SERIES PERFORMANCE</span>
-            <h2>시리즈 콘텐츠 데이터</h2>
-            <p>전체 성과를 비교하고 개선할 에피소드를 빠르게 찾습니다.</p>
-          </div>
-        </div>
-        <SeriesPerformancePanel analytics={analytics} />
-      </section>
+      <nav className="studio-series-jump-nav" aria-label="시리즈 관리 메뉴">
+        <a href="#episodes">회차 관리</a>
+        <a href="#new-episode">새 에피소드</a>
+        <a href="#performance">콘텐츠 데이터</a>
+        <a href="#settings">작품 설정</a>
+      </nav>
 
-      <section className="studio-series-section">
+      <section className="studio-series-section" id="episodes">
         <div className="studio-section-title-row">
           <div>
             <span>EPISODE LIBRARY</span>
-            <h2>에피소드 관리</h2>
-            <p>공개·예약·숨김 상태와 콘텐츠 실적을 관리합니다.</p>
+            <h2>시즌·회차별 콘텐츠 관리</h2>
+            <p>시리즈에 속한 회차를 찾고 수정·공개·분석까지 관리합니다.</p>
           </div>
         </div>
         <EpisodeTable
           episodes={detail.episodes}
           availableAssets={availableAssets}
+          structure={analytics.episodes}
         />
       </section>
 
-      <section className="studio-series-section studio-create-episode">
+      <section
+        className="studio-series-section studio-create-episode"
+        id="new-episode"
+      >
         <div className="studio-section-title-row">
           <div>
             <span>NEW EPISODE</span>
@@ -106,6 +106,17 @@ export default async function StudioSeriesPage({
           seriesId={seriesId}
           availableAssets={availableAssets}
         />
+      </section>
+
+      <section className="studio-series-section" id="performance">
+        <div className="studio-section-title-row">
+          <div>
+            <span>SERIES PERFORMANCE</span>
+            <h2>시리즈 콘텐츠 데이터</h2>
+            <p>전체 성과를 비교하고 개선할 에피소드를 빠르게 찾습니다.</p>
+          </div>
+        </div>
+        <SeriesPerformancePanel analytics={analytics} />
       </section>
 
       <section className="studio-series-section" id="settings">
