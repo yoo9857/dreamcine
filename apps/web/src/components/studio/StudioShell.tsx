@@ -14,7 +14,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
+import React, { useEffect, useState } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 
@@ -36,7 +37,63 @@ export function StudioShell({
   readonly handle: string
 }): ReactNode {
   const pathname = usePathname()
+  const [activeHash, setActiveHash] = useState('')
   const initial = displayName.trim().slice(0, 1).toUpperCase() || 'I'
+
+  useEffect(() => {
+    let retryTimer: number | undefined
+    let attempts = 0
+
+    const syncHash = (): void => {
+      const hash = window.location.hash
+      setActiveHash(hash)
+      if (pathname !== '/studio' || hash === '') return
+
+      const target = document.getElementById(hash.slice(1))
+      if (target !== null) {
+        target.scrollIntoView({ block: 'start' })
+        return
+      }
+
+      // The server-rendered dashboard can arrive after the shared studio shell.
+      // Retry briefly so navigation from a nested studio route still lands on
+      // the requested section instead of stopping at the top of the page.
+      attempts += 1
+      if (attempts < 30) retryTimer = window.setTimeout(syncHash, 100)
+    }
+
+    syncHash()
+    window.addEventListener('hashchange', syncHash)
+    window.addEventListener('popstate', syncHash)
+    return () => {
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+      window.removeEventListener('hashchange', syncHash)
+      window.removeEventListener('popstate', syncHash)
+    }
+  }, [pathname])
+
+  const navigateToSection = (
+    event: MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ): void => {
+    if (pathname !== '/studio') return
+    const hashStart = href.indexOf('#')
+    if (hashStart < 0) return
+
+    const hash = href.slice(hashStart)
+    const target = document.getElementById(hash.slice(1))
+    if (target === null) return
+
+    event.preventDefault()
+    if (window.location.hash !== hash) window.history.pushState(null, '', href)
+    setActiveHash(hash)
+    target.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+      block: 'start',
+    })
+  }
 
   return (
     <div className="studio-shell">
@@ -50,13 +107,20 @@ export function StudioShell({
 
         <nav className="studio-nav" aria-label="스튜디오 메뉴">
           {NAVIGATION.map((item) => {
-            const active = !item.href.includes('#') && pathname === item.href
+            const hashStart = item.href.indexOf('#')
+            const itemHash = hashStart < 0 ? '' : item.href.slice(hashStart)
+            const active =
+              pathname === '/studio' &&
+              (itemHash === '' ? activeHash === '' : activeHash === itemHash)
             const Icon = item.icon
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
+                onClick={(event) => {
+                  navigateToSection(event, item.href)
+                }}
               >
                 <Icon aria-hidden="true" />
                 <span>{item.label}</span>

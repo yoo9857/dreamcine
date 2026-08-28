@@ -18,10 +18,15 @@ import { EpisodeTable } from './EpisodeTable'
 import { SeriesPerformancePanel } from './SeriesPerformancePanel'
 import { StudioMediaLibrary } from './StudioMediaLibrary'
 import { StudioSeriesTable } from './StudioSeriesTable'
+import { StudioShell } from './StudioShell'
 
 const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn() }))
+const navigation = vi.hoisted(() => ({ pathname: '/studio' }))
 
-vi.mock('next/navigation', () => ({ useRouter: () => router }))
+vi.mock('next/navigation', () => ({
+  usePathname: () => navigation.pathname,
+  useRouter: () => router,
+}))
 
 const EPISODE: EpisodeResponse = {
   id: 'episode_1',
@@ -62,10 +67,38 @@ beforeEach(() => {
   vi.restoreAllMocks()
   router.refresh.mockReset()
   router.push.mockReset()
+  navigation.pathname = '/studio'
+  window.history.replaceState(null, '', '/studio')
 })
 
 afterEach(() => {
   cleanup()
+})
+
+describe('StudioShell', () => {
+  it('scrolls reliably between dashboard sections on the same route', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+
+    render(
+      <StudioShell displayName="Hanbin" handle="hanbin9857">
+        <section id="analytics">Analytics</section>
+        <section id="content">Content</section>
+      </StudioShell>,
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: /콘텐츠/u }))
+    expect(window.location.hash).toBe('#content')
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'auto',
+      block: 'start',
+    })
+
+    scrollIntoView.mockClear()
+    fireEvent.click(screen.getByRole('link', { name: /콘텐츠/u }))
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('AiDisclosureField', () => {
