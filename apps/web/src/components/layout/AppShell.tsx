@@ -21,7 +21,7 @@ export function AppShell({
         홈의 제목과 피드 스켈레톤이 세션 확인을 기다리지 않게 한다.
         fallback은 비로그인 내비와 크기가 같아 게스트 첫 화면의 CLS도 늘리지 않는다.
       */}
-      <Suspense fallback={<MainNav session={null} />}>
+      <Suspense fallback={<MainNav session={null} pending />}>
         <SessionMainNav />
       </Suspense>
       <main className="aidream-main">

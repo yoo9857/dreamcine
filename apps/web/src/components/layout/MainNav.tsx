@@ -1,7 +1,7 @@
 import { can } from '@aidream/core'
 import { Button } from '@aidream/ui'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 
 import { actorFromSession } from '@/src/auth/actor'
 import type { RouteSession } from '@/src/auth/types'
@@ -10,8 +10,10 @@ import { NavigationLinks } from './NavigationLinks'
 
 export function MainNav({
   session,
+  pending = false,
 }: {
   readonly session: RouteSession | null
+  readonly pending?: boolean
 }): ReactNode {
   // "스튜디오" 진입점은 제작 권한이 있는 사람에게만 보인다. 역할 문자열을
   // 직접 비교하지 않는다 — PARTNER 가 생겼을 때 이 자리를 놓치면 파트너에게
@@ -28,13 +30,22 @@ export function MainNav({
         >
           <LeftBrandLogo />
         </Link>
-        <NavigationLinks
-          authenticated={session !== null}
-          creatorRegistered={creatorRegistered}
-        />
+        {pending ? (
+          <div className="aidream-nav-skeleton" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        ) : (
+          <NavigationLinks
+            authenticated={session !== null}
+            creatorRegistered={creatorRegistered}
+          />
+        )}
       </aside>
 
-      {session === null ? (
+      {session === null && !pending ? (
         <div className="aidream-session-actions">
           <>
             <Button asChild size="sm" variant="secondary">
@@ -47,11 +58,13 @@ export function MainNav({
         </div>
       ) : null}
 
-      <NavigationLinks
-        authenticated={session !== null}
-        creatorRegistered={creatorRegistered}
-        mobile
-      />
+      {pending ? null : (
+        <NavigationLinks
+          authenticated={session !== null}
+          creatorRegistered={creatorRegistered}
+          mobile
+        />
+      )}
     </>
   )
 }

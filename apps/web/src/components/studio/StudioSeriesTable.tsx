@@ -1,13 +1,15 @@
 'use client'
 
-import type { SeriesResponse } from '@aidream/core'
+import type { SeriesResponse, WorkType } from '@aidream/core'
 import { CheckCircle2, Film, Search, Settings2 } from 'lucide-react'
 import Link from 'next/link'
 import React, { useMemo, useState, type ReactNode } from 'react'
 
-import { workTypeLabel } from './work-types'
+import { WORK_TYPE_OPTIONS, workTypeLabel } from './work-types'
 
 type Filter = 'ALL' | 'ACTIVE' | 'EMPTY' | 'COMPLETED'
+type WorkTypeFilter = 'ALL' | WorkType
+type Sort = 'UPDATED' | 'VIEWS' | 'TITLE'
 
 function formatCount(value: string | number): string {
   try {
@@ -31,22 +33,44 @@ const FILTERS: readonly { label: string; value: Filter }[] = [
   { label: '완결', value: 'COMPLETED' },
 ]
 
+function compareViews(left: SeriesResponse, right: SeriesResponse): number {
+  const leftViews = BigInt(left.totalViews)
+  const rightViews = BigInt(right.totalViews)
+  if (leftViews === rightViews) return 0
+  return leftViews > rightViews ? -1 : 1
+}
+
 export function StudioSeriesTable({
   series,
+  advanced = false,
 }: {
   readonly series: readonly SeriesResponse[]
+  readonly advanced?: boolean
 }): ReactNode {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('ALL')
+  const [workType, setWorkType] = useState<WorkTypeFilter>('ALL')
+  const [sort, setSort] = useState<Sort>('UPDATED')
   const visible = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('ko-KR')
-    return series.filter(
+    const filtered = series.filter(
       (item) =>
         (filter === 'ALL' || seriesState(item) === filter) &&
+        (workType === 'ALL' || item.workType === workType) &&
         (normalized === '' ||
-          item.title.toLocaleLowerCase('ko-KR').includes(normalized)),
+          item.title.toLocaleLowerCase('ko-KR').includes(normalized) ||
+          (item.synopsis ?? '')
+            .toLocaleLowerCase('ko-KR')
+            .includes(normalized)),
     )
-  }, [filter, query, series])
+
+    return [...filtered].sort((left, right) => {
+      if (sort === 'VIEWS') return compareViews(left, right)
+      if (sort === 'TITLE')
+        return left.title.localeCompare(right.title, 'ko-KR')
+      return Date.parse(right.updatedAt) - Date.parse(left.updatedAt)
+    })
+  }, [filter, query, series, sort, workType])
 
   return (
     <div className="studio-content-panel">
@@ -57,7 +81,7 @@ export function StudioSeriesTable({
           <input
             type="search"
             value={query}
-            placeholder="작품(시리즈) 검색"
+            placeholder="제목 또는 작품 소개 검색"
             onChange={(event) => {
               setQuery(event.currentTarget.value)
             }}
@@ -79,20 +103,55 @@ export function StudioSeriesTable({
         </div>
       </div>
 
+      {advanced ? (
+        <div className="studio-library-controls">
+          <label>
+            <span>포맷</span>
+            <select
+              value={workType}
+              onChange={(event) => {
+                setWorkType(event.currentTarget.value as WorkTypeFilter)
+              }}
+            >
+              <option value="ALL">모든 포맷</option>
+              {WORK_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>정렬</span>
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.currentTarget.value as Sort)
+              }}
+            >
+              <option value="UPDATED">최근 수정순</option>
+              <option value="VIEWS">조회수순</option>
+              <option value="TITLE">제목순</option>
+            </select>
+          </label>
+          <strong>{visible.length}개 작품</strong>
+        </div>
+      ) : null}
+
       {visible.length === 0 ? (
         <div className="studio-table-empty">
           <Film aria-hidden="true" />
           <strong>조건에 맞는 작품이 없습니다</strong>
-          <p>검색어나 상태 필터를 변경해 보세요.</p>
+          <p>검색어나 상태·포맷 필터를 변경해 보세요.</p>
         </div>
       ) : (
         <div className="studio-table-scroll">
           <table className="studio-content-table">
             <thead>
               <tr>
-                <th>작품(시리즈)</th>
+                <th>작품</th>
                 <th>상태</th>
-                <th>회차</th>
+                <th>영상·회차</th>
                 <th>누적 조회수</th>
                 <th>최근 수정</th>
                 <th>
@@ -123,7 +182,7 @@ export function StudioSeriesTable({
                           </em>
                           <strong>{item.title}</strong>
                           <small>
-                            {item.synopsis ?? '작품 소개가 없습니다.'}
+                            {item.synopsis ?? '등록된 작품 소개가 없습니다.'}
                           </small>
                         </span>
                       </Link>

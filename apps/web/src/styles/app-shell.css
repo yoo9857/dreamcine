@@ -21,40 +21,52 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 12px;
+  gap: 7px;
   color: #7f8d97;
   background: #07131a;
 }
 
-.main-route-loading > span {
-  width: 28px;
-  height: 2px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 10%);
+.main-route-loading-mark {
+  width: 46px;
+  height: 30px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-bottom: 8px;
+  padding: 5px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 7px;
+  background: rgb(255 255 255 / 4%);
 }
 
-.main-route-loading > span::after {
-  width: 50%;
-  height: 100%;
-  display: block;
-  border-radius: inherit;
-  content: '';
-  background: #ff3030;
-  animation: main-route-loading 900ms ease-in-out infinite alternate;
+.main-route-loading-mark i {
+  border-radius: 3px;
+  background: rgb(255 255 255 / 14%);
 }
 
+.main-route-loading > strong {
+  color: #eef4f7;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+}
 .main-route-loading > p {
   margin: 0;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 650;
+  letter-spacing: 0.02em;
 }
 
-@keyframes main-route-loading {
-  to {
-    transform: translateX(100%);
-  }
+.aidream-nav-skeleton {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+.aidream-nav-skeleton i {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 6%);
 }
 
 .aidream-route-view:not(.is-discovery-home) {

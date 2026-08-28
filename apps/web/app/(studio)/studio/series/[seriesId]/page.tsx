@@ -39,7 +39,7 @@ export default async function StudioSeriesPage({
 
   return (
     <main className="studio-series-page">
-      <Link href="/studio#content" className="studio-back-link">
+      <Link href="/studio/content" className="studio-back-link">
         <ArrowLeft aria-hidden="true" /> 콘텐츠로 돌아가기
       </Link>
       <header className="studio-series-header">

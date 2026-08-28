@@ -140,7 +140,7 @@ export function Uploader({
               본편으로 연결하거나 새 작품을 만들 수 있습니다.
             </p>
             <div>
-              <Link href="/studio#content" className="studio-button primary">
+              <Link href="/studio/content" className="studio-button primary">
                 작품 선택 <ArrowRight aria-hidden="true" />
               </Link>
               <Link

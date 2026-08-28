@@ -78,7 +78,7 @@ afterEach(() => {
 })
 
 describe('StudioShell', () => {
-  it('scrolls reliably between dashboard sections on the same route', () => {
+  it('links content to its library and scrolls dashboard analytics', () => {
     const scrollIntoView = vi.fn()
     Element.prototype.scrollIntoView = scrollIntoView
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
@@ -90,15 +90,19 @@ describe('StudioShell', () => {
       </StudioShell>,
     )
 
-    fireEvent.click(screen.getByRole('link', { name: /콘텐츠/u }))
-    expect(window.location.hash).toBe('#content')
+    expect(
+      screen.getByRole('link', { name: /콘텐츠/u }).getAttribute('href'),
+    ).toBe('/studio/content')
+
+    fireEvent.click(screen.getByRole('link', { name: /분석/u }))
+    expect(window.location.hash).toBe('#analytics')
     expect(scrollIntoView).toHaveBeenCalledWith({
       behavior: 'auto',
       block: 'start',
     })
 
     scrollIntoView.mockClear()
-    fireEvent.click(screen.getByRole('link', { name: /콘텐츠/u }))
+    fireEvent.click(screen.getByRole('link', { name: /분석/u }))
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
   })
 })
@@ -223,6 +227,30 @@ describe('StudioSeriesTable', () => {
     fireEvent.click(screen.getByRole('button', { name: '완결' }))
     expect(screen.queryByText('첫 번째 꿈')).toBeNull()
     expect(screen.getByText('완결된 여행')).toBeDefined()
+  })
+
+  it('filters the dedicated library by work format', () => {
+    render(
+      <StudioSeriesTable
+        advanced
+        series={[
+          SERIES,
+          {
+            ...SERIES,
+            id: 'film_1',
+            title: '독립 영화',
+            workType: 'FILM',
+          },
+        ]}
+      />,
+    )
+
+    fireEvent.change(screen.getByRole('combobox', { name: '포맷' }), {
+      target: { value: 'FILM' },
+    })
+    expect(screen.queryByText('첫 번째 꿈')).toBeNull()
+    expect(screen.getByText('독립 영화')).toBeDefined()
+    expect(screen.getByText('1개 작품')).toBeDefined()
   })
 })
 

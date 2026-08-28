@@ -190,8 +190,8 @@ export default async function StudioPage(): Promise<ReactNode> {
             <h2>시리즈 관리</h2>
             <p>공개 상태와 실적을 확인하고 에피소드를 관리합니다.</p>
           </div>
-          <Link href="/studio/series/new">
-            새 시리즈 <ArrowRight aria-hidden="true" />
+          <Link href="/studio/content">
+            전체 콘텐츠 관리 <ArrowRight aria-hidden="true" />
           </Link>
         </div>
         {series.length === 0 ? (

@@ -21,7 +21,7 @@ import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 
 const NAVIGATION = [
   { href: '/studio', label: '대시보드', icon: Home },
-  { href: '/studio#content', label: '콘텐츠', icon: Clapperboard },
+  { href: '/studio/content', label: '콘텐츠', icon: Clapperboard },
   { href: '/studio#analytics', label: '분석', icon: BarChart3 },
   { href: '/studio/upload', label: '업로드', icon: UploadCloud },
   { href: '/studio/series/new', label: '새 시리즈', icon: Plus },
@@ -110,8 +110,15 @@ export function StudioShell({
             const hashStart = item.href.indexOf('#')
             const itemHash = hashStart < 0 ? '' : item.href.slice(hashStart)
             const active =
-              pathname === '/studio' &&
-              (itemHash === '' ? activeHash === '' : activeHash === itemHash)
+              itemHash === ''
+                ? item.href === '/studio'
+                  ? pathname === '/studio' && activeHash === ''
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`) ||
+                    (item.href === '/studio/content' &&
+                      pathname.startsWith('/studio/series/') &&
+                      pathname !== '/studio/series/new')
+                : pathname === '/studio' && activeHash === itemHash
             const Icon = item.icon
             return (
               <Link
