@@ -27,7 +27,12 @@ export function purgeExpiredData(
         db.comment.count({ where: { deletedAt: { lt: softDeleteBefore } } }),
         db.episode.count({ where: { deletedAt: { lt: softDeleteBefore } } }),
         db.series.count({ where: { deletedAt: { lt: softDeleteBefore } } }),
-        db.user.count({ where: { deletedAt: { lt: softDeleteBefore } } }),
+        db.user.count({
+          where: {
+            deletedAt: { lt: softDeleteBefore },
+            deletionRequest: { is: null },
+          },
+        }),
         db.session.count({ where: { expires: { lt: sessionBefore } } }),
         db.notification.count({
           where: { createdAt: { lt: softDeleteBefore } },
@@ -81,7 +86,10 @@ export function purgeExpiredData(
       remaining = input.limit - deleted
     }
     const userRows = await db.user.findMany({
-      where: { deletedAt: { lt: softDeleteBefore } },
+      where: {
+        deletedAt: { lt: softDeleteBefore },
+        deletionRequest: { is: null },
+      },
       select: { id: true },
       take: take(),
     })

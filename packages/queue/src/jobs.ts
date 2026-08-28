@@ -45,6 +45,11 @@ export const DbPurgeJobSchema = z.object({
   dryRun: z.boolean(),
 })
 
+export const AccountPurgeJobSchema = z.object({
+  ...TRACE_FIELDS,
+  userId: z.string().min(1),
+})
+
 export const PublishScheduledJobSchema = z.object({ ...TRACE_FIELDS })
 
 export const EpisodeMediaDeleteJobSchema = z.object({
@@ -90,6 +95,7 @@ export const JOB_SCHEMAS = {
   [QUEUE.STORAGE_CLEANUP]: StorageCleanupJobSchema,
   [QUEUE.RECOVER_STUCK]: RecoverStuckJobSchema,
   [QUEUE.DB_PURGE]: DbPurgeJobSchema,
+  [QUEUE.ACCOUNT_PURGE]: AccountPurgeJobSchema,
   [QUEUE.EPISODE_PUBLISH]: PublishScheduledJobSchema,
   [QUEUE.EPISODE_MEDIA_DELETE]: EpisodeMediaDeleteJobSchema,
   [QUEUE.FEED_RANK]: RankRecomputeJobSchema,

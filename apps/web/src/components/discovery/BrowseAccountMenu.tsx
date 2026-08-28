@@ -13,7 +13,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
-  Sparkles,
+  SlidersHorizontal,
   UserRound,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -196,16 +196,13 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
           </header>
 
           <div className="browse-account-membership">
-            <span aria-hidden="true">
-              <Sparkles />
-            </span>
             <div>
               <small>ILOG MEMBERSHIP</small>
               <strong>나의 크리에이터 등급</strong>
             </div>
             {user.tier === 'BRONZE' ? (
               <span className="browse-account-base-tier">
-                <ShieldCheck aria-hidden="true" /> BRONZE
+                <i aria-hidden="true" /> BRONZE
               </span>
             ) : (
               <TierBadge tier={user.tier} size="sm" />
@@ -237,7 +234,7 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
                 setOpen(false)
               }}
             >
-              <Sparkles aria-hidden="true" />
+              <SlidersHorizontal aria-hidden="true" />
               <span>
                 <strong>프로필 관리</strong>
                 <small>이름과 소개 편집</small>

@@ -71,10 +71,21 @@ function TierMark({
         </>
       ) : null}
       {tier === 'GOLD' ? (
-        <path
-          d="m8 1.8 1.45 4.75L14.2 8l-4.75 1.45L8 14.2 6.55 9.45 1.8 8l4.75-1.45L8 1.8Z"
-          fill="currentColor"
-        />
+        <>
+          <circle
+            cx="8"
+            cy="8"
+            r="5.4"
+            stroke="currentColor"
+            strokeWidth="1.2"
+          />
+          <path
+            d="M5 10V8.5M8 10V6.5M11 10V4.75"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </>
       ) : null}
       {tier === 'PLATINUM' ? (
         <path

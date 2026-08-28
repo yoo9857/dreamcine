@@ -1,4 +1,5 @@
 import {
+  AccountPurgeJobSchema,
   connectionFromUrl,
   CounterFlushJobSchema,
   CounterReconcileJobSchema,
@@ -12,6 +13,7 @@ import {
   StorageCleanupJobSchema,
   TranscodeJobSchema,
 } from '@aidream/queue'
+import { listDueAccountDeletionIds } from '@aidream/db'
 import { Worker } from 'bullmq'
 import { pathToFileURL } from 'node:url'
 import pino from 'pino'
@@ -27,6 +29,7 @@ import {
   processNotificationFanoutJob,
 } from './jobs/notification-fanout.js'
 import { publishScheduled } from './jobs/publish-scheduled.js'
+import { purgeAccount } from './jobs/purge-account.js'
 import { rankRecompute } from './jobs/rank-recompute.js'
 import { recoverStuck } from './jobs/recover-stuck.js'
 import { processTranscodeJob } from './jobs/transcode.js'
@@ -87,7 +90,17 @@ function startWorkers(): Promise<WorkerRuntime> {
       QUEUE.DB_PURGE,
       withJob(QUEUE.DB_PURGE, async (input: unknown) => {
         const data = DbPurgeJobSchema.parse(input)
-        return purgeDatabase({ ...data, now: new Date() })
+        const now = new Date()
+        let accountsPurged = 0
+        if (!data.dryRun) {
+          const dueAccountIds = await listDueAccountDeletionIds(now)
+          for (const userId of dueAccountIds) {
+            const result = await purgeAccount(userId)
+            if (result.deleted) accountsPurged += 1
+          }
+        }
+        const database = await purgeDatabase({ ...data, now })
+        return { database, accountsPurged }
       }),
       { connection, concurrency: 1 },
     ),
@@ -148,6 +161,14 @@ function startWorkers(): Promise<WorkerRuntime> {
               setTimeout(resolve, 25)
             }),
         })
+      }),
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      QUEUE.ACCOUNT_PURGE,
+      withJob(QUEUE.ACCOUNT_PURGE, async (input: unknown) => {
+        const data = AccountPurgeJobSchema.parse(input)
+        return purgeAccount(data.userId)
       }),
       { connection, concurrency: 1 },
     ),

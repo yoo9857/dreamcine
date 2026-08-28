@@ -63,11 +63,15 @@ export async function getPlayback(
     input.session === null
       ? null
       : await findWatchProgress(input.session.userId, episode.id)
+  const completionWindowSec = Math.min(
+    30,
+    Math.max(5, Math.floor(asset.durationSec * 0.05)),
+  )
   const startAtSec =
     progress !== null &&
     !progress.completed &&
     progress.positionSec > 0 &&
-    asset.durationSec - progress.positionSec > 30
+    asset.durationSec - progress.positionSec > completionWindowSec
       ? progress.positionSec
       : 0
   const hasSeekSprite = asset.renditions.some(

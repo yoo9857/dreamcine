@@ -282,39 +282,31 @@
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-  width: min(372px, calc(100vw - 28px));
-  overflow: hidden;
+  width: min(348px, calc(100vw - 28px));
+  max-height: calc(100dvh - 88px);
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 22px;
-  background: rgb(9 21 28 / 98%);
+  background: #09151c;
   box-shadow:
     0 32px 100px rgb(0 0 0 / 60%),
     0 1px 0 rgb(255 255 255 / 5%) inset;
-  backdrop-filter: blur(25px);
   transform-origin: top right;
   animation: browse-menu-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .browse-account-popover::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 96px;
-  background: radial-gradient(
-    circle at 86% 0%,
-    rgb(255 55 55 / 20%),
-    transparent 55%
-  );
-  pointer-events: none;
+  content: none;
 }
 
 .browse-account-popover header {
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 13px;
+  gap: 11px;
   align-items: center;
-  padding: 22px 22px 18px;
+  padding: 16px;
 }
 .browse-account-popover header div {
   min-width: 0;
@@ -326,7 +318,7 @@
   align-items: center;
   gap: 5px;
   color: #f5f7f8;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 900;
 }
 .browse-account-popover header span {
@@ -336,7 +328,7 @@
 }
 .browse-account-popover header small {
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #93a0a8;
   font-size: 10px;
   text-overflow: ellipsis;
@@ -364,34 +356,15 @@
 }
 
 .browse-account-membership {
-  position: relative;
   display: grid;
-  grid-template-columns: 38px 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 11px;
-  margin: 0 14px 10px;
-  padding: 13px 14px;
-  overflow: hidden;
-  border: 1px solid rgb(255 105 116 / 16%);
-  border-radius: 15px;
-  background: linear-gradient(
-    115deg,
-    rgb(255 66 81 / 9%),
-    rgb(255 255 255 / 3%)
-  );
-}
-.browse-account-membership > span {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgb(255 111 122 / 22%);
-  border-radius: 11px;
-  color: #ff6f7b;
-  background: rgb(255 66 81 / 9%);
-}
-.browse-account-membership > span svg {
-  width: 16px;
+  gap: 12px;
+  margin: 0 10px 4px;
+  padding: 10px 12px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+  border-bottom: 1px solid rgb(255 255 255 / 7%);
+  background: rgb(255 255 255 / 2%);
 }
 .browse-account-membership > div {
   min-width: 0;
@@ -412,44 +385,47 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 7px;
-  border: 1px solid rgb(191 129 80 / 42%);
+  padding: 4px 8px;
+  border: 0;
   border-radius: 999px;
   color: #d49a6a;
-  background: rgb(128 74 38 / 16%);
+  background: rgb(191 129 80 / 12%);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.04em;
 }
-.browse-account-base-tier svg {
-  width: 11px;
+.browse-account-base-tier i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .browse-account-links {
   display: grid;
-  gap: 3px;
-  padding: 5px 10px 9px;
+  gap: 1px;
+  padding: 3px 8px 6px;
 }
 .browse-account-section-label {
   margin: 0;
-  padding: 7px 8px 4px;
+  padding: 6px 8px 3px;
   color: #65757f;
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.14em;
 }
 .browse-account-section-label.is-support {
-  margin-top: 5px;
-  padding-top: 12px;
+  margin-top: 3px;
+  padding-top: 8px;
   border-top: 1px solid rgb(255 255 255 / 7%);
 }
 .browse-account-links a {
   display: grid;
-  grid-template-columns: 38px 1fr auto;
-  gap: 11px;
+  grid-template-columns: 32px 1fr auto;
+  gap: 9px;
   align-items: center;
-  min-height: 58px;
-  padding: 8px 10px;
+  min-height: 48px;
+  padding: 5px 9px;
   border: 1px solid transparent;
   border-radius: 14px;
   color: #dce3e8;
@@ -462,9 +438,9 @@
   background: rgb(255 255 255 / 5%);
 }
 .browse-account-links a > svg {
-  width: 36px;
-  height: 36px;
-  padding: 9px;
+  width: 30px;
+  height: 30px;
+  padding: 7px;
   border: 1px solid rgb(255 255 255 / 7%);
   border-radius: 11px;
   color: #a7b3ba;
@@ -475,12 +451,12 @@
 }
 .browse-account-links strong {
   color: #e8edef;
-  font-size: 12px;
+  font-size: 11px;
 }
 .browse-account-links small {
-  margin-top: 2px;
+  margin-top: 0;
   color: #82919a;
-  font-size: 10px;
+  font-size: 9px;
 }
 .browse-account-links b {
   color: #5f6e78;
@@ -489,14 +465,14 @@
 
 .browse-account-signout {
   width: calc(100% - 16px);
-  min-height: 46px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 8px 10px;
+  margin: 0 8px 8px;
   border: 1px solid transparent;
   border-radius: 13px;
-  padding: 11px 13px;
+  padding: 8px 10px;
   color: #ff7b7b;
   background: transparent;
   cursor: pointer;

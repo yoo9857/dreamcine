@@ -521,6 +521,41 @@ html[data-theme='dark'] .profile-showcase {
   right: 28px;
 }
 
+.profile-manage-link {
+  position: absolute;
+  top: 26px;
+  right: 28px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, var(--profile-ink) 16%, transparent);
+  border-radius: 999px;
+  color: var(--profile-ink);
+  background: color-mix(in srgb, var(--profile-card) 92%, transparent);
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.profile-manage-link svg {
+  width: 13px;
+  height: 13px;
+}
+
+.profile-manage-link:hover,
+.profile-manage-link:focus-visible {
+  border-color: color-mix(in srgb, var(--profile-ink) 32%, transparent);
+  background: var(--profile-card-hover);
+  transform: translateY(-1px);
+}
+
 .profile-follow button {
   min-height: 34px;
   padding: 0 14px;
@@ -1102,6 +1137,11 @@ html[data-theme='dark'] .profile-showcase {
 
   .profile-follow {
     position: static;
+  }
+
+  .profile-manage-link {
+    position: static;
+    width: fit-content;
   }
 
   .profile-link-stack {

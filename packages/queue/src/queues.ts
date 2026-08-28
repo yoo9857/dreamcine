@@ -15,6 +15,7 @@ export const QUEUE = {
   NOTIFY_FANOUT: 'notification.fanout',
   STORAGE_CLEANUP: 'storage.cleanup',
   DB_PURGE: 'db.purge',
+  ACCOUNT_PURGE: 'account.purge',
   RECOVER_STUCK: 'asset.recoverStuck',
 } as const
 

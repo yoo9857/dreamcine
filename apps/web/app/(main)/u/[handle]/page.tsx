@@ -7,6 +7,7 @@ import {
   Camera,
   Mail,
   MessageCircle,
+  PencilLine,
   Play,
   Video,
 } from 'lucide-react'
@@ -418,6 +419,12 @@ export default async function ProfilePage({
                     </p>
                   </div>
                 </div>
+                {isSelf ? (
+                  <Link href="/account#profile" className="profile-manage-link">
+                    <PencilLine aria-hidden="true" />
+                    프로필 관리
+                  </Link>
+                ) : null}
                 <p className="profile-bio">
                   {profile.bio ??
                     '장면과 감정 사이의 이야기를 영상으로 기록합니다. 새로운 작품으로 곧 만나요.'}

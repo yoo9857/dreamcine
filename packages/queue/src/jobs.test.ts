@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  AccountPurgeJobSchema,
   EpisodeMediaDeleteJobSchema,
   JOB_SCHEMAS,
   NotificationFanoutJobSchema,
@@ -16,6 +17,14 @@ describe('T08 queue contracts', () => {
         requestId: 'req_123',
       }),
     ).toEqual({ assetId: 'asset_1', requestId: 'req_123' })
+  })
+
+  it('validates account purge by user ID', () => {
+    expect(AccountPurgeJobSchema.parse({ userId: 'user_1' })).toEqual({
+      userId: 'user_1',
+    })
+    expect(JOB_SCHEMAS[QUEUE.ACCOUNT_PURGE]).toBe(AccountPurgeJobSchema)
+    expect(() => AccountPurgeJobSchema.parse({ userId: '' })).toThrow()
   })
 
   it('예약공개 스캔은 외부 상태를 payload로 받지 않는다', () => {

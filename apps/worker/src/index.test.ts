@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   fanout: vi.fn().mockResolvedValue({ created: 0, nextCursor: null }),
   on: vi.fn(),
   pause: vi.fn().mockResolvedValue(undefined),
+  purgeAccount: vi.fn().mockResolvedValue({ deleted: true }),
   purge: vi.fn().mockResolvedValue(2),
   publishScheduled: vi.fn().mockResolvedValue({ published: 1 }),
   rankRecompute: vi
@@ -69,6 +70,7 @@ vi.mock('./jobs/notification-fanout.js', async (importOriginal) => {
 vi.mock('./jobs/publish-scheduled.js', () => ({
   publishScheduled: mocks.publishScheduled,
 }))
+vi.mock('./jobs/purge-account.js', () => ({ purgeAccount: mocks.purgeAccount }))
 vi.mock('./jobs/rank-recompute.js', () => ({
   rankRecompute: mocks.rankRecompute,
 }))
@@ -91,6 +93,7 @@ beforeEach(() => {
   mocks.cleanup.mockClear()
   mocks.deleteEpisodeMedia.mockClear()
   mocks.purge.mockClear()
+  mocks.purgeAccount.mockClear()
   mocks.publishScheduled.mockClear()
   mocks.rankRecompute.mockClear()
   mocks.recover.mockClear()
@@ -120,6 +123,7 @@ describe('bootstrapWorker', () => {
       'counter.flush',
       'counter.reconcile',
       'notification.fanout',
+      'account.purge',
     ])
     expect(mocks.workers[0]?.options).toMatchObject({
       concurrency: 2,
@@ -127,7 +131,7 @@ describe('bootstrapWorker', () => {
     })
     expect(
       mocks.workers.slice(1).map(({ options }) => options.concurrency),
-    ).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1])
+    ).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
   })
 
   it('각 잡을 검증해 해당 처리기로 전달한다', async () => {
@@ -140,6 +144,7 @@ describe('bootstrapWorker', () => {
     await mocks.workers[4]?.processor({ data: {} })
     await mocks.workers[5]?.processor({ data: { assetId: 'asset_2' } })
     await mocks.workers[6]?.processor({ data: { scope: 'recent' } })
+    await mocks.workers[10]?.processor({ data: { userId: 'user_1' } })
 
     const transcodeInput = mocks.transcode.mock.calls[0]?.[0] as {
       assetId: string
@@ -173,6 +178,7 @@ describe('bootstrapWorker', () => {
       | undefined
     expect(rankInput?.scope).toBe('recent')
     expect(rankInput?.now).toBeInstanceOf(Date)
+    expect(mocks.purgeAccount).toHaveBeenCalledWith('user_1')
   })
 
   it('종료는 수신 중단 후 실행 중 잡을 취소하고 워커를 한 번만 닫는다', async () => {
@@ -181,8 +187,8 @@ describe('bootstrapWorker', () => {
     await runtime.close()
     await runtime.close()
 
-    expect(mocks.pause).toHaveBeenCalledTimes(10)
-    expect(mocks.close).toHaveBeenCalledTimes(10)
+    expect(mocks.pause).toHaveBeenCalledTimes(11)
+    expect(mocks.close).toHaveBeenCalledTimes(11)
     expect(mocks.close).toHaveBeenCalledWith(true)
 
     await transcodeWorker?.processor({ data: { assetId: 'asset_1' } })

@@ -2,7 +2,7 @@
 
 import { Check, LoaderCircle } from 'lucide-react'
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import React, { useState, type ReactNode } from 'react'
 
 interface ConsentPreferencesProps {
   readonly initialMarketing: boolean
@@ -29,7 +29,7 @@ export function ConsentPreferences(props: ConsentPreferencesProps): ReactNode {
       setMessage(
         next
           ? '마케팅 이메일 수신에 동의했습니다.'
-          : '마케팅 수신 동의를 철회했습니다.',
+          : '마케팅 이메일 수신 동의를 철회했습니다.',
       )
     } catch (error: unknown) {
       setMessage(
@@ -79,11 +79,11 @@ export function ConsentPreferences(props: ConsentPreferencesProps): ReactNode {
       <div className="account-consent-withdrawal">
         <strong>필수 동의를 철회하려면</strong>
         <p>
-          이용약관과 개인정보 처리 동의 철회는 서비스 계약 종료와 계정 삭제가
-          필요합니다. privacy@ilog.kr로 철회·삭제 요청을 접수할 수 있습니다.
+          이용약관과 개인정보 처리 동의 철회에는 서비스 계약 종료와 계정 삭제가
+          필요합니다. privacy@ilog.kr에서 철회·삭제 요청을 접수할 수 있습니다.
         </p>
         <a href="mailto:privacy@ilog.kr?subject=ilog%20필수%20동의%20철회%20및%20계정%20삭제">
-          철회 요청하기 →
+          철회 요청하기 ↗
         </a>
       </div>
     </div>

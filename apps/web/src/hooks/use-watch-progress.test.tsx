@@ -49,6 +49,31 @@ describe('useWatchProgress', () => {
     )
   })
 
+  it('does not save before playback reports a position or repeat an unchanged save', async () => {
+    const { result } = renderHook(() =>
+      useWatchProgress({ episodeId: 'episode_1', authenticated: true }),
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(15_000)
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    act(() => {
+      result.current.report(24)
+      vi.advanceTimersByTime(15_000)
+    })
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    act(() => {
+      vi.advanceTimersByTime(15_000)
+    })
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
   it('uses sendBeacon on pagehide and marks ended progress completed', () => {
     const { result } = renderHook(() =>
       useWatchProgress({ episodeId: 'episode_1', authenticated: true }),

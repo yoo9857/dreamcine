@@ -197,7 +197,7 @@ function HlsPlayerEngine(props: HlsPlayerProps): ReactNode {
     let watched = 0
     let previous = video.currentTime
     const onMetadata = (): void => {
-      if (props.startAtSec > 0 && props.startAtSec < video.duration - 30)
+      if (props.startAtSec > 0 && props.startAtSec < video.duration)
         video.currentTime = props.startAtSec
       if (props.autoPlay === true)
         void video.play().catch(() => {

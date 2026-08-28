@@ -23,7 +23,8 @@ function payload(positionSec: number, completed = false): string {
 export function useWatchProgress(
   options: WatchProgressOptions,
 ): WatchProgressController {
-  const latestPosition = useRef(0)
+  const latestPosition = useRef<number | null>(null)
+  const savedPosition = useRef<number | null>(null)
   const viewReported = useRef(false)
   const progressUrl = `/api/episodes/${options.episodeId}/progress`
   const viewsUrl = `/api/episodes/${options.episodeId}/views`
@@ -33,9 +34,14 @@ export function useWatchProgress(
       void fetch(progressUrl, {
         method: 'POST',
         credentials: 'same-origin',
+        keepalive: true,
         headers: { 'content-type': 'application/json' },
         body: payload(positionSec, completed),
-      }).catch(() => undefined)
+      })
+        .then((response) => {
+          if (response.ok) savedPosition.current = Math.floor(positionSec)
+        })
+        .catch(() => undefined)
     },
     [options.authenticated, progressUrl],
   )
@@ -43,7 +49,10 @@ export function useWatchProgress(
   useEffect(() => {
     if (!options.authenticated) return
     const timer = window.setInterval(() => {
-      postProgress(latestPosition.current)
+      const position = latestPosition.current
+      if (position === null || savedPosition.current === Math.floor(position))
+        return
+      postProgress(position)
     }, 15_000)
     return () => {
       window.clearInterval(timer)
@@ -53,6 +62,7 @@ export function useWatchProgress(
   useEffect(() => {
     if (!options.authenticated) return
     const beacon = (): void => {
+      if (latestPosition.current === null) return
       navigator.sendBeacon(
         progressUrl,
         new Blob([payload(latestPosition.current)], {
@@ -70,6 +80,12 @@ export function useWatchProgress(
       window.removeEventListener('pagehide', beacon)
     }
   }, [options.authenticated, progressUrl])
+
+  useEffect(() => {
+    latestPosition.current = null
+    savedPosition.current = null
+    viewReported.current = false
+  }, [options.episodeId])
 
   return {
     report(positionSec) {

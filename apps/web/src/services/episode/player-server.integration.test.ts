@@ -119,6 +119,22 @@ describe('getPlayback', () => {
         cookieHeader: null,
         now: NOW,
       }),
+    ).resolves.toMatchObject({ startAtSec: 100 })
+
+    mocks.findProgress.mockResolvedValue({
+      userId: SESSION.userId,
+      episodeId: EPISODE.id,
+      positionSec: 116,
+      completed: false,
+      updatedAt: NOW,
+    })
+    await expect(
+      getPlayback({
+        episodeId: EPISODE.id,
+        session: SESSION,
+        cookieHeader: null,
+        now: NOW,
+      }),
     ).resolves.toMatchObject({ startAtSec: 0 })
   })
 
@@ -270,7 +286,7 @@ describe('confirmAge', () => {
 })
 
 describe('saveProgress', () => {
-  it('upserts progress and rate-limits updates inside 15 seconds', async () => {
+  it('upserts immediate progress so pause and navigation saves are not lost', async () => {
     await saveProgress({
       episodeId: EPISODE.id,
       progress: { positionSec: 30 },
@@ -294,9 +310,12 @@ describe('saveProgress', () => {
         session: SESSION,
         now: NOW,
       }),
-    ).rejects.toMatchObject({
-      code: 'E_RATE_LIMITED',
-      detail: { retryAfterSec: 15 },
+    ).resolves.toBeUndefined()
+    expect(mocks.upsertProgress).toHaveBeenLastCalledWith({
+      userId: SESSION.userId,
+      episodeId: EPISODE.id,
+      positionSec: 45,
+      completed: true,
     })
   })
 })

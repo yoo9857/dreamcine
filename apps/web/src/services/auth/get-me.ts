@@ -14,6 +14,7 @@ export interface MeResult {
   displayName: string
   bio: string | null
   avatarUrl: string | null
+  hasPassword: boolean
   role: UserRole
   status: UserStatus
   emailVerified: string | null
@@ -28,6 +29,7 @@ export function toMeResult(user: User): MeResult {
     displayName: user.displayName,
     bio: user.bio,
     avatarUrl: avatarUrl(user.avatarKey),
+    hasPassword: user.passwordHash !== null,
     role: user.role,
     status: user.status,
     emailVerified: user.emailVerified?.toISOString() ?? null,
