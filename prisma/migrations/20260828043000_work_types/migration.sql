@@ -1,0 +1,11 @@
+CREATE TYPE "WorkType" AS ENUM (
+  'SERIES',
+  'FILM',
+  'SHORT_FORM',
+  'COMMERCIAL',
+  'MUSIC_VIDEO',
+  'OTHER'
+);
+
+ALTER TABLE "series"
+ADD COLUMN "work_type" "WorkType" NOT NULL DEFAULT 'SERIES';

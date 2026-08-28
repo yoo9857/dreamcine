@@ -64,6 +64,15 @@ enum AgeRating {
   A19
 }
 
+enum WorkType {
+  SERIES
+  FILM
+  SHORT_FORM
+  COMMERCIAL
+  MUSIC_VIDEO
+  OTHER
+}
+
 enum ReportStatus {
   OPEN
   REVIEWING
@@ -347,6 +356,7 @@ model Series {
   slug        String    @unique
   title       String    @db.VarChar(120)
   synopsis    String?   @db.VarChar(2000)
+  workType    WorkType  @default(SERIES) @map("work_type")
   posterKey   String?   @map("poster_key")
   ageRating   AgeRating @default(ALL) @map("age_rating")
   isCompleted Boolean   @default(false) @map("is_completed")

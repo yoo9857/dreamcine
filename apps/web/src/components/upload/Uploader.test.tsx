@@ -100,7 +100,7 @@ describe('Uploader', () => {
     expect(screen.getByLabelText('업로드할 영상 선택')).not.toBeNull()
   })
 
-  it('준비 완료 후 시리즈 연결을 다음 단계로 안내한다', () => {
+  it('준비 완료 후 작품 연결을 다음 단계로 안내한다', () => {
     mocks.state = initialState({
       phase: 'ready',
       uploadId: 'upl_1',
@@ -110,12 +110,10 @@ describe('Uploader', () => {
     render(<Uploader />)
 
     expect(
-      screen.getByRole('heading', { name: '이제 영상을 시리즈에 연결하세요' }),
+      screen.getByRole('heading', { name: '이제 영상을 작품에 연결하세요' }),
     ).not.toBeNull()
-    expect(screen.getByRole('link', { name: /시리즈 선택/u })).not.toBeNull()
-    expect(
-      screen.getByRole('link', { name: /새 시리즈 만들기/u }),
-    ).not.toBeNull()
+    expect(screen.getByRole('link', { name: /작품 선택/u })).not.toBeNull()
+    expect(screen.getByRole('link', { name: /새 작품 만들기/u })).not.toBeNull()
     expect(router.refresh).toHaveBeenCalledOnce()
   })
 })

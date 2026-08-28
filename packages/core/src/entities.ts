@@ -20,6 +20,7 @@ import type {
   SubtitleKind,
   SignupPurpose,
   Visibility,
+  WorkType,
 } from './enums.js'
 
 export interface User {
@@ -83,6 +84,7 @@ export interface Series {
   slug: string
   title: string
   synopsis: string | null
+  workType: WorkType
   posterKey: string | null
   ageRating: AgeRating
   isCompleted: boolean

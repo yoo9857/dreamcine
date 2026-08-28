@@ -93,7 +93,7 @@ async function createSeriesAndEpisode(
       response.url().endsWith('/api/episodes') &&
       response.request().method() === 'POST',
   )
-  await page.getByRole('button', { name: '에피소드 추가' }).click()
+  await page.getByRole('button', { name: '회차 추가' }).click()
   expect((await created).status()).toBe(201)
   await page.reload()
   await expect(

@@ -2,7 +2,9 @@
 
 import { Button, Input, Textarea } from '@aidream/ui'
 import { useRouter } from 'next/navigation'
-import { useState, type ReactNode, type SyntheticEvent } from 'react'
+import React, { useState, type ReactNode, type SyntheticEvent } from 'react'
+
+import { WORK_TYPE_OPTIONS } from './work-types'
 
 export function CreateSeriesForm(): ReactNode {
   const router = useRouter()
@@ -22,6 +24,7 @@ export function CreateSeriesForm(): ReactNode {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         title: data.get('title'),
+        workType: data.get('workType'),
         ...(typeof synopsis === 'string' && synopsis !== ''
           ? { synopsis }
           : {}),
@@ -31,7 +34,7 @@ export function CreateSeriesForm(): ReactNode {
     const payload = (await response.json()) as { id?: string }
     if (!response.ok || payload.id === undefined) {
       setError(
-        '시리즈를 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
+        '작품을 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
       )
       setBusy(false)
       return
@@ -45,7 +48,27 @@ export function CreateSeriesForm(): ReactNode {
       onSubmit={(event) => void submit(event)}
       className="studio-series-form"
     >
-      <Input label="시리즈 제목" name="title" required maxLength={120} />
+      <fieldset className="studio-work-type-fieldset">
+        <legend>작품 형식</legend>
+        <p>영상의 성격에 맞는 관리 구조와 용어를 적용합니다.</p>
+        <div className="studio-work-type-grid">
+          {WORK_TYPE_OPTIONS.map((option) => (
+            <label key={option.value}>
+              <input
+                type="radio"
+                name="workType"
+                value={option.value}
+                defaultChecked={option.value === 'SERIES'}
+              />
+              <span>
+                <strong>{option.label}</strong>
+                <small>{option.description}</small>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <Input label="작품(시리즈) 제목" name="title" required maxLength={120} />
       <Textarea label="작품 소개" name="synopsis" maxLength={2000} />
       <label className="studio-field-label">
         관람 등급
@@ -66,7 +89,7 @@ export function CreateSeriesForm(): ReactNode {
         </p>
       )}
       <Button type="submit" disabled={busy}>
-        {busy ? '만드는 중…' : '시리즈 만들기'}
+        {busy ? '만드는 중…' : '작품 만들기'}
       </Button>
     </form>
   )

@@ -23,6 +23,7 @@ export {
   UserRole,
   UserStatus,
   Visibility,
+  WorkType,
 } from './enums.js'
 export type {
   AuthAuditEvent,

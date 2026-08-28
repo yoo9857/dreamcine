@@ -1,5 +1,6 @@
 'use client'
 
+import type { WorkType } from '@aidream/core'
 import { BarChart3, Clock3, Eye, Search, Users } from 'lucide-react'
 import Link from 'next/link'
 import React, { useMemo, useState, type ReactNode } from 'react'
@@ -40,8 +41,10 @@ function engagement(episode: StudioEpisodeAnalytics): number {
 
 export function SeriesPerformancePanel({
   analytics,
+  workType = 'SERIES',
 }: {
   readonly analytics: StudioSeriesAnalytics
+  readonly workType?: WorkType
 }): ReactNode {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>('VIEWS')
@@ -68,6 +71,7 @@ export function SeriesPerformancePanel({
   const totalWatchHours = Number(BigInt(analytics.totals.watchSeconds)) / 3600
   const interactions =
     analytics.totals.likes + analytics.totals.comments + analytics.totals.shares
+  const episodic = workType === 'SERIES'
 
   return (
     <div className="studio-performance-panel">
@@ -108,11 +112,11 @@ export function SeriesPerformancePanel({
       <div className="studio-performance-toolbar">
         <label>
           <Search aria-hidden="true" />
-          <span className="sr-only">에피소드 검색</span>
+          <span className="sr-only">{episodic ? '회차' : '영상'} 검색</span>
           <input
             type="search"
             value={query}
-            placeholder="에피소드 검색"
+            placeholder={episodic ? '회차 검색' : '영상 검색'}
             onChange={(event) => {
               setQuery(event.currentTarget.value)
             }}
@@ -129,7 +133,7 @@ export function SeriesPerformancePanel({
             <option value="VIEWS">조회수 높은 순</option>
             <option value="WATCH">시청 시간 높은 순</option>
             <option value="ENGAGEMENT">참여율 높은 순</option>
-            <option value="EPISODE">회차 순</option>
+            <option value="EPISODE">{episodic ? '회차 순' : '등록 순'}</option>
           </select>
         </label>
       </div>
@@ -139,12 +143,12 @@ export function SeriesPerformancePanel({
           <BarChart3 aria-hidden="true" />
           <strong>
             {analytics.episodes.length === 0
-              ? '분석할 에피소드가 없습니다'
+              ? `분석할 ${episodic ? '회차' : '영상'}가 없습니다`
               : '검색 결과가 없습니다'}
           </strong>
           <p>
             {analytics.episodes.length === 0
-              ? '첫 에피소드를 연결하면 콘텐츠 데이터가 이곳에 표시됩니다.'
+              ? `첫 ${episodic ? '회차' : '영상'}를 연결하면 데이터가 이곳에 표시됩니다.`
               : '다른 제목으로 검색해 보세요.'}
           </p>
         </div>
@@ -174,10 +178,16 @@ export function SeriesPerformancePanel({
                       <span>
                         <strong>{episode.title}</strong>
                         <small>
-                          {episode.seasonNumber === null
-                            ? ''
-                            : `시즌 ${String(episode.seasonNumber)} · `}
-                          {episode.number}화 · {episode.status}
+                          {episodic ? (
+                            <>
+                              {episode.seasonNumber === null
+                                ? ''
+                                : `시즌 ${String(episode.seasonNumber)} · `}
+                              {episode.number}화 · {episode.status}
+                            </>
+                          ) : (
+                            `영상 ${String(episode.number)} · ${episode.status}`
+                          )}
                         </small>
                       </span>
                     </span>

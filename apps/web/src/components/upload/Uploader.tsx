@@ -125,20 +125,20 @@ export function Uploader(): ReactNode {
           <CheckCircle2 aria-hidden="true" />
           <div>
             <span>NEXT STEP</span>
-            <h2 id="upload-next-title">이제 영상을 시리즈에 연결하세요</h2>
+            <h2 id="upload-next-title">이제 영상을 작품에 연결하세요</h2>
             <p>
-              준비된 영상은 미디어 보관함에 저장되었습니다. 기존 시리즈의 회차로
-              연결하거나 새 시리즈를 만들 수 있습니다.
+              준비된 영상은 미디어 보관함에 저장되었습니다. 기존 작품의 회차나
+              본편으로 연결하거나 새 작품을 만들 수 있습니다.
             </p>
             <div>
               <Link href="/studio#content" className="studio-button primary">
-                시리즈 선택 <ArrowRight aria-hidden="true" />
+                작품 선택 <ArrowRight aria-hidden="true" />
               </Link>
               <Link
                 href="/studio/series/new"
                 className="studio-button secondary"
               >
-                <Plus aria-hidden="true" /> 새 시리즈 만들기
+                <Plus aria-hidden="true" /> 새 작품 만들기
               </Link>
               <a href="#library" className="studio-upload-library-link">
                 <Library aria-hidden="true" /> 미디어 보관함 확인

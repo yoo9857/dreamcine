@@ -1,4 +1,4 @@
-import type { AgeRating, Episode, Page, Series } from '@aidream/core'
+import type { AgeRating, Episode, Page, Series, WorkType } from '@aidream/core'
 import { AppError } from '@aidream/core'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
@@ -12,6 +12,7 @@ export interface CreateSeriesData {
   slug: string
   title: string
   synopsis?: string | null
+  workType?: WorkType
   posterKey?: string | null
   ageRating?: AgeRating
 }
@@ -19,6 +20,7 @@ export interface CreateSeriesData {
 export interface UpdateSeriesData {
   title?: string
   synopsis?: string | null
+  workType?: WorkType
   posterKey?: string | null
   ageRating?: AgeRating
   isCompleted?: boolean

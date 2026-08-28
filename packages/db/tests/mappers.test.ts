@@ -15,6 +15,7 @@ describe('Prisma model mappers', () => {
       slug: 'series',
       title: 'Series',
       synopsis: null,
+      workType: 'SERIES',
       posterKey: null,
       ageRating: 'ALL',
       isCompleted: false,

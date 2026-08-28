@@ -29,6 +29,7 @@ export async function updateSeries(
   const updated = await updateSeriesRow(series.id, {
     ...(input.title === undefined ? {} : { title: input.title }),
     ...(input.synopsis === undefined ? {} : { synopsis: input.synopsis }),
+    ...(input.workType === undefined ? {} : { workType: input.workType }),
     ...(input.posterKey === undefined ? {} : { posterKey: input.posterKey }),
     ...(input.ageRating === undefined ? {} : { ageRating: input.ageRating }),
     ...(input.isCompleted === undefined

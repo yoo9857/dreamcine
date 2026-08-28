@@ -20,6 +20,8 @@ export const CreateEpisodeSchema = z.object({
 })
 
 export const UpdateEpisodeSchema = z.object({
+  seasonNumber: z.number().int().min(1).optional(),
+  number: z.number().int().min(1).optional(),
   title: z.string().trim().min(1).max(160).optional(),
   description: z.string().trim().max(2000).nullable().optional(),
   thumbKey: z.string().min(1).nullable().optional(),

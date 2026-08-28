@@ -1,5 +1,6 @@
 'use client'
 
+import type { WorkType } from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,14 +20,17 @@ function formatDuration(seconds: number | null): string {
 export function CreateEpisodeForm({
   availableAssets = [],
   seriesId,
+  workType = 'SERIES',
 }: {
   readonly availableAssets?: readonly StudioAssetOption[]
   readonly seriesId: string
+  readonly workType?: WorkType
 }): ReactNode {
   const router = useRouter()
   const [aiDisclosure, setAiDisclosure] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const episodic = workType === 'SERIES'
 
   const submit = async (
     event: SyntheticEvent<HTMLFormElement>,
@@ -80,17 +84,33 @@ export function CreateEpisodeForm({
       onSubmit={(event) => void submit(event)}
       className="studio-episode-form"
     >
+      {episodic ? (
+        <Input
+          label="시즌"
+          name="seasonNumber"
+          type="number"
+          min={1}
+          defaultValue={1}
+          required
+        />
+      ) : (
+        <input type="hidden" name="seasonNumber" value="1" />
+      )}
       <Input
-        label="시즌"
-        name="seasonNumber"
+        label={episodic ? '회차' : '영상 순서'}
+        name="number"
         type="number"
         min={1}
         defaultValue={1}
         required
       />
-      <Input label="회차" name="number" type="number" min={1} required />
       <div className="md:col-span-2">
-        <Input label="에피소드 제목" name="title" required maxLength={160} />
+        <Input
+          label={episodic ? '회차 제목' : '영상 제목'}
+          name="title"
+          required
+          maxLength={160}
+        />
       </div>
       <div className="md:col-span-2">
         <Textarea label="설명" name="description" maxLength={2000} />
@@ -143,7 +163,7 @@ export function CreateEpisodeForm({
       </div>
       <div className="md:col-span-2">
         <Button type="submit" disabled={busy}>
-          {busy ? '추가 중…' : '에피소드 추가'}
+          {busy ? '추가 중…' : episodic ? '회차 추가' : '영상 추가'}
         </Button>
       </div>
     </form>

@@ -50,6 +50,15 @@ export async function updateEpisode(
     input.tags === undefined
       ? undefined
       : [...new Set(input.tags.map(normalizeTag))]
+  const placement =
+    input.seasonNumber === undefined && input.number === undefined
+      ? undefined
+      : {
+          ...(input.seasonNumber === undefined
+            ? {}
+            : { seasonNumber: input.seasonNumber }),
+          ...(input.number === undefined ? {} : { number: input.number }),
+        }
   const episode = await updateEpisodeWithTags(
     record.episode.id,
     {
@@ -65,6 +74,7 @@ export async function updateEpisode(
         : { aiDisclosure: input.aiDisclosure }),
     },
     tags,
+    placement,
   )
   return toEpisodeResponse(episode)
 }

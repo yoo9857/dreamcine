@@ -87,6 +87,7 @@ export function seriesFixture(overrides: Partial<Series> = {}): Series {
     slug: 'series-fixture',
     title: 'Series Fixture',
     synopsis: null,
+    workType: 'SERIES',
     posterKey: null,
     ageRating: 'ALL',
     isCompleted: false,

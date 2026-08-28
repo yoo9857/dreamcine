@@ -412,6 +412,18 @@ describe('series and episode management', () => {
       EPISODE.id,
       { title: '수정된 첫 화' },
       ['ai-drama'],
+      undefined,
+    )
+
+    await updateEpisode(EPISODE.id, SESSION, {
+      seasonNumber: 2,
+      number: 3,
+    })
+    expect(mocks.updateEpisodeWithTags).toHaveBeenLastCalledWith(
+      EPISODE.id,
+      {},
+      undefined,
+      { seasonNumber: 2, number: 3 },
     )
   })
 

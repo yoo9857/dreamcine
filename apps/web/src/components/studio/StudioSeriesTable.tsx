@@ -5,6 +5,8 @@ import { CheckCircle2, Film, Search, Settings2 } from 'lucide-react'
 import Link from 'next/link'
 import React, { useMemo, useState, type ReactNode } from 'react'
 
+import { workTypeLabel } from './work-types'
+
 type Filter = 'ALL' | 'ACTIVE' | 'EMPTY' | 'COMPLETED'
 
 function formatCount(value: string | number): string {
@@ -51,11 +53,11 @@ export function StudioSeriesTable({
       <div className="studio-content-toolbar">
         <label className="studio-search-field">
           <Search aria-hidden="true" />
-          <span className="sr-only">시리즈 검색</span>
+          <span className="sr-only">작품 검색</span>
           <input
             type="search"
             value={query}
-            placeholder="시리즈 검색"
+            placeholder="작품(시리즈) 검색"
             onChange={(event) => {
               setQuery(event.currentTarget.value)
             }}
@@ -80,7 +82,7 @@ export function StudioSeriesTable({
       {visible.length === 0 ? (
         <div className="studio-table-empty">
           <Film aria-hidden="true" />
-          <strong>조건에 맞는 시리즈가 없습니다</strong>
+          <strong>조건에 맞는 작품이 없습니다</strong>
           <p>검색어나 상태 필터를 변경해 보세요.</p>
         </div>
       ) : (
@@ -88,9 +90,9 @@ export function StudioSeriesTable({
           <table className="studio-content-table">
             <thead>
               <tr>
-                <th>콘텐츠</th>
+                <th>작품(시리즈)</th>
                 <th>상태</th>
-                <th>에피소드</th>
+                <th>회차</th>
                 <th>누적 조회수</th>
                 <th>최근 수정</th>
                 <th>
@@ -116,6 +118,9 @@ export function StudioSeriesTable({
                           )}
                         </span>
                         <span>
+                          <em className="studio-work-type">
+                            {workTypeLabel(item.workType)}
+                          </em>
                           <strong>{item.title}</strong>
                           <small>
                             {item.synopsis ?? '작품 소개가 없습니다.'}

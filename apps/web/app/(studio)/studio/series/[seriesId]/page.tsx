@@ -1,4 +1,4 @@
-import { ArrowLeft, Eye, Film, Plus } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Eye, Film, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -8,6 +8,7 @@ import { CreateEpisodeForm } from '@/src/components/studio/CreateEpisodeForm'
 import { EditSeriesForm } from '@/src/components/studio/EditSeriesForm'
 import { EpisodeTable } from '@/src/components/studio/EpisodeTable'
 import { SeriesPerformancePanel } from '@/src/components/studio/SeriesPerformancePanel'
+import { workTypeLabel } from '@/src/components/studio/work-types'
 import { getStudioSeries } from '@/src/services/series/get-studio-series'
 import {
   getAvailableStudioAssets,
@@ -30,6 +31,10 @@ export default async function StudioSeriesPage({
     getStudioSeriesAnalytics(session, seriesId),
   ])
   if (detail === null || analytics === null) notFound()
+  const seasonCount = new Set(
+    analytics.episodes.map((episode) => episode.seasonNumber ?? 1),
+  ).size
+  const episodic = detail.series.workType === 'SERIES'
 
   return (
     <main className="studio-series-page">
@@ -45,7 +50,9 @@ export default async function StudioSeriesPage({
           )}
         </div>
         <div>
-          <span>SERIES WORKSPACE</span>
+          <span>
+            WORK · {workTypeLabel(detail.series.workType).toUpperCase()}
+          </span>
           <h1>{detail.series.title}</h1>
           <p>
             {detail.series.synopsis ??
@@ -53,8 +60,8 @@ export default async function StudioSeriesPage({
           </p>
           <div className="studio-series-meta">
             <span>
-              <Film aria-hidden="true" /> {detail.series.episodeCount}개
-              에피소드
+              <Film aria-hidden="true" /> {detail.series.episodeCount}개{' '}
+              {episodic ? '회차' : '영상'}
             </span>
             <span>
               <Eye aria-hidden="true" />{' '}
@@ -67,9 +74,47 @@ export default async function StudioSeriesPage({
         </div>
       </header>
 
-      <nav className="studio-series-jump-nav" aria-label="시리즈 관리 메뉴">
-        <a href="#episodes">회차 관리</a>
-        <a href="#new-episode">새 에피소드</a>
+      <section
+        className="studio-series-hierarchy"
+        aria-label="작품과 회차 구성"
+      >
+        <article>
+          <span>작품 · {workTypeLabel(detail.series.workType)}</span>
+          <strong>{detail.series.title}</strong>
+          <small>
+            {episodic
+              ? '모든 시즌과 회차를 묶는 최상위 작품'
+              : '본편과 여러 버전을 묶는 최상위 작품'}
+          </small>
+        </article>
+        <ChevronRight aria-hidden="true" />
+        <article>
+          <span>{episodic ? '시즌' : '영상 구성'}</span>
+          <strong>{episodic ? `${String(seasonCount)}개` : '본편·버전'}</strong>
+          <small>
+            {episodic
+              ? '긴 작품을 시즌 단위로 구분'
+              : '본편과 컷다운·버전을 구분'}
+          </small>
+        </article>
+        <ChevronRight aria-hidden="true" />
+        <article>
+          <span>{episodic ? '개별 회차' : '연결 영상'}</span>
+          <strong>{detail.series.episodeCount}개</strong>
+          <small>
+            {episodic
+              ? '1화·2화·3화를 각각 독립 관리'
+              : '영상별 공개·수정·데이터를 독립 관리'}
+          </small>
+        </article>
+      </section>
+
+      <nav
+        className="studio-series-jump-nav"
+        aria-label="작품 및 회차 관리 메뉴"
+      >
+        <a href="#episodes">{episodic ? '회차 관리' : '영상 관리'}</a>
+        <a href="#new-episode">{episodic ? '새 회차' : '새 영상'}</a>
         <a href="#performance">콘텐츠 데이터</a>
         <a href="#settings">작품 설정</a>
       </nav>
@@ -77,15 +122,22 @@ export default async function StudioSeriesPage({
       <section className="studio-series-section" id="episodes">
         <div className="studio-section-title-row">
           <div>
-            <span>EPISODE LIBRARY</span>
-            <h2>시즌·회차별 콘텐츠 관리</h2>
-            <p>시리즈에 속한 회차를 찾고 수정·공개·분석까지 관리합니다.</p>
+            <span>{episodic ? 'EPISODE LIBRARY' : 'VIDEO LIBRARY'}</span>
+            <h2>
+              {detail.series.title}의 {episodic ? '회차' : '영상'} 관리
+            </h2>
+            <p>
+              {episodic
+                ? '작품 안의 1화·2화·3화를 각각 수정하고 공개·예약·분석합니다.'
+                : '본편·숏폼·CF 버전을 각각 수정하고 공개·예약·분석합니다.'}
+            </p>
           </div>
         </div>
         <EpisodeTable
           episodes={detail.episodes}
           availableAssets={availableAssets}
           structure={analytics.episodes}
+          workType={detail.series.workType}
         />
       </section>
 
@@ -95,28 +147,39 @@ export default async function StudioSeriesPage({
       >
         <div className="studio-section-title-row">
           <div>
-            <span>NEW EPISODE</span>
+            <span>{episodic ? 'NEW EPISODE' : 'NEW VIDEO'}</span>
             <h2>
-              <Plus aria-hidden="true" /> 에피소드 추가
+              <Plus aria-hidden="true" /> {episodic ? '회차' : '영상'} 추가
             </h2>
-            <p>업로드와 변환이 끝난 영상을 작품에 연결합니다.</p>
+            <p>
+              업로드와 변환이 끝난 영상을{' '}
+              {episodic ? '새 회차로' : '이 작품의 본편 또는 버전으로'}{' '}
+              연결합니다.
+            </p>
           </div>
         </div>
         <CreateEpisodeForm
           seriesId={seriesId}
           availableAssets={availableAssets}
+          workType={detail.series.workType}
         />
       </section>
 
       <section className="studio-series-section" id="performance">
         <div className="studio-section-title-row">
           <div>
-            <span>SERIES PERFORMANCE</span>
-            <h2>시리즈 콘텐츠 데이터</h2>
-            <p>전체 성과를 비교하고 개선할 에피소드를 빠르게 찾습니다.</p>
+            <span>WORK PERFORMANCE</span>
+            <h2>작품 콘텐츠 데이터</h2>
+            <p>
+              전체 성과를 비교하고 개선할 {episodic ? '회차' : '영상'}를 빠르게
+              찾습니다.
+            </p>
           </div>
         </div>
-        <SeriesPerformancePanel analytics={analytics} />
+        <SeriesPerformancePanel
+          analytics={analytics}
+          workType={detail.series.workType}
+        />
       </section>
 
       <section className="studio-series-section" id="settings">

@@ -11,6 +11,7 @@ export function mapSeries(row: PrismaSeries): Series {
     slug: row.slug,
     title: row.title,
     synopsis: row.synopsis,
+    workType: row.workType,
     posterKey: row.posterKey,
     ageRating: row.ageRating,
     isCompleted: row.isCompleted,

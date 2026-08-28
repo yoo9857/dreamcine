@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AiDisclosureField } from './AiDisclosureField'
 import { CreateEpisodeForm } from './CreateEpisodeForm'
+import { CreateSeriesForm } from './CreateSeriesForm'
 import { EditSeriesForm } from './EditSeriesForm'
 import { EpisodeTable } from './EpisodeTable'
 import { SeriesPerformancePanel } from './SeriesPerformancePanel'
@@ -54,6 +55,7 @@ const SERIES: SeriesResponse = {
   slug: 'first-dream',
   title: '첫 번째 꿈',
   synopsis: '한 사람의 취향이 작품이 되는 이야기',
+  workType: 'SERIES',
   ageRating: 'ALL',
   isCompleted: false,
   commentsOff: false,
@@ -118,7 +120,7 @@ describe('CreateEpisodeForm', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<CreateEpisodeForm seriesId="series_1" />)
     const form = screen
-      .getByRole('button', { name: '에피소드 추가' })
+      .getByRole('button', { name: '회차 추가' })
       .closest('form')
     expect(form).not.toBeNull()
     if (form !== null) fireEvent.submit(form)
@@ -147,12 +149,46 @@ describe('CreateEpisodeForm', () => {
   })
 })
 
+describe('CreateSeriesForm', () => {
+  it('creates a work with the selected film format', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 'work_1' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<CreateSeriesForm />)
+
+    fireEvent.click(screen.getByRole('radio', { name: /영화·단편/u }))
+    fireEvent.change(
+      screen.getByRole('textbox', { name: '작품(시리즈) 제목' }),
+      { target: { value: '여름의 마지막 밤' } },
+    )
+    fireEvent.click(screen.getByRole('button', { name: '작품 만들기' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/series',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined
+    expect(typeof request?.body).toBe('string')
+    const body: unknown =
+      typeof request?.body === 'string' ? JSON.parse(request.body) : null
+    expect(body).toMatchObject({
+      title: '여름의 마지막 밤',
+      workType: 'FILM',
+    })
+    expect(router.push).toHaveBeenCalledWith('/studio/series/work_1')
+  })
+})
+
 describe('EditSeriesForm', () => {
   it('saves creator-facing series settings', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
     render(<EditSeriesForm series={SERIES} />)
-    fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '작품 제목' }), {
       target: { value: '수정된 첫 번째 꿈' },
     })
     fireEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
@@ -217,7 +253,7 @@ describe('EpisodeTable', () => {
 
   it('renders an honest empty state', () => {
     render(<EpisodeTable episodes={[]} />)
-    expect(screen.getByText('아직 에피소드가 없습니다')).toBeDefined()
+    expect(screen.getByText('아직 회차가 없습니다')).toBeDefined()
   })
 
   it('filters a series library by season and keeps per-episode data access', () => {
@@ -286,7 +322,7 @@ describe('EpisodeTable', () => {
     vi.stubGlobal('fetch', fetchMock)
     const view = render(<EpisodeTable episodes={[EPISODE]} />)
     fireEvent.click(view.getByRole('button', { name: '수정' }))
-    fireEvent.change(view.getByRole('textbox', { name: '에피소드 제목' }), {
+    fireEvent.change(view.getByRole('textbox', { name: '회차 제목' }), {
       target: { value: '새로운 첫 장면' },
     })
     fireEvent.click(view.getByRole('button', { name: '변경사항 저장' }))
@@ -295,6 +331,14 @@ describe('EpisodeTable', () => {
         '/api/episodes/episode_1',
         expect.objectContaining({ method: 'PATCH' }),
       )
+    })
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined
+    expect(typeof request?.body).toBe('string')
+    const body: unknown =
+      typeof request?.body === 'string' ? JSON.parse(request.body) : null
+    expect(body).toMatchObject({
+      seasonNumber: 1,
+      number: 1,
     })
     expect(router.refresh).toHaveBeenCalledOnce()
   })

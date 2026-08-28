@@ -1,6 +1,6 @@
 'use client'
 
-import type { EpisodeResponse } from '@aidream/core'
+import type { EpisodeResponse, WorkType } from '@aidream/core'
 import { Badge, Button, EmptyState } from '@aidream/ui'
 import {
   BarChart3,
@@ -34,10 +34,12 @@ export function EpisodeTable({
   availableAssets = [],
   episodes,
   structure = [],
+  workType = 'SERIES',
 }: {
   readonly availableAssets?: readonly StudioAssetOption[]
   readonly episodes: readonly EpisodeResponse[]
   readonly structure?: readonly StudioEpisodeAnalytics[]
+  readonly workType?: WorkType
 }): ReactNode {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -48,6 +50,7 @@ export function EpisodeTable({
     'ALL' | EpisodeResponse['status']
   >('ALL')
   const [seasonFilter, setSeasonFilter] = useState('ALL')
+  const episodic = workType === 'SERIES'
   const structureById = useMemo(
     () => new Map(structure.map((item) => [item.id, item])),
     [structure],
@@ -83,8 +86,14 @@ export function EpisodeTable({
   if (episodes.length === 0) {
     return (
       <EmptyState
-        title="아직 에피소드가 없습니다"
-        description="준비된 영상 자산으로 첫 에피소드를 추가해 보세요."
+        title={
+          episodic ? '아직 회차가 없습니다' : '아직 연결된 영상이 없습니다'
+        }
+        description={
+          episodic
+            ? '준비된 영상으로 첫 회차를 추가해 보세요.'
+            : '준비된 영상을 이 작품의 본편이나 버전으로 연결해 보세요.'
+        }
       />
     )
   }
@@ -153,32 +162,34 @@ export function EpisodeTable({
       <div className="studio-episode-toolbar">
         <label className="studio-episode-search">
           <Search aria-hidden="true" />
-          <span className="sr-only">회차 검색</span>
+          <span className="sr-only">{episodic ? '회차' : '영상'} 검색</span>
           <input
             type="search"
             value={query}
-            placeholder="제목 또는 회차 검색"
+            placeholder={episodic ? '제목 또는 회차 검색' : '영상 제목 검색'}
             onChange={(event) => {
               setQuery(event.currentTarget.value)
             }}
           />
         </label>
-        <label>
-          <span>시즌</span>
-          <select
-            value={seasonFilter}
-            onChange={(event) => {
-              setSeasonFilter(event.currentTarget.value)
-            }}
-          >
-            <option value="ALL">전체 시즌</option>
-            {seasons.map((season) => (
-              <option key={season} value={String(season)}>
-                시즌 {season}
-              </option>
-            ))}
-          </select>
-        </label>
+        {episodic ? (
+          <label>
+            <span>시즌</span>
+            <select
+              value={seasonFilter}
+              onChange={(event) => {
+                setSeasonFilter(event.currentTarget.value)
+              }}
+            >
+              <option value="ALL">전체 시즌</option>
+              {seasons.map((season) => (
+                <option key={season} value={String(season)}>
+                  시즌 {season}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label>
           <span>상태</span>
           <select
@@ -204,7 +215,7 @@ export function EpisodeTable({
         <table className="studio-episode-table">
           <thead>
             <tr>
-              <th>콘텐츠</th>
+              <th>{episodic ? '회차' : '영상'}</th>
               <th>상태</th>
               <th>공개 시각</th>
               <th>성과</th>
@@ -231,8 +242,10 @@ export function EpisodeTable({
                         <span>
                           <strong>{episode.title}</strong>
                           <small>
-                            시즌 {episodeStructure?.seasonNumber ?? 1} ·{' '}
-                            {episode.number}화 · {episode.ageRating}
+                            {episodic
+                              ? `시즌 ${String(episodeStructure?.seasonNumber ?? 1)} · ${String(episode.number)}화`
+                              : `영상 ${String(episode.number)}`}{' '}
+                            · {episode.ageRating}
                           </small>
                         </span>
                       </div>
@@ -360,6 +373,8 @@ export function EpisodeTable({
                         <EditEpisodeForm
                           episode={episode}
                           availableAssets={availableAssets}
+                          seasonNumber={episodeStructure?.seasonNumber ?? 1}
+                          workType={workType}
                           onClose={() => {
                             setEditingId(null)
                           }}

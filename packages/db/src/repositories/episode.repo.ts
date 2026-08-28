@@ -26,6 +26,11 @@ export interface UpdateEpisodeData {
   assetId?: string | null
 }
 
+export interface EpisodePlacement {
+  readonly seasonNumber?: number
+  readonly number?: number
+}
+
 export interface ListEpisodesOptions {
   seriesId: string
   status?: EpisodeStatus[]
@@ -305,16 +310,52 @@ export function updateEpisodeWithTags(
   id: string,
   input: UpdateEpisodeData,
   tags?: readonly string[],
+  placement?: EpisodePlacement,
 ): Promise<Episode> {
   return withTransaction(async (tx) => {
     const current = await tx.episode.findFirst({
       where: { id, deletedAt: null },
-      include: { tags: { select: { tagId: true } } },
+      include: {
+        season: { select: { number: true } },
+        tags: { select: { tagId: true } },
+      },
     })
     if (current === null) throw new AppError('E_EPISODE_NOT_FOUND')
+
+    let placementData: { seasonId: string; number: number } | undefined
+    if (placement !== undefined) {
+      await tx.$executeRaw(Prisma.sql`
+        SELECT pg_advisory_xact_lock(hashtextextended(${current.seriesId}, 0))
+      `)
+      const seasonNumber = placement.seasonNumber ?? current.season?.number ?? 1
+      const number = placement.number ?? current.number
+      const duplicate = await tx.episode.findFirst({
+        where: {
+          id: { not: id },
+          seriesId: current.seriesId,
+          season: { number: seasonNumber },
+          number,
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+      if (duplicate !== null) {
+        throw new AppError('E_EPISODE_NUMBER_DUPLICATE', {
+          fields: ['seasonNumber', 'number'],
+        })
+      }
+      const season = await tx.season.upsert({
+        where: {
+          seriesId_number: { seriesId: current.seriesId, number: seasonNumber },
+        },
+        create: { seriesId: current.seriesId, number: seasonNumber },
+        update: {},
+      })
+      placementData = { seasonId: season.id, number }
+    }
     const row = await tx.episode.update({
       where: { id, deletedAt: null },
-      data: input,
+      data: { ...input, ...placementData },
     })
     if (tags !== undefined) {
       for (const relation of current.tags) {

@@ -18,6 +18,12 @@ describe('series schemas', () => {
     })
     expect(() => CreateSeriesSchema.parse({ title: '' })).toThrow()
     expect(() => CreateSeriesSchema.parse({ title: 'a'.repeat(121) })).toThrow()
+    expect(
+      CreateSeriesSchema.parse({
+        title: '30초 브랜드 필름',
+        workType: 'COMMERCIAL',
+      }),
+    ).toMatchObject({ workType: 'COMMERCIAL' })
   })
 })
 
@@ -49,6 +55,16 @@ describe('episode schemas', () => {
       title: '수정',
     })
     expect(UpdateEpisodeSchema.parse({ status: 'PUBLISHED' })).toEqual({})
+  })
+
+  it('회차를 다른 시즌과 순서로 이동할 수 있다', () => {
+    expect(UpdateEpisodeSchema.parse({ seasonNumber: 2, number: 3 })).toEqual({
+      seasonNumber: 2,
+      number: 3,
+    })
+    expect(() =>
+      UpdateEpisodeSchema.parse({ seasonNumber: 0, number: 1 }),
+    ).toThrow()
   })
 
   it('공개 액션과 ISO 예약시각을 검증한다', () => {

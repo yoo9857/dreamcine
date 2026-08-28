@@ -1,6 +1,6 @@
 'use client'
 
-import type { EpisodeResponse } from '@aidream/core'
+import type { EpisodeResponse, WorkType } from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
 import { Save, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -14,15 +14,20 @@ export function EditEpisodeForm({
   availableAssets,
   episode,
   onClose,
+  seasonNumber = 1,
+  workType = 'SERIES',
 }: {
   readonly availableAssets: readonly StudioAssetOption[]
   readonly episode: EpisodeResponse
   readonly onClose: () => void
+  readonly seasonNumber?: number
+  readonly workType?: WorkType
 }): ReactNode {
   const router = useRouter()
   const [aiDisclosure, setAiDisclosure] = useState(episode.aiDisclosure ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const episodic = workType === 'SERIES'
 
   async function submit(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
@@ -39,6 +44,8 @@ export function EditEpisodeForm({
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        seasonNumber: Number(data.get('seasonNumber')),
+        number: Number(data.get('number')),
         title: data.get('title'),
         description:
           typeof description === 'string' && description !== ''
@@ -66,8 +73,28 @@ export function EditEpisodeForm({
       onSubmit={(event) => void submit(event)}
     >
       <div className="studio-episode-edit-grid">
+        {episodic ? (
+          <Input
+            label="시즌"
+            name="seasonNumber"
+            type="number"
+            min={1}
+            defaultValue={seasonNumber}
+            required
+          />
+        ) : (
+          <input type="hidden" name="seasonNumber" value="1" />
+        )}
         <Input
-          label="에피소드 제목"
+          label={episodic ? '회차' : '영상 순서'}
+          name="number"
+          type="number"
+          min={1}
+          defaultValue={episode.number}
+          required
+        />
+        <Input
+          label={episodic ? '회차 제목' : '영상 제목'}
           name="title"
           defaultValue={episode.title}
           required

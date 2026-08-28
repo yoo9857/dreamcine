@@ -57,6 +57,7 @@ const PREVIEW_WORKS: readonly SeriesResponse[] = PREVIEW_POSTERS.map(
       index === 0
         ? '기억을 영상으로 보관하는 가까운 미래. 사라져 가는 장면을 붙잡으려는 세 사람의 선택이 서로의 내일을 바꾸기 시작합니다.'
         : '현실과 상상의 경계에서 발견한 감정을 시네마틱 이미지로 기록한 작품입니다.',
+    workType: 'SERIES',
     posterUrl,
     ageRating: 'ALL',
     isCompleted: index < 3,

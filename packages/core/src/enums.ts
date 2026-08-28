@@ -55,6 +55,15 @@ export const ReportStatus = [
 
 export const AgeRating = ['ALL', 'A12', 'A15', 'A19'] as const
 
+export const WorkType = [
+  'SERIES',
+  'FILM',
+  'SHORT_FORM',
+  'COMMERCIAL',
+  'MUSIC_VIDEO',
+  'OTHER',
+] as const
+
 export const UserStatus = ['ACTIVE', 'SUSPENDED', 'DELETED'] as const
 
 export const Gender = [
@@ -157,6 +166,7 @@ export type ReportReason = (typeof ReportReason)[number]
 export type ReportTarget = (typeof ReportTarget)[number]
 export type NotifType = (typeof NotifType)[number]
 export type AgeRating = (typeof AgeRating)[number]
+export type WorkType = (typeof WorkType)[number]
 export type Visibility = (typeof Visibility)[number]
 export type LinkKind = (typeof LinkKind)[number]
 export type ConsentKind = (typeof ConsentKind)[number]

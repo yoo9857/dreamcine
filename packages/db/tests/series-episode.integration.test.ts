@@ -152,6 +152,28 @@ describe('T08 series/episode repositories', () => {
       })
   })
 
+  it('기존 회차를 다른 시즌과 화수로 이동한다', async () => {
+    const data = await fixture('move-episode')
+    const episode = await repo.createEpisodeWithTags({
+      seriesId: data.seriesId,
+      seasonNumber: 1,
+      number: 1,
+      title: '이동할 회차',
+      assetId: data.assetId,
+      ageRating: 'ALL',
+      aiDisclosure: 'AIDREAM',
+      tags: [],
+    })
+    const moved = await repo.updateEpisodeWithTags(episode.id, {}, undefined, {
+      seasonNumber: 2,
+      number: 3,
+    })
+    expect(moved.number).toBe(3)
+    await expect(
+      database.season.findUnique({ where: { id: moved.seasonId ?? '' } }),
+    ).resolves.toMatchObject({ number: 2 })
+  })
+
   it('상태 전이와 공개 에피소드 수를 한 트랜잭션에서 맞춘다', async () => {
     const data = await fixture('transition')
     const episode = await repo.createEpisodeWithTags({

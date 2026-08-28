@@ -170,6 +170,7 @@ const PREVIEW_SERIES: readonly SeriesResponse[] = FALLBACK_POSTERS.map(
     slug: `preview-work-${String(index + 1)}`,
     title: PREVIEW_TITLES.at(index) ?? '이름 없는 작품',
     synopsis: null,
+    workType: 'SERIES',
     posterUrl,
     ageRating: 'ALL',
     isCompleted: index < 3,

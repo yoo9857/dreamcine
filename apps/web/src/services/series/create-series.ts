@@ -49,6 +49,7 @@ async function runCreateSeries(
     slug,
     title: input.title,
     synopsis: input.synopsis ?? null,
+    workType: input.workType ?? 'SERIES',
     posterKey: input.posterKey ?? null,
     ...(input.ageRating === undefined ? {} : { ageRating: input.ageRating }),
   })
@@ -62,6 +63,7 @@ export function toSeriesResponse(series: Series): SeriesResponse {
     slug: series.slug,
     title: series.title,
     synopsis: series.synopsis,
+    workType: series.workType,
     ...(series.posterKey === null
       ? {}
       : { posterUrl: cdnUrl(series.posterKey) }),

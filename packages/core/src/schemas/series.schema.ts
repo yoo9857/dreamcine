@@ -1,11 +1,12 @@
 import { z } from 'zod'
 
-import { AgeRating } from '../enums.js'
+import { AgeRating, WorkType } from '../enums.js'
 import { LIMITS } from '../limits.js'
 
 export const CreateSeriesSchema = z.object({
   title: z.string().trim().min(1).max(120),
   synopsis: z.string().trim().max(2000).optional(),
+  workType: z.enum(WorkType).optional(),
   posterKey: z.string().min(1).optional(),
   ageRating: z.enum(AgeRating).optional(),
 })
@@ -13,6 +14,7 @@ export const CreateSeriesSchema = z.object({
 export const UpdateSeriesSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   synopsis: z.string().trim().max(2000).nullable().optional(),
+  workType: z.enum(WorkType).optional(),
   posterKey: z.string().min(1).nullable().optional(),
   ageRating: z.enum(AgeRating).optional(),
   isCompleted: z.boolean().optional(),
@@ -30,6 +32,7 @@ export const SeriesResponseSchema = z.object({
   slug: z.string(),
   title: z.string(),
   synopsis: z.string().nullable(),
+  workType: z.enum(WorkType),
   posterUrl: z.string().url().optional(),
   ageRating: z.enum(AgeRating),
   isCompleted: z.boolean(),

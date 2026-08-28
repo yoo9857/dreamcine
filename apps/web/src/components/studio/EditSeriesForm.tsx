@@ -6,6 +6,8 @@ import { Check, Save, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState, type ReactNode, type SyntheticEvent } from 'react'
 
+import { WORK_TYPE_OPTIONS } from './work-types'
+
 export function EditSeriesForm({
   series,
 }: {
@@ -28,6 +30,7 @@ export function EditSeriesForm({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         title: data.get('title'),
+        workType: data.get('workType'),
         synopsis: data.get('synopsis'),
         ageRating: data.get('ageRating'),
         isCompleted: data.get('isCompleted') === 'on',
@@ -46,7 +49,7 @@ export function EditSeriesForm({
   async function remove(): Promise<void> {
     if (
       !window.confirm(
-        `“${series.title}” 시리즈를 삭제할까요? 시리즈와 에피소드가 서비스에서 숨겨집니다.`,
+        `“${series.title}” 작품을 삭제할까요? 작품과 연결된 영상이 서비스에서 숨겨집니다.`,
       )
     )
       return
@@ -57,7 +60,7 @@ export function EditSeriesForm({
     })
     if (!response.ok) {
       setDeleting(false)
-      setError('시리즈를 삭제하지 못했습니다.')
+      setError('작품을 삭제하지 못했습니다.')
       return
     }
     router.push('/studio')
@@ -71,12 +74,22 @@ export function EditSeriesForm({
     >
       <div className="studio-edit-fields">
         <Input
-          label="시리즈 제목"
+          label="작품 제목"
           name="title"
           defaultValue={series.title}
           required
           maxLength={120}
         />
+        <label className="studio-field-label">
+          <span>작품 형식</span>
+          <select name="workType" defaultValue={series.workType}>
+            {WORK_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <Textarea
           label="작품 소개"
           name="synopsis"
@@ -134,7 +147,7 @@ export function EditSeriesForm({
             onClick={() => void remove()}
           >
             <Trash2 aria-hidden="true" />
-            {deleting ? '삭제 중…' : '시리즈 삭제'}
+            {deleting ? '삭제 중…' : '작품 삭제'}
           </Button>
           <Button type="submit" disabled={saving || deleting}>
             <Save aria-hidden="true" />
