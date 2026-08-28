@@ -65,7 +65,7 @@ describe('NavigationLinks', () => {
     expect(
       screen.getByRole('link', { name: '스튜디오' }).getAttribute('href'),
     ).toBe('/creator-apply')
-    expect(screen.getAllByRole('link')).toHaveLength(5)
+    expect(screen.getAllByRole('link')).toHaveLength(6)
   })
 
   it('keeps Works active on series and watch detail routes', () => {
@@ -98,7 +98,7 @@ describe('NavigationLinks', () => {
     )
 
     expect(container.querySelector('nav')?.getAttribute('style')).toContain(
-      '--nav-count: 4',
+      '--nav-count: 5',
     )
   })
 })

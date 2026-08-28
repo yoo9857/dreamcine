@@ -9,7 +9,13 @@ import React, {
   type ReactNode,
 } from 'react'
 
-type NavIconName = 'home' | 'works' | 'creators' | 'notifications' | 'studio'
+type NavIconName =
+  | 'home'
+  | 'works'
+  | 'creators'
+  | 'events'
+  | 'notifications'
+  | 'studio'
 
 interface NavigationLinksProps {
   readonly authenticated: boolean
@@ -54,6 +60,14 @@ function NavIcon({ name }: { readonly name: NavIconName }): ReactNode {
       </svg>
     )
   }
+  if (name === 'events') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M8 3v4M16 3v4M4 10h16M8 14h3M13 14h3M8 17h3" />
+      </svg>
+    )
+  }
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 8.5 12 4l8 4.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z" />
@@ -92,6 +106,7 @@ export function NavigationLinks({
     { href: authenticated ? '/browse' : '/', label: '홈', icon: 'home' },
     { href: '/works', label: '작품', icon: 'works' },
     { href: '/creators', label: '작가', icon: 'creators' },
+    { href: '/events', label: '이벤트', icon: 'events' },
     ...(authenticated
       ? ([
           {
