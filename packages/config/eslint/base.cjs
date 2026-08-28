@@ -52,6 +52,8 @@ module.exports = tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       '**/.tmp/**',
+      // 로컬 작업용 스크래치 (캡처 스크립트·스크린샷). 저장소 대상이 아니다.
+      'tmp/**',
       // predev/prebuild가 node_modules의 MapLibre 번들을 그대로 복사하는 생성물
       '**/public/maplibre/**',
       // Next.js 가 생성·갱신하는 타입 진입점

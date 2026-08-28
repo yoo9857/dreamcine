@@ -16,3 +16,6 @@ apps/web/public/maplibre
 
 # 토큰에서 생성되는 파일 (contract:tokens 가 정본을 보장)
 packages/ui/src/tokens/theme.css
+
+# 로컬 작업용 스크래치
+/tmp
