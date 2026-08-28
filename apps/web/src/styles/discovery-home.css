@@ -408,6 +408,22 @@
   color: #dce3e6;
   font-size: 10px;
 }
+.browse-account-base-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border: 1px solid rgb(191 129 80 / 42%);
+  border-radius: 999px;
+  color: #d49a6a;
+  background: rgb(128 74 38 / 16%);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+}
+.browse-account-base-tier svg {
+  width: 11px;
+}
 
 .browse-account-links {
   display: grid;

@@ -124,6 +124,7 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
     },
     'report.review',
   )
+  const statusLabel = user.status === 'ACTIVE' ? 'ACTIVE' : user.status
 
   return (
     <div className="browse-account" ref={rootRef}>
@@ -190,7 +191,7 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               <small>{user.email}</small>
             </div>
             <span className="browse-account-status">
-              <i aria-hidden="true" /> ACTIVE
+              <i aria-hidden="true" /> {statusLabel}
             </span>
           </header>
 
@@ -202,7 +203,13 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               <small>ILOG MEMBERSHIP</small>
               <strong>나의 크리에이터 등급</strong>
             </div>
-            <TierBadge tier={user.tier} size="sm" />
+            {user.tier === 'BRONZE' ? (
+              <span className="browse-account-base-tier">
+                <ShieldCheck aria-hidden="true" /> BRONZE
+              </span>
+            ) : (
+              <TierBadge tier={user.tier} size="sm" />
+            )}
           </div>
 
           <div className="browse-account-links">

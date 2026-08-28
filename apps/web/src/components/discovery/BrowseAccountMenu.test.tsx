@@ -65,6 +65,16 @@ describe('BrowseAccountMenu', () => {
     expect(
       screen.queryByRole('menuitem', { name: /관리자 페이지/u }),
     ).toBeNull()
+    expect(screen.getByText('ILOG MEMBERSHIP')).toBeTruthy()
+    expect(screen.getByText('GOLD')).toBeTruthy()
+    expect(screen.getByText('ACTIVE')).toBeTruthy()
+  })
+
+  it('shows the base tier inside the private account summary', () => {
+    render(<BrowseAccountMenu user={{ ...user, tier: 'BRONZE' }} />)
+    fireEvent.click(screen.getByRole('button', { name: /계정 메뉴/u }))
+
+    expect(screen.getByText('BRONZE')).toBeTruthy()
   })
 
   it('places the admin dashboard directly after support for administrators', () => {
