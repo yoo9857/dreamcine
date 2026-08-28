@@ -1,14 +1,26 @@
 'use client'
 
 import { Button, Input, Textarea } from '@aidream/ui'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { useState, type ReactNode, type SyntheticEvent } from 'react'
 
+import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
+
 import { AiDisclosureField } from './AiDisclosureField'
 
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return '길이 확인 중'
+  const minutes = Math.floor(seconds / 60)
+  const remainder = String(seconds % 60).padStart(2, '0')
+  return `${String(minutes)}:${remainder}`
+}
+
 export function CreateEpisodeForm({
+  availableAssets = [],
   seriesId,
 }: {
+  readonly availableAssets?: readonly StudioAssetOption[]
   readonly seriesId: string
 }): ReactNode {
   const router = useRouter()
@@ -66,7 +78,7 @@ export function CreateEpisodeForm({
   return (
     <form
       onSubmit={(event) => void submit(event)}
-      className="grid gap-4 rounded-xl border border-border p-5 md:grid-cols-2"
+      className="studio-episode-form"
     >
       <Input
         label="시즌"
@@ -83,13 +95,33 @@ export function CreateEpisodeForm({
       <div className="md:col-span-2">
         <Textarea label="설명" name="description" maxLength={2000} />
       </div>
-      <Input label="준비된 영상 자산 ID" name="assetId" required />
+      <label className="studio-field-label">
+        <span>업로드 완료 영상</span>
+        <select name="assetId" required disabled={availableAssets.length === 0}>
+          <option value="">영상을 선택하세요</option>
+          {availableAssets.map((asset) => (
+            <option key={asset.id} value={asset.id}>
+              {asset.fileName} · {formatDuration(asset.durationSec)}
+            </option>
+          ))}
+        </select>
+        {availableAssets.length === 0 ? (
+          <small>
+            사용할 수 있는 영상이 없습니다.{' '}
+            <Link href="/studio/upload">영상을 먼저 업로드하세요.</Link>
+          </small>
+        ) : (
+          <small>
+            변환이 완료됐고 다른 에피소드에 연결되지 않은 영상만 표시됩니다.
+          </small>
+        )}
+      </label>
       <Input
         label="태그"
         name="tags"
         hint="쉼표로 구분하며 최대 10개까지 입력할 수 있습니다."
       />
-      <label className="flex flex-col gap-1 text-sm font-medium text-fg-secondary">
+      <label className="studio-field-label">
         관람 등급
         <select
           name="ageRating"

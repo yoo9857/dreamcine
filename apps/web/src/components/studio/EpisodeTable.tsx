@@ -2,8 +2,13 @@
 
 import type { EpisodeResponse } from '@aidream/core'
 import { Badge, Button, EmptyState } from '@aidream/ui'
+import { Clapperboard, Edit3, Eye, Heart, MessageCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState, type ReactNode } from 'react'
+
+import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
+
+import { EditEpisodeForm } from './EditEpisodeForm'
 
 const STATUS = {
   DRAFT: { label: '초안', tone: 'neutral' },
@@ -14,13 +19,16 @@ const STATUS = {
 } as const
 
 export function EpisodeTable({
+  availableAssets = [],
   episodes,
 }: {
+  readonly availableAssets?: readonly StudioAssetOption[]
   readonly episodes: readonly EpisodeResponse[]
 }): ReactNode {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   if (episodes.length === 0) {
     return (
@@ -86,21 +94,21 @@ export function EpisodeTable({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="studio-episode-panel">
       {error === null ? null : (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="studio-inline-error">
           {error}
         </p>
       )}
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-xl text-left text-sm">
-          <thead className="bg-bg-subtle text-fg-secondary">
+      <div className="studio-table-scroll">
+        <table className="studio-episode-table">
+          <thead>
             <tr>
-              <th className="p-3">회차</th>
-              <th className="p-3">제목</th>
-              <th className="p-3">상태</th>
-              <th className="p-3">공개 시각</th>
-              <th className="p-3">작업</th>
+              <th>콘텐츠</th>
+              <th>상태</th>
+              <th>공개 시각</th>
+              <th>성과</th>
+              <th>작업</th>
             </tr>
           </thead>
           <tbody>
@@ -108,79 +116,148 @@ export function EpisodeTable({
               const status = STATUS[episode.status]
               const busy = busyId === episode.id
               return (
-                <tr key={episode.id} className="border-t border-border">
-                  <td className="p-3">{episode.number}화</td>
-                  <td className="p-3 font-medium text-fg">{episode.title}</td>
-                  <td className="p-3">
-                    <Badge tone={status.tone}>{status.label}</Badge>
-                  </td>
-                  <td className="p-3 text-fg-muted">
-                    {episode.publishAt === null
-                      ? '—'
-                      : new Date(episode.publishAt).toLocaleString('ko-KR')}
-                  </td>
-                  <td className="flex flex-wrap gap-2 p-3">
-                    {episode.status === 'DRAFT' ? (
-                      <>
-                        <Button
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => void transition(episode.id, 'PUBLISH')}
-                        >
-                          공개
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={busy}
-                          onClick={() =>
-                            void transition(episode.id, 'SCHEDULE')
-                          }
-                        >
-                          예약
-                        </Button>
-                      </>
-                    ) : null}
-                    {episode.status === 'SCHEDULED' ? (
-                      <Button
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => void transition(episode.id, 'PUBLISH')}
-                      >
-                        지금 공개
-                      </Button>
-                    ) : null}
-                    {episode.status === 'PUBLISHED' ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={busy}
-                        onClick={() => void transition(episode.id, 'HIDE')}
-                      >
-                        숨기기
-                      </Button>
-                    ) : null}
-                    {episode.status === 'HIDDEN' ? (
-                      <Button
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => void transition(episode.id, 'UNHIDE')}
-                      >
-                        다시 공개
-                      </Button>
-                    ) : null}
-                    {episode.status === 'REMOVED' ? null : (
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        disabled={busy}
-                        onClick={() => void remove(episode.id)}
-                      >
-                        삭제
-                      </Button>
-                    )}
-                  </td>
-                </tr>
+                <React.Fragment key={episode.id}>
+                  <tr>
+                    <td>
+                      <div className="studio-episode-title">
+                        <span className="studio-episode-thumb">
+                          {episode.thumbUrl === undefined ? (
+                            <Clapperboard aria-hidden="true" />
+                          ) : (
+                            <img src={episode.thumbUrl} alt="" />
+                          )}
+                        </span>
+                        <span>
+                          <strong>{episode.title}</strong>
+                          <small>
+                            {episode.number}화 · {episode.ageRating}
+                          </small>
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <Badge tone={status.tone}>{status.label}</Badge>
+                    </td>
+                    <td>
+                      {episode.publishAt === null
+                        ? '—'
+                        : new Date(episode.publishAt).toLocaleString('ko-KR')}
+                    </td>
+                    <td>
+                      <div className="studio-episode-metrics">
+                        <span title="조회수">
+                          <Eye aria-hidden="true" />{' '}
+                          {new Intl.NumberFormat('ko-KR', {
+                            notation: 'compact',
+                          }).format(BigInt(episode.viewCount))}
+                        </span>
+                        <span title="좋아요">
+                          <Heart aria-hidden="true" /> {episode.likeCount}
+                        </span>
+                        <span title="댓글">
+                          <MessageCircle aria-hidden="true" />{' '}
+                          {episode.commentCount}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="studio-episode-actions">
+                        {episode.status === 'REMOVED' ? null : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() => {
+                              setEditingId(
+                                editingId === episode.id ? null : episode.id,
+                              )
+                            }}
+                          >
+                            <Edit3 aria-hidden="true" /> 수정
+                          </Button>
+                        )}
+                        {episode.status === 'DRAFT' ? (
+                          <>
+                            <Button
+                              size="sm"
+                              disabled={busy}
+                              onClick={() =>
+                                void transition(episode.id, 'PUBLISH')
+                              }
+                            >
+                              공개
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                void transition(episode.id, 'SCHEDULE')
+                              }
+                            >
+                              예약
+                            </Button>
+                          </>
+                        ) : null}
+                        {episode.status === 'SCHEDULED' ? (
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={() =>
+                              void transition(episode.id, 'PUBLISH')
+                            }
+                          >
+                            지금 공개
+                          </Button>
+                        ) : null}
+                        {episode.status === 'PUBLISHED' ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() => void transition(episode.id, 'HIDE')}
+                          >
+                            숨기기
+                          </Button>
+                        ) : null}
+                        {episode.status === 'HIDDEN' ? (
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={() =>
+                              void transition(episode.id, 'UNHIDE')
+                            }
+                          >
+                            다시 공개
+                          </Button>
+                        ) : null}
+                        {episode.status === 'REMOVED' ? null : (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            disabled={busy}
+                            onClick={() => void remove(episode.id)}
+                          >
+                            삭제
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {editingId === episode.id ? (
+                    <tr className="studio-episode-edit-row">
+                      <td colSpan={5}>
+                        <EditEpisodeForm
+                          episode={episode}
+                          availableAssets={availableAssets}
+                          onClose={() => {
+                            setEditingId(null)
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
               )
             })}
           </tbody>

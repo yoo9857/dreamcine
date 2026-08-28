@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { requireCapability } from '@/src/auth/server-session'
+import { StudioShell } from '@/src/components/studio/StudioShell'
 
 /**
  * 스튜디오 전 화면의 권한 경계.
@@ -17,7 +18,14 @@ export default async function StudioLayout({
 }: {
   readonly children: ReactNode
 }): Promise<ReactNode> {
-  await requireCapability('upload.create', '/studio')
+  const session = await requireCapability('upload.create', '/studio')
 
-  return <div className="mx-auto w-full max-w-5xl px-4 py-8">{children}</div>
+  return (
+    <StudioShell
+      displayName={session.user.displayName}
+      handle={session.user.handle}
+    >
+      {children}
+    </StudioShell>
+  )
 }

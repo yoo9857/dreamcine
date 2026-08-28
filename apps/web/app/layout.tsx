@@ -16,6 +16,7 @@ import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
 import '../src/styles/player.css'
 import '../src/styles/policy.css'
+import '../src/styles/studio.css'
 
 const SITE_DESCRIPTION =
   '새로운 이야기와 크리에이터를 발견하는 영상 플랫폼 ilog'
