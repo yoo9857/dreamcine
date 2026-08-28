@@ -14,6 +14,9 @@ const mocks = vi.hoisted(() => ({
   retry: vi.fn(),
   state: null as UploadState | null,
 }))
+const router = vi.hoisted(() => ({ refresh: vi.fn() }))
+
+vi.mock('next/navigation', () => ({ useRouter: () => router }))
 
 vi.mock('@/src/hooks/use-upload', async () => {
   const actual = await vi.importActual<typeof import('@/src/hooks/use-upload')>(
@@ -62,6 +65,7 @@ beforeEach(() => {
     mock.mockReset()
   }
   mocks.start.mockResolvedValue(undefined)
+  router.refresh.mockReset()
 })
 
 afterEach(() => {
@@ -94,6 +98,25 @@ describe('Uploader', () => {
     fireEvent.click(screen.getByRole('button', { name: '같은 파일 다시 선택' }))
 
     expect(screen.getByLabelText('업로드할 영상 선택')).not.toBeNull()
+  })
+
+  it('준비 완료 후 시리즈 연결을 다음 단계로 안내한다', () => {
+    mocks.state = initialState({
+      phase: 'ready',
+      uploadId: 'upl_1',
+      assetId: 'asset_1',
+      transcodeProgress: 100,
+    })
+    render(<Uploader />)
+
+    expect(
+      screen.getByRole('heading', { name: '이제 영상을 시리즈에 연결하세요' }),
+    ).not.toBeNull()
+    expect(screen.getByRole('link', { name: /시리즈 선택/u })).not.toBeNull()
+    expect(
+      screen.getByRole('link', { name: /새 시리즈 만들기/u }),
+    ).not.toBeNull()
+    expect(router.refresh).toHaveBeenCalledOnce()
   })
 })
 

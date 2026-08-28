@@ -2,9 +2,18 @@
 
 import { ERROR_CODES, type ErrorCode } from '@aidream/core'
 import { Button, ErrorState } from '@aidream/ui'
-import { UploadCloud } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  Library,
+  Plus,
+  UploadCloud,
+} from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import {
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -28,6 +37,7 @@ function knownErrorCode(value: string | null): ErrorCode {
 
 export function Uploader(): ReactNode {
   const upload = useUpload()
+  const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const isBusy = [
@@ -37,6 +47,10 @@ export function Uploader(): ReactNode {
     'completing',
     'transcoding',
   ].includes(upload.state.phase)
+
+  useEffect(() => {
+    if (upload.state.phase === 'ready') router.refresh()
+  }, [router, upload.state.phase])
 
   const choose = (next: File | null): void => {
     if (next === null || isBusy) return
@@ -101,6 +115,37 @@ export function Uploader(): ReactNode {
             void upload.retry()
           }}
         />
+      ) : null}
+
+      {upload.state.phase === 'ready' ? (
+        <section
+          className="studio-upload-next"
+          aria-labelledby="upload-next-title"
+        >
+          <CheckCircle2 aria-hidden="true" />
+          <div>
+            <span>NEXT STEP</span>
+            <h2 id="upload-next-title">이제 영상을 시리즈에 연결하세요</h2>
+            <p>
+              준비된 영상은 미디어 보관함에 저장되었습니다. 기존 시리즈의 회차로
+              연결하거나 새 시리즈를 만들 수 있습니다.
+            </p>
+            <div>
+              <Link href="/studio#content" className="studio-button primary">
+                시리즈 선택 <ArrowRight aria-hidden="true" />
+              </Link>
+              <Link
+                href="/studio/series/new"
+                className="studio-button secondary"
+              >
+                <Plus aria-hidden="true" /> 새 시리즈 만들기
+              </Link>
+              <a href="#library" className="studio-upload-library-link">
+                <Library aria-hidden="true" /> 미디어 보관함 확인
+              </a>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <div className="flex flex-wrap gap-3">
