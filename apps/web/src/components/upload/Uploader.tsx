@@ -35,7 +35,13 @@ function knownErrorCode(value: string | null): ErrorCode {
     : 'E_INTERNAL'
 }
 
-export function Uploader(): ReactNode {
+export function Uploader({
+  context = 'library',
+  onReady,
+}: {
+  readonly context?: 'library' | 'episode'
+  readonly onReady?: () => void
+} = {}): ReactNode {
   const upload = useUpload()
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -49,8 +55,11 @@ export function Uploader(): ReactNode {
   ].includes(upload.state.phase)
 
   useEffect(() => {
-    if (upload.state.phase === 'ready') router.refresh()
-  }, [router, upload.state.phase])
+    if (upload.state.phase === 'ready') {
+      router.refresh()
+      onReady?.()
+    }
+  }, [onReady, router, upload.state.phase])
 
   const choose = (next: File | null): void => {
     if (next === null || isBusy) return
@@ -117,7 +126,7 @@ export function Uploader(): ReactNode {
         />
       ) : null}
 
-      {upload.state.phase === 'ready' ? (
+      {upload.state.phase === 'ready' && context === 'library' ? (
         <section
           className="studio-upload-next"
           aria-labelledby="upload-next-title"
@@ -144,6 +153,16 @@ export function Uploader(): ReactNode {
                 <Library aria-hidden="true" /> 미디어 보관함 확인
               </a>
             </div>
+          </div>
+        </section>
+      ) : null}
+
+      {upload.state.phase === 'ready' && context === 'episode' ? (
+        <section className="studio-upload-inline-ready" role="status">
+          <CheckCircle2 aria-hidden="true" />
+          <div>
+            <strong>영상 준비가 완료되었습니다</strong>
+            <p>회차 정보 단계로 이동해 방금 올린 영상을 연결합니다.</p>
           </div>
         </section>
       ) : null}

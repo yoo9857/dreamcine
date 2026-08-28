@@ -1,13 +1,14 @@
-import { ArrowLeft, ChevronRight, Eye, Film, Plus } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Eye, Film } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { requireCapability } from '@/src/auth/server-session'
-import { CreateEpisodeForm } from '@/src/components/studio/CreateEpisodeForm'
+import { EpisodeCreateWorkspace } from '@/src/components/studio/EpisodeCreateWorkspace'
 import { EditSeriesForm } from '@/src/components/studio/EditSeriesForm'
 import { EpisodeTable } from '@/src/components/studio/EpisodeTable'
 import { SeriesPerformancePanel } from '@/src/components/studio/SeriesPerformancePanel'
+import { SeriesPosterUploader } from '@/src/components/studio/SeriesPosterUploader'
 import { workTypeLabel } from '@/src/components/studio/work-types'
 import { getStudioSeries } from '@/src/services/series/get-studio-series'
 import {
@@ -42,13 +43,13 @@ export default async function StudioSeriesPage({
         <ArrowLeft aria-hidden="true" /> 콘텐츠로 돌아가기
       </Link>
       <header className="studio-series-header">
-        <div className="studio-series-cover">
-          {detail.series.posterUrl === undefined ? (
-            <Film aria-hidden="true" />
-          ) : (
-            <img src={detail.series.posterUrl} alt="" />
-          )}
-        </div>
+        <SeriesPosterUploader
+          seriesId={seriesId}
+          workType={detail.series.workType}
+          {...(detail.series.posterUrl === undefined
+            ? {}
+            : { posterUrl: detail.series.posterUrl })}
+        />
         <div>
           <span>
             WORK · {workTypeLabel(detail.series.workType).toUpperCase()}
@@ -132,35 +133,16 @@ export default async function StudioSeriesPage({
                 : '본편·숏폼·CF 버전을 각각 수정하고 공개·예약·분석합니다.'}
             </p>
           </div>
+          <EpisodeCreateWorkspace
+            seriesId={seriesId}
+            availableAssets={availableAssets}
+            workType={detail.series.workType}
+          />
         </div>
         <EpisodeTable
           episodes={detail.episodes}
           availableAssets={availableAssets}
           structure={analytics.episodes}
-          workType={detail.series.workType}
-        />
-      </section>
-
-      <section
-        className="studio-series-section studio-create-episode"
-        id="new-episode"
-      >
-        <div className="studio-section-title-row">
-          <div>
-            <span>{episodic ? 'NEW EPISODE' : 'NEW VIDEO'}</span>
-            <h2>
-              <Plus aria-hidden="true" /> {episodic ? '회차' : '영상'} 추가
-            </h2>
-            <p>
-              업로드와 변환이 끝난 영상을{' '}
-              {episodic ? '새 회차로' : '이 작품의 본편 또는 버전으로'}{' '}
-              연결합니다.
-            </p>
-          </div>
-        </div>
-        <CreateEpisodeForm
-          seriesId={seriesId}
-          availableAssets={availableAssets}
           workType={detail.series.workType}
         />
       </section>

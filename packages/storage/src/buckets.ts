@@ -161,6 +161,9 @@ export function avatarKey(userId: string): string {
 }
 
 /** `thumbs/posters/series/{seriesId}.webp` */
-export function seriesPosterKey(seriesId: string): string {
-  return `${BUCKET.THUMBS}/posters/series/${assertSegment(seriesId, 'seriesId')}.webp`
+export function seriesPosterKey(seriesId: string, version?: string): string {
+  const id = assertSegment(seriesId, 'seriesId')
+  return version === undefined
+    ? `${BUCKET.THUMBS}/posters/series/${id}.webp`
+    : `${BUCKET.THUMBS}/posters/series/${id}/${assertSegment(version, 'version')}.webp`
 }

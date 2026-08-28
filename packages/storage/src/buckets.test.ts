@@ -177,6 +177,9 @@ describe('키 조립', () => {
 
   it('seriesPosterKey', () => {
     expect(seriesPosterKey('srs_x1')).toBe('thumbs/posters/series/srs_x1.webp')
+    expect(seriesPosterKey('srs_x1', 'v2')).toBe(
+      'thumbs/posters/series/srs_x1/v2.webp',
+    )
   })
 
   it('논리 버킷 이름이 키 접두사와 같다', () => {

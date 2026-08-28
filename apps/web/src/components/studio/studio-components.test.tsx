@@ -138,13 +138,15 @@ describe('CreateEpisodeForm', () => {
             fileName: 'opening-scene.mp4',
             durationSec: 125,
             posterUrl: null,
+            thumbnailUrl: 'https://cdn.example/thumb.jpg',
+            spriteUrl: 'https://cdn.example/sprite.jpg',
             readyAt: '2026-08-25T00:00:00.000Z',
           },
         ]}
       />,
     )
     expect(
-      screen.getByRole('option', { name: 'opening-scene.mp4 · 2:05' }),
+      screen.getByRole('radio', { name: /opening-scene\.mp4/u }),
     ).toBeDefined()
   })
 })

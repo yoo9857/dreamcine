@@ -4,7 +4,7 @@ import {
   listAvailableStudioAssets,
   listStudioMediaRecords,
 } from '@aidream/db'
-import { cdnUrl } from '@aidream/storage/cdn'
+import { cdnUrl, thumbUrl } from '@aidream/storage/cdn'
 
 import type { RouteSession } from '@/src/auth/types'
 
@@ -27,6 +27,8 @@ export async function getAvailableStudioAssets(session: RouteSession) {
     fileName: asset.fileName,
     durationSec: asset.durationSec,
     posterUrl: asset.posterKey === null ? null : cdnUrl(asset.posterKey),
+    thumbnailUrl: thumbUrl(asset.id, 'thumb.jpg'),
+    spriteUrl: thumbUrl(asset.id, 'sprite.jpg'),
     readyAt: asset.readyAt?.toISOString() ?? null,
   }))
 }

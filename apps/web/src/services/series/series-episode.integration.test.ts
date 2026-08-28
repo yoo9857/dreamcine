@@ -30,6 +30,8 @@ const mocks = vi.hoisted(() => ({
   listSeriesByOwner: vi.fn(),
   listEpisodesBySeries: vi.fn(),
   enqueue: vi.fn(),
+  putObject: vi.fn(),
+  deleteObject: vi.fn(),
 }))
 
 vi.mock('@aidream/db', () => ({
@@ -61,6 +63,16 @@ vi.mock('@aidream/storage/cdn', () => ({
   cdnUrl: (key: string) => `https://cdn.example/${key}`,
 }))
 
+vi.mock('@aidream/storage', () => ({
+  BUCKET: { THUMBS: 'thumbs' },
+  IMMUTABLE_1Y: 'public, max-age=31536000, immutable',
+  cdnUrl: (key: string) => `https://cdn.example/${key}`,
+  deleteObject: mocks.deleteObject,
+  putObject: mocks.putObject,
+  seriesPosterKey: (seriesId: string, version: string) =>
+    `thumbs/posters/series/${seriesId}/${version}.webp`,
+}))
+
 const { createSeries } = await import('./create-series')
 const { createEpisode } = await import('../episode/create-episode')
 const { publishEpisode } = await import('../episode/publish-episode')
@@ -70,6 +82,7 @@ const { updateSeries } = await import('./update-series')
 const { deleteSeries } = await import('./delete-series')
 const { listSeries } = await import('./list-series')
 const { getSeries } = await import('./get-series')
+const { uploadSeriesPoster } = await import('./upload-series-poster')
 const { listStudioSeries, getStudioSeries } = await import(
   './get-studio-series'
 )
@@ -207,6 +220,8 @@ beforeEach(() => {
     nextCursor: null,
   })
   mocks.enqueue.mockReset().mockResolvedValue(undefined)
+  mocks.putObject.mockReset().mockResolvedValue({ etag: 'etag' })
+  mocks.deleteObject.mockReset().mockResolvedValue(undefined)
 })
 
 describe('createEpisode', () => {
@@ -425,6 +440,23 @@ describe('series and episode management', () => {
       undefined,
       { seasonNumber: 2, number: 3 },
     )
+  })
+
+  it('stores a versioned work thumbnail and removes the replaced object', async () => {
+    const result = await uploadSeriesPoster(
+      SERIES.id,
+      SESSION,
+      `data:image/webp;base64,${Buffer.from('RIFF0000WEBP').toString('base64')}`,
+    )
+    expect(mocks.putObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bucket: 'thumbs',
+        contentType: 'image/webp',
+      }),
+    )
+    expect(mocks.updateSeriesRow).toHaveBeenCalledOnce()
+    expect(mocks.deleteObject).toHaveBeenCalledWith('thumbs', SERIES.posterKey)
+    expect(result.posterUrl).toMatch(/^https:\/\/cdn\.example\//u)
   })
 
   it('rejects foreign management and reused replacement assets', async () => {

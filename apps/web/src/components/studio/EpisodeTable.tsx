@@ -4,12 +4,16 @@ import type { EpisodeResponse, WorkType } from '@aidream/core'
 import { Badge, Button, EmptyState } from '@aidream/ui'
 import {
   BarChart3,
+  CalendarClock,
   Clapperboard,
   Edit3,
   Eye,
+  EyeOff,
+  Globe2,
   Heart,
   MessageCircle,
   Search,
+  Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -21,6 +25,7 @@ import type {
 } from '@/src/services/studio/get-studio-dashboard'
 
 import { EditEpisodeForm } from './EditEpisodeForm'
+import { openEpisodeCreator } from './episode-create-events'
 
 const STATUS = {
   DRAFT: { label: '초안', tone: 'neutral' },
@@ -93,6 +98,11 @@ export function EpisodeTable({
           episodic
             ? '준비된 영상으로 첫 회차를 추가해 보세요.'
             : '준비된 영상을 이 작품의 본편이나 버전으로 연결해 보세요.'
+        }
+        action={
+          <Button type="button" onClick={openEpisodeCreator}>
+            {episodic ? '첫 회차 추가' : '첫 영상 연결'}
+          </Button>
         }
       />
     )
@@ -279,15 +289,22 @@ export function EpisodeTable({
                       <div className="studio-episode-actions">
                         {episode.status === 'REMOVED' ? null : (
                           <>
-                            <Link
-                              href={`/studio/series/${episode.seriesId}/episodes/${episode.id}`}
-                              className="studio-episode-data-link"
-                            >
-                              <BarChart3 aria-hidden="true" /> 데이터
-                            </Link>
                             <Button
                               size="sm"
                               variant="secondary"
+                              asChild
+                              className="studio-episode-action"
+                            >
+                              <Link
+                                href={`/studio/series/${episode.seriesId}/episodes/${episode.id}`}
+                              >
+                                <BarChart3 aria-hidden="true" /> 데이터
+                              </Link>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="studio-episode-action"
                               disabled={busy}
                               onClick={() => {
                                 setEditingId(
@@ -303,65 +320,71 @@ export function EpisodeTable({
                           <>
                             <Button
                               size="sm"
+                              className="studio-episode-action is-primary"
                               disabled={busy}
                               onClick={() =>
                                 void transition(episode.id, 'PUBLISH')
                               }
                             >
-                              공개
+                              <Globe2 aria-hidden="true" /> 공개
                             </Button>
                             <Button
                               size="sm"
                               variant="secondary"
+                              className="studio-episode-action"
                               disabled={busy}
                               onClick={() =>
                                 void transition(episode.id, 'SCHEDULE')
                               }
                             >
-                              예약
+                              <CalendarClock aria-hidden="true" /> 예약
                             </Button>
                           </>
                         ) : null}
                         {episode.status === 'SCHEDULED' ? (
                           <Button
                             size="sm"
+                            className="studio-episode-action is-primary"
                             disabled={busy}
                             onClick={() =>
                               void transition(episode.id, 'PUBLISH')
                             }
                           >
-                            지금 공개
+                            <Globe2 aria-hidden="true" /> 지금 공개
                           </Button>
                         ) : null}
                         {episode.status === 'PUBLISHED' ? (
                           <Button
                             size="sm"
                             variant="secondary"
+                            className="studio-episode-action"
                             disabled={busy}
                             onClick={() => void transition(episode.id, 'HIDE')}
                           >
-                            숨기기
+                            <EyeOff aria-hidden="true" /> 숨기기
                           </Button>
                         ) : null}
                         {episode.status === 'HIDDEN' ? (
                           <Button
                             size="sm"
+                            className="studio-episode-action is-primary"
                             disabled={busy}
                             onClick={() =>
                               void transition(episode.id, 'UNHIDE')
                             }
                           >
-                            다시 공개
+                            <Globe2 aria-hidden="true" /> 다시 공개
                           </Button>
                         ) : null}
                         {episode.status === 'REMOVED' ? null : (
                           <Button
                             size="sm"
                             variant="danger"
+                            className="studio-episode-action is-danger"
                             disabled={busy}
                             onClick={() => void remove(episode.id)}
                           >
-                            삭제
+                            <Trash2 aria-hidden="true" /> 삭제
                           </Button>
                         )}
                       </div>
