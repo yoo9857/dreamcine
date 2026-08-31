@@ -8,8 +8,6 @@ import React, { useMemo, useState, type ReactNode } from 'react'
 
 import { useInfiniteFeed } from '@/src/hooks/use-infinite-feed'
 
-const SHORT_FORM_MAX_SECONDS = 180
-
 type WorkFormat = 'all' | 'long' | 'short'
 
 function formatDuration(durationSec: number | null): string {
@@ -176,13 +174,13 @@ export function WorksCatalog({
     initialCursor,
   })
   const { longForm, shortForm } = useMemo(() => {
+    // 형식은 재생시간이 아니라 업로더가 작품 생성 시 선택한 workType으로
+    // 결정한다. 짧은 롱폼 작품이 숏폼으로 잘못 노출되는 것을 방지한다.
     const short = feed.items.filter(
-      (item) =>
-        item.durationSec !== null && item.durationSec <= SHORT_FORM_MAX_SECONDS,
+      (item) => item.series.workType === 'SHORT_FORM',
     )
     const long = feed.items.filter(
-      (item) =>
-        item.durationSec === null || item.durationSec > SHORT_FORM_MAX_SECONDS,
+      (item) => item.series.workType !== 'SHORT_FORM',
     )
     return { longForm: long, shortForm: short }
   }, [feed.items])

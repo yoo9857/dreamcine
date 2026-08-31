@@ -85,7 +85,14 @@ export function toCachedFeedRow(row: FeedRow): CachedFeedRow {
     viewCount: row.viewCount,
     likeCount: row.likeCount,
     publishedAt: row.publishedAt.toISOString(),
-    series: { id: row.seriesId, title: row.seriesTitle, slug: row.seriesSlug },
+    series: {
+      id: row.seriesId,
+      title: row.seriesTitle,
+      slug: row.seriesSlug,
+      ...(row.seriesWorkType === undefined
+        ? {}
+        : { workType: row.seriesWorkType }),
+    },
     creatorHandle: row.creatorHandle,
     creatorDisplayName: row.creatorDisplayName,
     creatorAvatarKey: row.creatorAvatarKey,

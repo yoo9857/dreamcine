@@ -127,6 +127,7 @@ interface EpisodeRawRow extends ScoredRow {
   readonly creatorId: string
   readonly seriesTitle: string
   readonly seriesSlug: string
+  readonly seriesWorkType?: import('@aidream/core').WorkType
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
@@ -285,6 +286,7 @@ function episodeSelect(query: string): Prisma.Sql {
     e.rank_score AS "rankScore", e.created_at AS "createdAt",
     e.updated_at AS "updatedAt", e.deleted_at AS "deletedAt",
     s.owner_id AS "creatorId", s.title AS "seriesTitle", s.slug AS "seriesSlug",
+    s.work_type AS "seriesWorkType",
     creator.handle AS "creatorHandle", creator.display_name AS "creatorDisplayName",
     creator.avatar_key AS "creatorAvatarKey",
     creator.tier AS "creatorTier",

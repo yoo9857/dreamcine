@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { AgeRating } from '../enums.js'
+import { AgeRating, WorkType } from '../enums.js'
 import { PaginationSchema } from './pagination.schema.js'
 import { PublicUserSchema } from './user.schema.js'
 
@@ -17,6 +17,8 @@ export const FeedItemSchema = z.object({
     id: z.string().min(1),
     title: z.string().min(1),
     slug: z.string().min(1),
+    // 구 캐시/검색 결과에는 필드가 없을 수 있으므로 SERIES로 보정한다.
+    workType: z.enum(WorkType).default('SERIES'),
   }),
   creator: PublicUserSchema,
   isLiked: z.boolean(),

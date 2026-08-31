@@ -493,6 +493,8 @@ export interface FeedItem {
     id: string
     title: string
     slug: string
+    /** 작품이 명시한 형식. 미구현/구 캐시 데이터에서는 생략될 수 있다. */
+    workType?: WorkType
   }
   // 인라인 리터럴이 아니라 공용 타입을 쓴다. 등급 배지를 작품 카드에도
   // 붙이려면 여기가 댓글·검색과 같은 모양이어야 한다.

@@ -1,4 +1,4 @@
-import type { Episode, Page, MemberTier } from '@aidream/core'
+import type { Episode, Page, MemberTier, WorkType } from '@aidream/core'
 import { AppError } from '@aidream/core'
 import { Prisma, type Episode as PrismaEpisode } from '@prisma/client'
 import { db } from '../client.js'
@@ -17,6 +17,7 @@ export interface FeedRow extends Episode {
   readonly creatorId: string
   readonly seriesTitle: string
   readonly seriesSlug: string
+  readonly seriesWorkType?: WorkType
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
@@ -29,6 +30,7 @@ type PrismaFeedRow = PrismaEpisode & {
   creatorId: string
   seriesTitle: string
   seriesSlug: string
+  seriesWorkType?: WorkType
   creatorHandle: string
   creatorDisplayName: string
   creatorAvatarKey: string | null
@@ -88,6 +90,7 @@ const episodeColumns = Prisma.raw(`
   s.owner_id AS "creatorId",
   s.title AS "seriesTitle",
   s.slug AS "seriesSlug",
+  s.work_type AS "seriesWorkType",
   creator.handle AS "creatorHandle",
   creator.display_name AS "creatorDisplayName",
   creator.avatar_key AS "creatorAvatarKey",
@@ -139,6 +142,9 @@ function toPage(
       creatorId: row.creatorId,
       seriesTitle: row.seriesTitle,
       seriesSlug: row.seriesSlug,
+      ...(row.seriesWorkType === undefined
+        ? {}
+        : { seriesWorkType: row.seriesWorkType }),
       creatorHandle: row.creatorHandle,
       creatorDisplayName: row.creatorDisplayName,
       creatorAvatarKey: row.creatorAvatarKey,
