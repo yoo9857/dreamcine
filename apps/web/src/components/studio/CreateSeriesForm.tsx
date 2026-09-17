@@ -94,7 +94,7 @@ export function CreateSeriesForm({
           ))}
         </div>
       </fieldset>
-      <Input label="작품(시리즈) 제목" name="title" required maxLength={120} />
+      <Input label="작품 제목" name="title" required maxLength={120} />
       <Textarea label="작품 소개" name="synopsis" maxLength={2000} />
       <label className="studio-field-label">
         관람 등급

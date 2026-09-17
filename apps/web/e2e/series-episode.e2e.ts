@@ -78,7 +78,7 @@ async function createSeriesAndEpisode(
 ): Promise<void> {
   // 작품 생성은 `/studio/new` 의 1단계로 흡수됐다. 예전 경로도 여기로 넘어온다.
   await page.goto('/studio/new')
-  await page.getByLabel('작품(시리즈) 제목').fill(title)
+  await page.getByLabel('작품 제목').fill(title)
   await page.getByRole('button', { name: '작품 만들고 계속' }).click()
 
   // NOTE: 아래 회차 등록 부분은 이 파일이 작성된 뒤 CreateEpisodeForm 이

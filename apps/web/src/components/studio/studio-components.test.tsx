@@ -169,10 +169,9 @@ describe('CreateSeriesForm', () => {
     render(<CreateSeriesForm />)
 
     fireEvent.click(screen.getByRole('radio', { name: /영화·단편/u }))
-    fireEvent.change(
-      screen.getByRole('textbox', { name: '작품(시리즈) 제목' }),
-      { target: { value: '여름의 마지막 밤' } },
-    )
+    fireEvent.change(screen.getByRole('textbox', { name: '작품 제목' }), {
+      target: { value: '여름의 마지막 밤' },
+    })
     fireEvent.click(screen.getByRole('button', { name: '작품 만들기' }))
 
     await waitFor(() => {

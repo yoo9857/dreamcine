@@ -125,7 +125,7 @@ export function EditSeriesForm({
             />
             <span>
               <strong>댓글 사용 중지</strong>
-              <small>이 시리즈의 에피소드에서 새 댓글 작성을 막습니다.</small>
+              <small>이 작품의 영상에서 새 댓글 작성을 막습니다.</small>
             </span>
           </label>
         </div>

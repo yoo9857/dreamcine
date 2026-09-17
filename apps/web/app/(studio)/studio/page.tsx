@@ -99,11 +99,11 @@ export default async function StudioPage(): Promise<ReactNode> {
           <div className="studio-overview-numbers">
             <div>
               <strong>{dashboard.totals.series}</strong>
-              <span>시리즈</span>
+              <span>작품</span>
             </div>
             <div>
               <strong>{dashboard.totals.episodes}</strong>
-              <span>전체 에피소드</span>
+              <span>전체 영상</span>
             </div>
             <div>
               <strong>{published}</strong>

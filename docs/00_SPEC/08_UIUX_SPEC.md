@@ -20,12 +20,20 @@
 | `/notifications` | 알림 | 필수 | 클라이언트 |
 | `/login`, `/signup`, `/verify` | 인증 | — | 클라이언트 |
 | `/studio` | 크리에이터 대시보드 | CREATOR | SSR |
-| `/studio/upload` | 업로드 | CREATOR | 클라이언트 |
-| `/studio/series/new` | 시리즈 생성 | CREATOR | 클라이언트 |
-| `/studio/series/[id]` | 에피소드 관리 | CREATOR + 소유자 | SSR |
+| `/studio/new` | **작품 등록 (단일 진입점)** — 작품 → 영상 → 회차 3단계 | CREATOR | SSR + 클라이언트 |
+| `/studio/content` | 작품 라이브러리 | CREATOR | SSR |
+| `/studio/upload` | 미디어 보관함 (원본 업로드·변환 상태) | CREATOR | 클라이언트 |
+| `/studio/series/new` | → `/studio/new` 리다이렉트 (구 경로) | CREATOR | — |
+| `/studio/series/[id]` | 회차 관리 | CREATOR + 소유자 | SSR |
 | `/studio/stats` | 통계 | CREATOR | SSR |
 | `/admin/reports` | 심사큐 | MODERATOR | SSR |
 | `/admin/users` | 사용자 관리 | ADMIN | SSR |
+
+> **등록 진입점은 `/studio/new` 하나다.** 예전에는 `/studio/upload` 와
+> `/studio/series/new` 가 사이드바의 동등한 항목이어서, 둘 다 해야 하고 순서도
+> 정해져 있다는 것이 드러나지 않았다. 크리에이터가 어디서 시작할지 모르겠다는
+> 피드백이 반복돼 한 흐름의 1·2단계로 합쳤다. `/studio/upload` 는 작품과 무관한
+> 원본 보관함으로 남기되 등록 시작점으로 쓰지 않는다.
 
 ## 2. 레이아웃
 
