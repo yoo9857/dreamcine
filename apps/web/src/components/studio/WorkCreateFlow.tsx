@@ -6,13 +6,15 @@ import {
   ArrowRight,
   CheckCircle2,
   Clapperboard,
+  Film,
   FolderOpen,
   ListPlus,
   Plus,
+  Search,
   UploadCloud,
 } from 'lucide-react'
 import Link from 'next/link'
-import React, { useState, type ReactNode } from 'react'
+import React, { useMemo, useState, type ReactNode } from 'react'
 
 import { Uploader } from '@/src/components/upload/Uploader'
 import { readApiError } from '@/src/lib/error-messages'
@@ -83,6 +85,54 @@ function StepNav({
   )
 }
 
+/** 검색창을 띄울 기준. 이보다 적으면 눈으로 훑는 편이 빠르다. */
+const SEARCH_THRESHOLD = 6
+
+function WorkRow({
+  work,
+  onSelect,
+}: {
+  readonly work: SeriesResponse
+  readonly onSelect: (work: SelectedWork) => void
+}): ReactNode {
+  const empty = work.episodeCount === 0
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => {
+          onSelect({
+            id: work.id,
+            title: work.title,
+            workType: work.workType,
+          })
+        }}
+      >
+        <span className="studio-series-poster" aria-hidden="true">
+          {work.posterUrl === undefined ? (
+            <Film />
+          ) : (
+            <img src={work.posterUrl} alt="" />
+          )}
+        </span>
+        <span className="studio-work-picker-text">
+          {/* 제목이 먼저다. 크리에이터는 형식이 아니라 이름으로 찾는다. */}
+          <strong>{work.title}</strong>
+          <small>
+            {workTypeLabel(work.workType)} ·{' '}
+            {empty ? '아직 영상 없음' : `${String(work.episodeCount)}편`}
+          </small>
+        </span>
+        {/* 비어 있는 시리즈가 지금 채우려는 대상이다. 수치로 묻지 않는다. */}
+        {empty ? (
+          <span className="studio-work-picker-flag">비어 있음</span>
+        ) : null}
+        <ArrowRight aria-hidden="true" />
+      </button>
+    </li>
+  )
+}
+
 function WorkStep({
   works,
   onSelect,
@@ -95,6 +145,23 @@ function WorkStep({
   const [mode, setMode] = useState<'EXISTING' | 'NEW'>(
     works.length === 0 ? 'NEW' : 'EXISTING',
   )
+  const [query, setQuery] = useState('')
+
+  // 방금 손댄 시리즈에 이어 붙이는 경우가 가장 흔하다. 최근 수정순이 기본이다.
+  const sorted = useMemo(
+    () =>
+      [...works].sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      ),
+    [works],
+  )
+  const visible = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase('ko-KR')
+    if (normalized === '') return sorted
+    return sorted.filter((work) =>
+      work.title.toLocaleLowerCase('ko-KR').includes(normalized),
+    )
+  }, [sorted, query])
 
   return (
     <div className="studio-work-step">
@@ -138,29 +205,33 @@ function WorkStep({
       )}
 
       {mode === 'EXISTING' ? (
-        <ul className="studio-work-picker" aria-label="내 시리즈">
-          {works.map((work) => (
-            <li key={work.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  onSelect({
-                    id: work.id,
-                    title: work.title,
-                    workType: work.workType,
-                  })
+        <div className="studio-work-browse">
+          {works.length > SEARCH_THRESHOLD ? (
+            <label className="studio-work-search">
+              <Search aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                placeholder="시리즈 검색"
+                aria-label="시리즈 검색"
+                onChange={(event) => {
+                  setQuery(event.currentTarget.value)
                 }}
-              >
-                <span className="studio-work-picker-type">
-                  {workTypeLabel(work.workType)}
-                </span>
-                <strong>{work.title}</strong>
-                <small>{work.episodeCount}편 등록됨</small>
-                <ArrowRight aria-hidden="true" />
-              </button>
-            </li>
-          ))}
-        </ul>
+              />
+            </label>
+          ) : null}
+          {visible.length === 0 ? (
+            <p className="studio-work-picker-empty" role="status">
+              “{query}”와 일치하는 시리즈가 없습니다.
+            </p>
+          ) : (
+            <ul className="studio-work-picker" aria-label="내 시리즈">
+              {visible.map((work) => (
+                <WorkRow key={work.id} work={work} onSelect={onSelect} />
+              ))}
+            </ul>
+          )}
+        </div>
       ) : (
         <div className="studio-work-new">
           <CreateSeriesForm

@@ -66,7 +66,7 @@ describe('WorkCreateFlow', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
 
     expect(screen.getByRole('button', { name: /첫 번째 꿈/u })).not.toBeNull()
-    expect(screen.getByText('2편 등록됨')).not.toBeNull()
+    expect(screen.getByText('시리즈 · 2편')).not.toBeNull()
   })
 
   it('skips upload and goes straight to details when a ready video exists', () => {
@@ -96,5 +96,45 @@ describe('WorkCreateFlow', () => {
     expect(
       screen.getByRole('button', { name: '시리즈 만들고 계속' }),
     ).not.toBeNull()
+  })
+
+  it('flags a series with no videos, since that is what needs filling', () => {
+    const empty: SeriesResponse = {
+      ...WORK,
+      id: 'series_2',
+      title: '빈 시리즈',
+      episodeCount: 0,
+    }
+    render(<WorkCreateFlow works={[WORK, empty]} availableAssets={[ASSET]} />)
+
+    expect(screen.getByText('비어 있음')).not.toBeNull()
+    expect(screen.getByText('시리즈 · 아직 영상 없음')).not.toBeNull()
+  })
+
+  it('puts the most recently updated series first', () => {
+    const older: SeriesResponse = {
+      ...WORK,
+      id: 'series_old',
+      title: '오래된 시리즈',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    render(<WorkCreateFlow works={[older, WORK]} availableAssets={[ASSET]} />)
+
+    const rows = screen.getAllByRole('listitem')
+    expect(rows[0]?.textContent).toContain('첫 번째 꿈')
+  })
+
+  it('offers search only once the list is long enough to need it', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    expect(screen.queryByLabelText('시리즈 검색')).toBeNull()
+
+    cleanup()
+    const many = Array.from({ length: 7 }, (_, index) => ({
+      ...WORK,
+      id: `series_${String(index)}`,
+      title: `시리즈 ${String(index)}`,
+    }))
+    render(<WorkCreateFlow works={many} availableAssets={[ASSET]} />)
+    expect(screen.getByLabelText('시리즈 검색')).not.toBeNull()
   })
 })
