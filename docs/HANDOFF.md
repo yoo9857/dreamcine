@@ -3,6 +3,31 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-09-17 운영 장애 — Redis maxmemory 도달로 트랜스코딩 중단
+
+- 증상: 업로드는 되는데 변환이 시작되지 않았다. 워커 로그가
+  `OOM command not allowed when used memory > 'maxmemory'` 로 도배됐고
+  `video.transcode` 큐는 wait·active·failed 모두 0이었다 — 잡이 등록조차
+  되지 못했다. 에셋 `cmu55j3fs0003nm01aly9pa4n` 이 PENDING 에 묶였다.
+- 원인: `apps/worker/src/scheduler.ts` 의 `upsertJobScheduler` 잡 템플릿이
+  `opts.removeOnComplete` 를 넘기지 않았다. 1회성 발행 경로인
+  `packages/queue/src/enqueue.ts` 는 `{ age: 3600, count: 1000 }` 으로 제대로
+  넣고 있어 이 누락이 드러나지 않았다. 1분 주기 반복 잡 두 개가 2주간 완료
+  기록을 하나도 지우지 않고 쌓았다: `episode.publishScheduled` 28,692건,
+  `counter.flush` 28,690건 등 총 66,596건. Redis 가 96MB 상한에 닿았고
+  `noeviction` 정책이 그 시점부터 **모든 큐 쓰기를 거부**했다.
+- 조치: `completed` 정렬집합에 실제로 등록된 잡만 골라 해시와 집합을 제거했다.
+  대기·진행·실패 잡과 스케줄러 정의는 건드리지 않았다. 키 66,682 → 79개,
+  메모리 96.39MB → 8.40MB. `asset.recoverStuck`(5분 주기, PENDING 10분 경과
+  기준)가 묶여 있던 에셋을 자동으로 다시 큐에 넣어 READY 로 끝났다.
+- 재발 방지: 보존 정책을 `@aidream/queue` 의 `SCHEDULED_JOB_OPTS` 한 곳에서
+  정의하고 반복 잡 8개 전부에 실었다. `scheduler-retention.test.ts` 가
+  `upsertJobScheduler` 호출마다 정책이 실렸는지 소스에서 검사한다 — 정책을
+  하나 빼고 돌려 실제로 실패하는 것을 확인했다.
+- 남은 것: 이 수정은 **워커 이미지 재배포(`deploy_worker=true`)가 필요하다.**
+  배포 전까지는 기록이 다시 쌓이므로, 배포가 늦어지면 Redis 키 수를 확인한다.
+  용량 상한 자체(T0=96MB)는 그대로 두었다 — 호스트 RAM 이 1.9GB 다.
+
 ## 2026-09-17 /works 숏폼 분류 수정 배포 완료
 
 - 운영 웹 SHA는 `7cbd6ea33bd6af0e7cfec40d676424940c799a58`다. `deploy.yml` 실행

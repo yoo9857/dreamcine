@@ -30,5 +30,6 @@ export {
   enqueue,
   getQueue,
   retryJob,
+  SCHEDULED_JOB_OPTS,
   type EnqueueOptions,
 } from './enqueue.js'

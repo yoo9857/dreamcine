@@ -24,10 +24,24 @@ export interface EnqueueOptions {
  * 다시 오면 새 잡이 된다. 한 시간은 남겨 재시도 구간을 덮는다.
  * 무한정 남기면 Redis 가 잡 기록으로 찬다.
  */
-const REMOVE_ON_COMPLETE = { age: 3_600, count: 1_000 } as const
+export const REMOVE_ON_COMPLETE = { age: 3_600, count: 1_000 } as const
 
 /** 실패는 더 오래 남긴다 — 사람이 원인을 볼 시간이 필요하다. */
-const REMOVE_ON_FAIL = { age: 24 * 3_600 } as const
+export const REMOVE_ON_FAIL = { age: 24 * 3_600 } as const
+
+/**
+ * 반복 잡 템플릿에 실을 보존 정책.
+ *
+ * `upsertJobScheduler` 는 `enqueue` 를 거치지 않으므로 이것을 직접 넘겨야
+ * 한다. 빠뜨리면 1분짜리 반복 잡이 완료 기록을 하나도 지우지 않고 쌓아
+ * Redis 를 `maxmemory` 까지 채운다. `noeviction` 정책에서는 그 순간 **큐
+ * 쓰기가 전부 막혀** 업로드한 영상의 트랜스코딩이 등록조차 되지 않는다.
+ * (2026-09-17 운영 장애)
+ */
+export const SCHEDULED_JOB_OPTS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+} as const
 
 /**
  * `REDIS_URL` 을 BullMQ 연결 설정으로 옮긴다.

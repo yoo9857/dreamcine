@@ -1,4 +1,9 @@
-import { closeQueues, getQueue, QUEUE } from '@aidream/queue'
+import {
+  closeQueues,
+  getQueue,
+  QUEUE,
+  SCHEDULED_JOB_OPTS,
+} from '@aidream/queue'
 import { randomUUID } from 'node:crypto'
 
 export interface SchedulerHandle {
@@ -159,17 +164,29 @@ function productionDependencies(): SchedulerDependencies {
       await cleanup.upsertJobScheduler(
         'storage-stale-hourly',
         { every: 60 * 60 * 1000 },
-        { name: QUEUE.STORAGE_CLEANUP, data: { scope: 'staleUploads' } },
+        {
+          name: QUEUE.STORAGE_CLEANUP,
+          data: { scope: 'staleUploads' },
+          opts: SCHEDULED_JOB_OPTS,
+        },
       )
       await cleanup.upsertJobScheduler(
         'storage-orphans-daily',
         { every: 24 * 60 * 60 * 1000 },
-        { name: QUEUE.STORAGE_CLEANUP, data: { scope: 'orphanAssets' } },
+        {
+          name: QUEUE.STORAGE_CLEANUP,
+          data: { scope: 'orphanAssets' },
+          opts: SCHEDULED_JOB_OPTS,
+        },
       )
       await cleanup.upsertJobScheduler(
         'storage-failed-daily',
         { every: 24 * 60 * 60 * 1000 },
-        { name: QUEUE.STORAGE_CLEANUP, data: { scope: 'failedOriginals' } },
+        {
+          name: QUEUE.STORAGE_CLEANUP,
+          data: { scope: 'failedOriginals' },
+          opts: SCHEDULED_JOB_OPTS,
+        },
       )
       await getQueue(QUEUE.RECOVER_STUCK).upsertJobScheduler(
         'assets-stuck-every-five-minutes',
@@ -177,6 +194,7 @@ function productionDependencies(): SchedulerDependencies {
         {
           name: QUEUE.RECOVER_STUCK,
           data: { olderThanMinutes: 10 },
+          opts: SCHEDULED_JOB_OPTS,
         },
       )
       await getQueue(QUEUE.DB_PURGE).upsertJobScheduler(
@@ -185,12 +203,13 @@ function productionDependencies(): SchedulerDependencies {
         {
           name: QUEUE.DB_PURGE,
           data: { dryRun: process.env.DRY_RUN === 'true' },
+          opts: SCHEDULED_JOB_OPTS,
         },
       )
       await getQueue(QUEUE.EPISODE_PUBLISH).upsertJobScheduler(
         'episodes-publish-every-minute',
         { every: 60 * 1000 },
-        { name: QUEUE.EPISODE_PUBLISH, data: {} },
+        { name: QUEUE.EPISODE_PUBLISH, data: {}, opts: SCHEDULED_JOB_OPTS },
       )
       const rankQueue = getQueue(QUEUE.FEED_RANK)
       await registerFeedRankSchedules({
@@ -198,7 +217,7 @@ function productionDependencies(): SchedulerDependencies {
           await rankQueue.upsertJobScheduler(
             id,
             { every: everyMs },
-            { name: QUEUE.FEED_RANK, data },
+            { name: QUEUE.FEED_RANK, data, opts: SCHEDULED_JOB_OPTS },
           )
         },
       })
@@ -207,6 +226,7 @@ function productionDependencies(): SchedulerDependencies {
           await getQueue(queueName).upsertJobScheduler(id, pattern, {
             name: queueName,
             data,
+            opts: SCHEDULED_JOB_OPTS,
           })
         },
       })
