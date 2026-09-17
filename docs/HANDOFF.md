@@ -3,6 +3,25 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-09-17 /works 숏폼 분류 수정 배포 완료
+
+- 운영 웹 SHA는 `7cbd6ea33bd6af0e7cfec40d676424940c799a58`다. `deploy.yml` 실행
+  `35187559045`로 반영했고 `deploy_worker=false`(웹만 교체)다. 신규 마이그레이션은 없다.
+- `/works`가 `series.workType`만 보고 형식을 나눠 숏폼 레일이 항상 비어 있었다.
+  `workType`은 기본값이 `SERIES`라 업로더가 형식 선택을 건너뛰면 세로 영상도 롱폼으로
+  들어갔다. 공개된 6편 중 `SHORT_FORM`으로 지정된 작품은 0건이었다.
+- 원본 영상 비율을 판정에 추가했다. `video_asset.width/height`를 피드·검색 쿼리에서
+  함께 읽어 `FeedItem.aspectRatio`로 노출하고, `@aidream/core`의 `isShortFormWork`가
+  명시적 `SHORT_FORM`을 우선하되 나머지는 세로 영상(비율 < 1)을 숏폼으로 본다.
+  재생시간은 판정에 쓰지 않는다 — 짧은 롱폼이 잘못 분류되던 원인이다.
+- 배포 후 `/api/ready`의 DB·Redis·스토리지·큐·메일이 모두 `ok`다. `/works`는 숏폼 1건,
+  롱폼 5건으로 렌더링된다. 세로 광고 `lip balm`(비율 0.563)이 숏폼으로 올라갔고,
+  23초 가로 영상 `fight`는 롱폼에 남아 재생시간 오분류가 없음을 확인했다.
+- 공개 에피소드 6편 모두 `aspectRatio`가 채워져 있어 치수 백필은 필요 없다. 워커가
+  에셋을 `READY`로 바꾸는 `finalize()`에서 `width`/`height`를 함께 기록하기 때문이다.
+- 직전 `60f509b`에서 깨져 있던 CI 게이트는 `feed.schema.test.ts`의 낡은 기대값이
+  원인이었다. 이번 커밋에서 수정했고 `7cbd6ea` 게이트는 초록이다.
+
 ## 2026-08-27 개발 기간 Fast lane 결정
 
 - 출시 후보를 고정하기 전까지 전체 CI gate를 일반 배포의 선행 조건으로 기다리지 않는다.
