@@ -3,6 +3,19 @@ import type { ReactNode } from 'react'
 import { requireCapability } from '@/src/auth/server-session'
 import { StudioShell } from '@/src/components/studio/StudioShell'
 
+// 스타일은 스튜디오 라우트에서만 받는다. 예전에는 루트 레이아웃이 들고 있어
+// 스튜디오를 열지 않는 방문자도 3,257줄을 내려받았다. `(admin)` 이 이미
+// 쓰던 방식이다.
+//
+// 임포트 순서가 곧 캐스케이드다. 원본 한 파일을 순서대로 자른 조각이므로
+// 이 순서를 바꾸면 규칙이 서로 덮는 순서가 달라진다.
+import '@/src/styles/studio/create-workspace.css'
+import '@/src/styles/studio/shell.css'
+import '@/src/styles/studio/dashboard.css'
+import '@/src/styles/studio/series.css'
+import '@/src/styles/studio/media.css'
+import '@/src/styles/studio/create-flow.css'
+
 /**
  * 스튜디오 전 화면의 권한 경계.
  *

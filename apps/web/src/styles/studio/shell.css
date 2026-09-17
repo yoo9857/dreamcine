@@ -1,0 +1,195 @@
+/*
+ * 스튜디오 셸 — 사이드바, 내비게이션, 상단바, 작업 영역
+ *
+ * `studio.css` 한 파일(3,257줄·셀렉터 537개)을 나눈 조각이다. 합친 순서가
+ * 원본과 같아야 캐스케이드가 보존되므로, `(studio)/layout.tsx` 의 임포트
+ * 순서를 바꾸지 않는다.
+ */
+.studio-shell {
+  min-height: 100dvh;
+  color: var(--aidream-fg);
+  background: var(--aidream-bg);
+}
+.studio-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: 236px;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 14px 18px;
+  border-right: 1px solid var(--aidream-border-subtle);
+  background: color-mix(in srgb, var(--aidream-bg) 96%, transparent);
+}
+.studio-brand-row {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 9px 14px;
+}
+.studio-brand-row a {
+  width: 76px;
+  display: block;
+}
+.studio-brand-row img,
+.studio-brand-row svg {
+  max-width: 100%;
+  height: auto;
+}
+.studio-brand-row > span {
+  padding-left: 11px;
+  border-left: 1px solid var(--aidream-border-subtle);
+  color: var(--aidream-fg-muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+.studio-nav {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+}
+.studio-nav a {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--aidream-fg-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.studio-nav a:hover {
+  color: var(--aidream-fg);
+  background: var(--aidream-bg-elevated);
+}
+.studio-nav a[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--aidream-accent) 28%, transparent);
+  color: var(--aidream-fg);
+  background: var(--aidream-accent-subtle);
+}
+.studio-nav a[aria-current='page']::before {
+  width: 3px;
+  height: 18px;
+  margin-left: -13px;
+  border-radius: 0 4px 4px 0;
+  content: '';
+  background: var(--aidream-accent);
+}
+.studio-nav svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.studio-nav a > svg:last-child:not(:first-child) {
+  width: 13px;
+  height: 13px;
+  margin-left: auto;
+}
+.studio-side-divider {
+  height: 1px;
+  margin: 20px 12px 2px;
+  background: var(--aidream-border-subtle);
+}
+.studio-nav-secondary {
+  margin-top: 10px;
+}
+.studio-exit-link {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 13px;
+  color: var(--aidream-fg-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.studio-exit-link:hover {
+  color: var(--aidream-fg);
+}
+.studio-exit-link svg {
+  width: 16px;
+}
+
+.studio-workspace {
+  min-width: 0;
+  min-height: 100dvh;
+  margin-left: 236px;
+}
+.studio-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 34px;
+  border-bottom: 1px solid var(--aidream-border-subtle);
+  background: color-mix(in srgb, var(--aidream-bg) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+.studio-topbar > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--aidream-fg-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.studio-topbar > div svg {
+  width: 16px;
+  height: 16px;
+  color: var(--aidream-accent);
+}
+.studio-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+.studio-avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 50%;
+  color: var(--aidream-fg);
+  background: var(--aidream-bg-overlay);
+  font-size: 12px;
+  font-weight: 900;
+}
+.studio-identity > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+.studio-identity strong {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--aidream-fg);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-identity small {
+  color: var(--aidream-fg-muted);
+  font-size: 10px;
+}
+.studio-page {
+  width: min(100%, 1460px);
+  margin: 0 auto;
+  padding: 34px 36px 80px;
+}

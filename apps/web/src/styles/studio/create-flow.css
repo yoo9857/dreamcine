@@ -1,0 +1,253 @@
+/*
+ * 통합 등록 흐름 /studio/new — 상단 만들기 버튼, 3단계, 시리즈 피커
+ *
+ * `studio.css` 한 파일(3,257줄·셀렉터 537개)을 나눈 조각이다. 합친 순서가
+ * 원본과 같아야 캐스케이드가 보존되므로, `(studio)/layout.tsx` 의 임포트
+ * 순서를 바꾸지 않는다.
+ */
+/* ── 통합 등록 흐름 (/studio/new) ──────────────────────────────────────────
+   작품 → 영상 → 회차를 한 화면에서 끝내는 단일 진입점. 예전의 "업로드"·"새
+   시리즈" 두 갈래를 대체한다. 단계 탭은 모달용 .studio-create-tabs 를
+   재사용하되, 전체 화면 폭에 맞게 여백만 다시 잡는다. */
+.studio-topbar-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 9px 16px;
+  border-radius: 999px;
+  color: var(--aidream-bg);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--aidream-accent);
+}
+.studio-topbar-create:hover {
+  background: var(--aidream-accent-hover);
+}
+.studio-topbar-create svg {
+  width: 15px;
+}
+.studio-topbar > div:first-child {
+  margin-right: auto;
+}
+
+.studio-create-flow {
+  overflow: hidden;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 18px;
+  background: var(--aidream-bg-elevated);
+}
+.studio-create-flow .studio-create-tabs {
+  padding: 0;
+  background: color-mix(in srgb, var(--aidream-bg) 55%, transparent);
+}
+.studio-create-flow-body {
+  padding: 26px;
+}
+
+.studio-work-step {
+  display: grid;
+  gap: 22px;
+}
+.studio-work-mode {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.studio-work-mode label {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.studio-work-mode input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.studio-work-mode span {
+  display: grid;
+  gap: 5px;
+  height: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 14px;
+  background: var(--aidream-bg);
+}
+.studio-work-mode input:checked + span {
+  border-color: var(--aidream-accent);
+  background: var(--aidream-accent-subtle);
+}
+.studio-work-mode input:focus-visible + span {
+  outline: 2px solid var(--aidream-accent);
+  outline-offset: 2px;
+}
+.studio-work-mode svg {
+  width: 17px;
+  color: var(--aidream-fg-secondary);
+}
+.studio-work-mode strong {
+  font-size: 14px;
+  color: var(--aidream-fg);
+}
+.studio-work-mode small {
+  font-size: 12px;
+  color: var(--aidream-fg-muted);
+}
+
+.studio-work-browse {
+  display: grid;
+  gap: 10px;
+}
+.studio-work-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 10px;
+  background: var(--aidream-bg);
+}
+.studio-work-search:focus-within {
+  border-color: var(--aidream-accent);
+}
+.studio-work-search svg {
+  width: 15px;
+  flex: 0 0 auto;
+  color: var(--aidream-fg-muted);
+}
+.studio-work-search input {
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  color: var(--aidream-fg);
+  font-size: 13px;
+  background: transparent;
+}
+.studio-work-search input:focus {
+  outline: none;
+}
+
+/* 고르는 화면이라 카드 격자가 아니라 행 목록이다. 행은 포스터·제목·보조정보가
+   세로로 정렬돼 위아래로 훑는 속도가 빠르다. 격자는 눈이 지그재그로 움직인다. */
+.studio-work-picker {
+  display: grid;
+  gap: 6px;
+  max-height: 340px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.studio-work-picker button {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 10px 14px 10px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--aidream-fg);
+  text-align: left;
+  background: var(--aidream-bg);
+  cursor: pointer;
+}
+.studio-work-picker button:hover {
+  border-color: var(--aidream-accent);
+  background: var(--aidream-accent-subtle);
+}
+.studio-work-picker button:focus-visible {
+  outline: 2px solid var(--aidream-accent);
+  outline-offset: 2px;
+}
+/* 제목이 시선의 첫 정착점이다. 형식·편수는 그 아래 한 줄로 내린다. */
+.studio-work-picker-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.studio-work-picker-text strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-work-picker-text small {
+  font-size: 12px;
+  color: var(--aidream-fg-muted);
+}
+.studio-work-picker-flag {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--aidream-warning);
+  background: color-mix(in srgb, var(--aidream-warning) 14%, transparent);
+}
+.studio-work-picker > li > button > svg {
+  width: 16px;
+  flex: 0 0 auto;
+  color: var(--aidream-fg-muted);
+}
+.studio-work-picker-empty {
+  margin: 0;
+  padding: 22px 0;
+  font-size: 13px;
+  color: var(--aidream-fg-muted);
+  text-align: center;
+}
+
+.studio-create-upload {
+  display: grid;
+  gap: 16px;
+}
+.studio-create-skip {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  color: var(--aidream-accent);
+  font-size: 13px;
+  background: transparent;
+  cursor: pointer;
+}
+.studio-create-skip svg {
+  width: 14px;
+}
+
+.studio-create-details {
+  display: grid;
+  gap: 18px;
+}
+.studio-create-target {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 11px 15px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 12px;
+  font-size: 13px;
+  background: var(--aidream-bg);
+}
+.studio-create-target svg {
+  width: 16px;
+  color: var(--aidream-fg-secondary);
+}
+.studio-create-target strong {
+  color: var(--aidream-fg);
+}
+.studio-create-target span {
+  color: var(--aidream-fg-muted);
+}
+
+.studio-page-note {
+  font-size: 13px;
+  color: var(--aidream-fg-muted);
+}
+.studio-page-note a {
+  color: var(--aidream-accent);
+}
