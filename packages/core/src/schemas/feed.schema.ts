@@ -20,6 +20,8 @@ export const FeedItemSchema = z.object({
     // 구 캐시/검색 결과에는 필드가 없을 수 있으므로 SERIES로 보정한다.
     workType: z.enum(WorkType).default('SERIES'),
   }),
+  // 원본 영상 비율. 트랜스코딩 전이거나 구 캐시 항목에는 없으므로 null 이다.
+  aspectRatio: z.number().positive().nullable().default(null),
   creator: PublicUserSchema,
   isLiked: z.boolean(),
 })

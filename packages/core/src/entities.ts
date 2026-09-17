@@ -496,6 +496,11 @@ export interface FeedItem {
     /** 작품이 명시한 형식. 미구현/구 캐시 데이터에서는 생략될 수 있다. */
     workType?: WorkType
   }
+  /**
+   * 원본 영상의 가로/세로 비율. 트랜스코딩 전이거나 구 캐시 항목에는 없다.
+   * 업로더가 형식을 고르지 않은 작품의 숏폼 판정에 쓴다.
+   */
+  aspectRatio?: number | null
   // 인라인 리터럴이 아니라 공용 타입을 쓴다. 등급 배지를 작품 카드에도
   // 붙이려면 여기가 댓글·검색과 같은 모양이어야 한다.
   creator: PublicUserSummary

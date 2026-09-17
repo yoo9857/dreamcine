@@ -85,6 +85,7 @@ export {
   type NotificationPayload,
 } from './schemas/notification.schema.js'
 export { rankScore, type RankInput } from './rules/rank-score.js'
+export { aspectRatioOf, isShortFormWork } from './rules/work-format.js'
 export {
   PaginationSchema,
   parsePagination,

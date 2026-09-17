@@ -40,6 +40,11 @@ const developmentPreviewUser = {
   isVerified: true,
 } as const
 
+// 세로 영상은 9:16 비율로 둔다. 미리보기에서도 숏폼 자동 판정이 실제와
+// 같은 경로(비율)로 동작해야 한다.
+const PORTRAIT_RATIO = 9 / 16
+const LANDSCAPE_RATIO = 16 / 9
+
 const developmentPreviewItems: FeedItem[] = [
   preview(
     'red-horizon',
@@ -90,6 +95,7 @@ const developmentPreviewItems: FeedItem[] = [
     'luna-film',
     '23410',
     1832,
+    PORTRAIT_RATIO,
   ),
   preview(
     'city-short',
@@ -100,6 +106,7 @@ const developmentPreviewItems: FeedItem[] = [
     'ilog-original',
     '18800',
     1407,
+    PORTRAIT_RATIO,
   ),
   preview(
     'memory-short',
@@ -110,6 +117,7 @@ const developmentPreviewItems: FeedItem[] = [
     'hanbin',
     '15400',
     1098,
+    PORTRAIT_RATIO,
   ),
   preview(
     'tomorrow-short',
@@ -120,6 +128,7 @@ const developmentPreviewItems: FeedItem[] = [
     'new-scene',
     '11320',
     804,
+    PORTRAIT_RATIO,
   ),
 ]
 
@@ -132,6 +141,7 @@ function preview(
   handle: string,
   viewCount: string,
   likeCount: number,
+  aspectRatio: number = LANDSCAPE_RATIO,
 ): FeedItem {
   return {
     episodeId: `preview-${id}`,
@@ -143,6 +153,7 @@ function preview(
     likeCount,
     publishedAt: '2026-08-24T12:00:00.000Z',
     series: { id: `series-${id}`, title, slug: id },
+    aspectRatio,
     creator: {
       handle,
       displayName,

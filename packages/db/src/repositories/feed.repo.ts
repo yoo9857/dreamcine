@@ -24,6 +24,9 @@ export interface FeedRow extends Episode {
   readonly creatorTier: MemberTier
   readonly creatorVerifiedAt: Date | null
   readonly durationSec: number | null
+  /** 원본 영상 해상도. 숏폼 자동 판정에 쓰며, 트랜스코딩 전에는 null 이다. */
+  readonly assetWidth: number | null
+  readonly assetHeight: number | null
 }
 
 type PrismaFeedRow = PrismaEpisode & {
@@ -37,6 +40,8 @@ type PrismaFeedRow = PrismaEpisode & {
   creatorTier: MemberTier
   creatorVerifiedAt: Date | null
   durationSec: number | null
+  assetWidth: number | null
+  assetHeight: number | null
 }
 
 // Production playback QA publishes a temporary episode to exercise the real
@@ -96,7 +101,9 @@ const episodeColumns = Prisma.raw(`
   creator.avatar_key AS "creatorAvatarKey",
   creator.tier AS "creatorTier",
   creator.verified_at AS "creatorVerifiedAt",
-  COALESCE(e.duration_sec, asset.duration_sec) AS "durationSec"
+  COALESCE(e.duration_sec, asset.duration_sec) AS "durationSec",
+  asset.width AS "assetWidth",
+  asset.height AS "assetHeight"
 `)
 
 function blockedFilter(viewerId?: string): Prisma.Sql {
@@ -151,6 +158,8 @@ function toPage(
       creatorTier: row.creatorTier,
       creatorVerifiedAt: row.creatorVerifiedAt,
       durationSec: row.durationSec,
+      assetWidth: row.assetWidth,
+      assetHeight: row.assetHeight,
     })),
     nextCursor:
       hasNext && last !== undefined

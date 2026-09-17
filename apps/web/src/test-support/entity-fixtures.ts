@@ -30,6 +30,8 @@ export function feedRowFixture(overrides: Partial<FeedRow> = {}): FeedRow {
     creatorTier: 'BRONZE',
     creatorVerifiedAt: null,
     durationSec: 120,
+    assetWidth: 1920,
+    assetHeight: 1080,
     ...overrides,
   }
 }

@@ -1,5 +1,6 @@
 import {
   AppError,
+  aspectRatioOf,
   type FeedItem,
   type FeedQuery,
   type MemberTier,
@@ -31,6 +32,11 @@ export interface CachedFeedRow {
   readonly likeCount: number
   readonly publishedAt: string
   readonly series: FeedItem['series']
+  /**
+   * 원본 영상 비율. 옛 캐시 항목에는 없으므로 **선택 필드**다. 없으면
+   * 숏폼 자동 판정만 쉬고 목록 자체는 그대로 뜬다.
+   */
+  readonly aspectRatio?: number | null
   readonly creatorHandle: string
   readonly creatorDisplayName: string
   readonly creatorAvatarKey: string | null
@@ -93,6 +99,7 @@ export function toCachedFeedRow(row: FeedRow): CachedFeedRow {
         ? {}
         : { workType: row.seriesWorkType }),
     },
+    aspectRatio: aspectRatioOf(row.assetWidth, row.assetHeight),
     creatorHandle: row.creatorHandle,
     creatorDisplayName: row.creatorDisplayName,
     creatorAvatarKey: row.creatorAvatarKey,
@@ -120,6 +127,7 @@ export function toPublicFeedItem(
     likeCount: row.likeCount,
     publishedAt: row.publishedAt,
     series: row.series,
+    aspectRatio: row.aspectRatio ?? null,
     creator: {
       handle: row.creatorHandle,
       displayName: row.creatorDisplayName,

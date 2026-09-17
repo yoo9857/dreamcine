@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { FeedItem } from '@aidream/core'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import React, { createRef } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -23,6 +23,7 @@ const base: FeedItem = {
   likeCount: 4,
   publishedAt: '2026-08-24T12:00:00.000Z',
   series: { id: 'series-1', title: '시리즈', slug: 'series' },
+  aspectRatio: 16 / 9,
   creator: {
     handle: 'creator',
     displayName: '작가',
@@ -33,9 +34,24 @@ const base: FeedItem = {
   isLiked: false,
 }
 
-const items = [
+const items: FeedItem[] = [
   base,
-  { ...base, episodeId: 'short-1', title: '짧은 작품', durationSec: 60 },
+  // 업로더가 형식을 고르지 않은 세로 영상. 비율만으로 숏폼으로 잡혀야 한다.
+  {
+    ...base,
+    episodeId: 'short-1',
+    title: '세로 작품',
+    durationSec: 60,
+    aspectRatio: 9 / 16,
+  },
+  // 짧지만 가로 영상인 롱폼. 재생시간만 보고 숏폼으로 보내면 안 된다.
+  {
+    ...base,
+    episodeId: 'long-2',
+    title: '짧은 롱폼',
+    durationSec: 40,
+    aspectRatio: 16 / 9,
+  },
 ]
 
 function hookResult(overrides: Record<string, unknown> = {}) {
@@ -69,6 +85,21 @@ describe('WorksCatalog', () => {
         .getByRole('button', { name: 'SHORT FORM' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
+  })
+
+  it('splits formats by video ratio when no work type was picked', () => {
+    // 이 스위트에는 자동 cleanup 이 없다. 앞 테스트가 남긴 DOM 과 섞이지
+    // 않도록 이 렌더의 컨테이너 안에서만 찾는다.
+    const { container } = render(
+      <WorksCatalog initialItems={items} initialCursor={null} />,
+    )
+    const view = within(container)
+
+    // 세로 영상 1편만 숏폼, 짧은 가로 영상은 롱폼에 남는다.
+    expect(view.getByText('2 LOADED')).toBeTruthy()
+    expect(view.getByText('1 LOADED')).toBeTruthy()
+    expect(view.getByRole('heading', { name: '세로 작품' })).toBeTruthy()
+    expect(view.queryByRole('heading', { name: '짧은 롱폼' })).toBeNull()
   })
 
   it('renders card skeletons while the next cursor page is loading', () => {

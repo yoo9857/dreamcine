@@ -1,6 +1,6 @@
 'use client'
 
-import type { FeedItem } from '@aidream/core'
+import { isShortFormWork, type FeedItem } from '@aidream/core'
 import { Heart, Play, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -174,14 +174,12 @@ export function WorksCatalog({
     initialCursor,
   })
   const { longForm, shortForm } = useMemo(() => {
-    // 형식은 재생시간이 아니라 업로더가 작품 생성 시 선택한 workType으로
-    // 결정한다. 짧은 롱폼 작품이 숏폼으로 잘못 노출되는 것을 방지한다.
-    const short = feed.items.filter(
-      (item) => item.series.workType === 'SHORT_FORM',
-    )
-    const long = feed.items.filter(
-      (item) => item.series.workType !== 'SHORT_FORM',
-    )
+    // 형식은 재생시간이 아니라 업로더가 고른 workType, 그리고 형식을 고르지
+    // 않은 작품은 원본 영상 비율로 결정한다(isShortFormWork). 짧은 롱폼
+    // 작품이 숏폼으로 잘못 노출되는 것을 막으면서, 형식 선택을 건너뛴 세로
+    // 영상도 숏폼 레일에 올린다.
+    const short = feed.items.filter((item) => isShortFormWork(item))
+    const long = feed.items.filter((item) => !isShortFormWork(item))
     return { longForm: long, shortForm: short }
   }, [feed.items])
 

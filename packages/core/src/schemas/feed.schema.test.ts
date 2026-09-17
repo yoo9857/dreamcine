@@ -53,10 +53,17 @@ describe('feed contracts', () => {
   })
 
   it('serializes a valid feed page and rejects numeric bigint leakage', () => {
+    // 형식·비율은 옛 캐시 항목에 없을 수 있어 스키마가 기본값을 채운다.
     expect(
       FeedPageSchema.parse({ items: [feedItem], nextCursor: null }),
     ).toEqual({
-      items: [feedItem],
+      items: [
+        {
+          ...feedItem,
+          series: { ...feedItem.series, workType: 'SERIES' },
+          aspectRatio: null,
+        },
+      ],
       nextCursor: null,
     })
     expect(

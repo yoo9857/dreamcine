@@ -134,6 +134,8 @@ interface EpisodeRawRow extends ScoredRow {
   readonly creatorTier: MemberTier
   readonly creatorVerifiedAt: Date | null
   readonly durationSec: number | null
+  readonly assetWidth: number | null
+  readonly assetHeight: number | null
 }
 
 function escapeLike(value: string): string {
@@ -292,6 +294,7 @@ function episodeSelect(query: string): Prisma.Sql {
     creator.tier AS "creatorTier",
     creator.verified_at AS "creatorVerifiedAt",
     COALESCE(e.duration_sec, asset.duration_sec) AS "durationSec",
+    asset.width AS "assetWidth", asset.height AS "assetHeight",
     similarity(e.title, ${query}) AS "searchScore"`
 }
 
