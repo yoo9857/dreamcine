@@ -44,7 +44,8 @@
 | `apps/worker/src/jobs/publish-scheduled.ts` | 예약공개 실행 | S2→S3 |
 | `apps/web/app/(main)/series/[seriesId]/page.tsx` | 시리즈 상세 | S3 |
 | `apps/web/app/(studio)/studio/page.tsx` | 대시보드 | S3 |
-| `apps/web/app/(studio)/studio/series/new/page.tsx` | 시리즈 생성 | S3 |
+| `apps/web/app/(studio)/studio/series/new/page.tsx` | → `/studio/new` 리다이렉트 (구 경로) | S3 |
+| `apps/web/app/(studio)/studio/new/page.tsx` | 시리즈 등록 단일 진입점 (시리즈 → 영상 → 회차) | S3 |
 | `apps/web/app/(studio)/studio/series/[seriesId]/page.tsx` | 에피소드 관리 | S3 |
 | `apps/web/src/components/studio/EpisodeTable.tsx` | 상태 배지 + 액션 | S3 |
 | `apps/web/src/components/studio/AiDisclosureField.tsx` | AI 표기 입력 | S3 |

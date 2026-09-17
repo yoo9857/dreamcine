@@ -33,6 +33,7 @@ import {
   buildEpisodeMetadata,
 } from '@/src/lib/seo/episode-metadata'
 
+import '@/src/styles/player.css'
 import '@/src/styles/watch-experience.css'
 
 interface WatchPageProps {

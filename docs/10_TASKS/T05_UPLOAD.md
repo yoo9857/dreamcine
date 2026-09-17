@@ -116,7 +116,7 @@ id 가 있어야 한다. cuid 생성기가 의존성에 없고 `check-deps` 허�
 | `apps/web/src/hooks/use-upload.ts` | ★ 클라이언트 업로드 엔진 | S2→S3 |
 | `apps/web/src/components/upload/Uploader.tsx` | 업로드 UI (상태기계) | S3 |
 | `apps/web/src/components/upload/UploadProgress.tsx` | 진행률 표시 (순수 표현) | S3 |
-| `apps/web/app/(studio)/studio/upload/page.tsx` | 업로드 화면 | S3 |
+| `apps/web/app/(studio)/studio/upload/page.tsx` | 미디어 보관함 (원본 업로드·변환 상태). 시리즈 등록은 `/studio/new` 다 | S3 |
 | `apps/web/e2e/upload-flow.e2e.ts` | US-02, US-09 | S3 |
 
 ## 4. S2 Skeleton

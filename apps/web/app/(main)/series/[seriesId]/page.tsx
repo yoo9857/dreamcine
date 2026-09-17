@@ -17,6 +17,7 @@ import {
   buildSeriesMetadata,
 } from '@/src/lib/seo/series-metadata'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
+import '@/src/styles/player.css'
 import '@/src/styles/series-showcase.css'
 import { getPlayback } from '@/src/services/episode/get-playback'
 import {

@@ -10,11 +10,9 @@ import { siteOrigin } from '@/src/lib/site-url'
 import './globals.css'
 import '../src/styles/app-shell.css'
 import '../src/styles/account.css'
-import '../src/styles/auth-login.css'
 import '../src/styles/cinematic-motion.css'
 import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
-import '../src/styles/player.css'
 import '../src/styles/policy.css'
 
 const SITE_DESCRIPTION =
