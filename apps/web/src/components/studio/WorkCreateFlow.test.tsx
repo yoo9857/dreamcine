@@ -91,10 +91,10 @@ describe('WorkCreateFlow', () => {
   it('opens the create form directly for a creator with no works', () => {
     render(<WorkCreateFlow works={[]} availableAssets={[]} />)
 
-    // 고를 작품이 없으면 빈 목록 대신 만들기를 바로 연다.
+    // 고를 시리즈가 없으면 빈 목록 대신 만들기를 바로 연다.
     expect(screen.queryByRole('radiogroup', { name: '등록할 위치' })).toBeNull()
     expect(
-      screen.getByRole('button', { name: '작품 만들고 계속' }),
+      screen.getByRole('button', { name: '시리즈 만들고 계속' }),
     ).not.toBeNull()
   })
 })

@@ -115,7 +115,7 @@ export function EpisodeTable({
         description={
           episodic
             ? '준비된 영상으로 첫 회차를 추가해 보세요.'
-            : '준비된 영상을 이 작품의 본편이나 버전으로 연결해 보세요.'
+            : '준비된 영상을 이 시리즈의 본편이나 버전으로 연결해 보세요.'
         }
         action={
           <Button type="button" onClick={openEpisodeCreator}>

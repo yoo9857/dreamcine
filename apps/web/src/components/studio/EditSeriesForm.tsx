@@ -39,17 +39,17 @@ export function EditSeriesForm({
     })
     setSaving(false)
     if (!response.ok) {
-      setError('작품 정보를 저장하지 못했습니다. 입력 내용을 확인해 주세요.')
+      setError('시리즈 정보를 저장하지 못했습니다. 입력 내용을 확인해 주세요.')
       return
     }
-    setMessage('작품 정보가 저장되었습니다.')
+    setMessage('시리즈 정보가 저장되었습니다.')
     router.refresh()
   }
 
   async function remove(): Promise<void> {
     if (
       !window.confirm(
-        `“${series.title}” 작품을 삭제할까요? 작품과 연결된 영상이 서비스에서 숨겨집니다.`,
+        `“${series.title}” 시리즈를 삭제할까요? 시리즈와 연결된 영상이 서비스에서 숨겨집니다.`,
       )
     )
       return
@@ -60,7 +60,7 @@ export function EditSeriesForm({
     })
     if (!response.ok) {
       setDeleting(false)
-      setError('작품을 삭제하지 못했습니다.')
+      setError('시리즈를 삭제하지 못했습니다.')
       return
     }
     router.push('/studio')
@@ -74,14 +74,14 @@ export function EditSeriesForm({
     >
       <div className="studio-edit-fields">
         <Input
-          label="작품 제목"
+          label="시리즈 제목"
           name="title"
           defaultValue={series.title}
           required
           maxLength={120}
         />
         <label className="studio-field-label">
-          <span>작품 형식</span>
+          <span>시리즈 형식</span>
           <select name="workType" defaultValue={series.workType}>
             {WORK_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -91,7 +91,7 @@ export function EditSeriesForm({
           </select>
         </label>
         <Textarea
-          label="작품 소개"
+          label="시리즈 소개"
           name="synopsis"
           defaultValue={series.synopsis ?? ''}
           maxLength={2000}
@@ -113,8 +113,8 @@ export function EditSeriesForm({
               defaultChecked={series.isCompleted}
             />
             <span>
-              <strong>완결 작품</strong>
-              <small>작품이 완결되었음을 공개 페이지에 표시합니다.</small>
+              <strong>완결 시리즈</strong>
+              <small>시리즈가 완결되었음을 공개 페이지에 표시합니다.</small>
             </span>
           </label>
           <label>
@@ -125,7 +125,7 @@ export function EditSeriesForm({
             />
             <span>
               <strong>댓글 사용 중지</strong>
-              <small>이 작품의 영상에서 새 댓글 작성을 막습니다.</small>
+              <small>이 시리즈의 영상에서 새 댓글 작성을 막습니다.</small>
             </span>
           </label>
         </div>
@@ -147,7 +147,7 @@ export function EditSeriesForm({
             onClick={() => void remove()}
           >
             <Trash2 aria-hidden="true" />
-            {deleting ? '삭제 중…' : '작품 삭제'}
+            {deleting ? '삭제 중…' : '시리즈 삭제'}
           </Button>
           <Button type="submit" disabled={saving || deleting}>
             <Save aria-hidden="true" />

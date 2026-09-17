@@ -53,7 +53,7 @@ export default async function StudioEpisodeAnalyticsPage({
         href={`/studio/series/${seriesId}#performance`}
         className="studio-back-link"
       >
-        <ArrowLeft aria-hidden="true" /> 작품 데이터로 돌아가기
+        <ArrowLeft aria-hidden="true" /> 시리즈 데이터로 돌아가기
       </Link>
 
       <header className="studio-content-analytics-header">

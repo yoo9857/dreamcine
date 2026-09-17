@@ -28,12 +28,12 @@ import { workTypeLabel } from './work-types'
  * 예전에는 "업로드" 와 "새 시리즈" 가 사이드바의 동등한 최상위 항목이었다.
  * 둘은 사실 한 작업의 앞뒤 단계인데 나란히 놓여 있어서, 신규 크리에이터가
  * 어디서 시작해야 하는지 알 수 없다는 피드백이 반복됐다. 여기서는 그 둘을
- * 작품 → 영상 → 회차 의 3단계 한 흐름으로 합친다.
+ * 시리즈 → 영상 → 회차 의 3단계 한 흐름으로 합친다.
  */
 type FlowStep = 'WORK' | 'UPLOAD' | 'DETAILS' | 'COMPLETE'
 
 const STEPS = [
-  { id: 'WORK', label: '작품 선택', icon: Clapperboard },
+  { id: 'WORK', label: '시리즈 선택', icon: Clapperboard },
   { id: 'UPLOAD', label: '영상 업로드', icon: UploadCloud },
   { id: 'DETAILS', label: '회차 정보 · 공개', icon: ListPlus },
 ] as const
@@ -56,7 +56,7 @@ function StepNav({
 }): ReactNode {
   const currentIndex = STEP_ORDER.indexOf(step)
   return (
-    <nav className="studio-create-tabs" aria-label="작품 등록 단계">
+    <nav className="studio-create-tabs" aria-label="시리즈 등록 단계">
       {STEPS.map((item, index) => {
         const Icon = item.icon
         // 완료 화면에서는 어떤 단계도 되돌리지 않는다.
@@ -90,7 +90,7 @@ function WorkStep({
   readonly works: readonly SeriesResponse[]
   readonly onSelect: (work: SelectedWork) => void
 }): ReactNode {
-  // 작품이 하나도 없으면 고를 것이 없다. 선택지를 보여주는 대신 바로
+  // 시리즈가 하나도 없으면 고를 것이 없다. 선택지를 보여주는 대신 바로
   // 만들기로 연다 — 첫 크리에이터에게 빈 목록은 막다른 길로 읽힌다.
   const [mode, setMode] = useState<'EXISTING' | 'NEW'>(
     works.length === 0 ? 'NEW' : 'EXISTING',
@@ -115,8 +115,8 @@ function WorkStep({
             />
             <span>
               <FolderOpen aria-hidden="true" />
-              <strong>기존 작품에 추가</strong>
-              <small>이미 만든 작품에 회차·영상을 이어 붙입니다</small>
+              <strong>기존 시리즈에 추가</strong>
+              <small>이미 만든 시리즈에 회차·영상을 이어 붙입니다</small>
             </span>
           </label>
           <label>
@@ -130,7 +130,7 @@ function WorkStep({
             />
             <span>
               <Plus aria-hidden="true" />
-              <strong>새 작품 만들기</strong>
+              <strong>새 시리즈 만들기</strong>
               <small>시리즈·영화·숏폼·광고 등 형식을 먼저 정합니다</small>
             </span>
           </label>
@@ -138,7 +138,7 @@ function WorkStep({
       )}
 
       {mode === 'EXISTING' ? (
-        <ul className="studio-work-picker" aria-label="내 작품">
+        <ul className="studio-work-picker" aria-label="내 시리즈">
           {works.map((work) => (
             <li key={work.id}>
               <button
@@ -164,7 +164,7 @@ function WorkStep({
       ) : (
         <div className="studio-work-new">
           <CreateSeriesForm
-            submitLabel="작품 만들고 계속"
+            submitLabel="시리즈 만들고 계속"
             onCreated={(series) => {
               onSelect({
                 id: series.id,
@@ -328,7 +328,7 @@ export function WorkCreateFlow({
             <p>
               {published
                 ? '이제 모든 시청자가 재생 페이지에서 영상을 볼 수 있습니다.'
-                : '작품의 콘텐츠 목록에 초안으로 저장했습니다. 지금 공개하거나 목록에서 예약·수정 상태를 이어서 관리할 수 있습니다.'}
+                : '시리즈의 콘텐츠 목록에 초안으로 저장했습니다. 지금 공개하거나 목록에서 예약·수정 상태를 이어서 관리할 수 있습니다.'}
             </p>
             {publishError === undefined ? null : (
               <small role="alert">{publishError}</small>
@@ -351,7 +351,7 @@ export function WorkCreateFlow({
               )}
               {work === undefined ? null : (
                 <Button asChild variant="secondary">
-                  <Link href={`/studio/series/${work.id}`}>작품 관리로</Link>
+                  <Link href={`/studio/series/${work.id}`}>시리즈 관리로</Link>
                 </Button>
               )}
             </div>

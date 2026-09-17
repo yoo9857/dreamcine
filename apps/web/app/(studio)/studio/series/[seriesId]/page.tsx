@@ -57,7 +57,7 @@ export default async function StudioSeriesPage({
           <h1>{detail.series.title}</h1>
           <p>
             {detail.series.synopsis ??
-              '작품 소개를 추가하면 공개 페이지의 완성도가 높아집니다.'}
+              '시리즈 소개를 추가하면 공개 페이지의 완성도가 높아집니다.'}
           </p>
           <div className="studio-series-meta">
             <span>
@@ -77,15 +77,15 @@ export default async function StudioSeriesPage({
 
       <section
         className="studio-series-hierarchy"
-        aria-label="작품과 회차 구성"
+        aria-label="시리즈와 회차 구성"
       >
         <article>
-          <span>작품 · {workTypeLabel(detail.series.workType)}</span>
+          <span>시리즈 · {workTypeLabel(detail.series.workType)}</span>
           <strong>{detail.series.title}</strong>
           <small>
             {episodic
-              ? '모든 시즌과 회차를 묶는 최상위 작품'
-              : '본편과 여러 버전을 묶는 최상위 작품'}
+              ? '모든 시즌과 회차를 묶는 최상위 시리즈'
+              : '본편과 여러 버전을 묶는 최상위 시리즈'}
           </small>
         </article>
         <ChevronRight aria-hidden="true" />
@@ -94,7 +94,7 @@ export default async function StudioSeriesPage({
           <strong>{episodic ? `${String(seasonCount)}개` : '본편·버전'}</strong>
           <small>
             {episodic
-              ? '긴 작품을 시즌 단위로 구분'
+              ? '긴 시리즈를 시즌 단위로 구분'
               : '본편과 컷다운·버전을 구분'}
           </small>
         </article>
@@ -112,12 +112,12 @@ export default async function StudioSeriesPage({
 
       <nav
         className="studio-series-jump-nav"
-        aria-label="작품 및 회차 관리 메뉴"
+        aria-label="시리즈 및 회차 관리 메뉴"
       >
         <a href="#episodes">{episodic ? '회차 관리' : '영상 관리'}</a>
         <a href="#new-episode">{episodic ? '새 회차' : '새 영상'}</a>
         <a href="#performance">콘텐츠 데이터</a>
-        <a href="#settings">작품 설정</a>
+        <a href="#settings">시리즈 설정</a>
       </nav>
 
       <section className="studio-series-section" id="episodes">
@@ -129,7 +129,7 @@ export default async function StudioSeriesPage({
             </h2>
             <p>
               {episodic
-                ? '작품 안의 1화·2화·3화를 각각 수정하고 공개·예약·분석합니다.'
+                ? '시리즈 안의 1화·2화·3화를 각각 수정하고 공개·예약·분석합니다.'
                 : '본편·숏폼·CF 버전을 각각 수정하고 공개·예약·분석합니다.'}
             </p>
           </div>
@@ -151,7 +151,7 @@ export default async function StudioSeriesPage({
         <div className="studio-section-title-row">
           <div>
             <span>WORK PERFORMANCE</span>
-            <h2>작품 콘텐츠 데이터</h2>
+            <h2>시리즈 콘텐츠 데이터</h2>
             <p>
               전체 성과를 비교하고 개선할 {episodic ? '회차' : '영상'}를 빠르게
               찾습니다.
@@ -168,7 +168,7 @@ export default async function StudioSeriesPage({
         <div className="studio-section-title-row">
           <div>
             <span>SERIES SETTINGS</span>
-            <h2>작품 설정</h2>
+            <h2>시리즈 설정</h2>
             <p>공개 페이지에 표시할 정보와 커뮤니티 설정을 관리합니다.</p>
           </div>
         </div>

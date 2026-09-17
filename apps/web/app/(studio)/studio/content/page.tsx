@@ -43,7 +43,7 @@ export default async function StudioContentPage(): Promise<ReactNode> {
       <section className="studio-library-summary" aria-label="콘텐츠 현황">
         <article>
           <Clapperboard aria-hidden="true" />
-          <span>전체 작품</span>
+          <span>전체 시리즈</span>
           <strong>{series.length}</strong>
         </article>
         <article>
@@ -67,9 +67,9 @@ export default async function StudioContentPage(): Promise<ReactNode> {
         <div className="studio-section-title-row">
           <div>
             <span>ALL WORKS</span>
-            <h2>작품 라이브러리</h2>
+            <h2>시리즈 라이브러리</h2>
             <p>
-              작품을 선택하면 영상·회차·공개·예약·분석을 관리할 수 있습니다.
+              시리즈를 선택하면 영상·회차·공개·예약·분석을 관리할 수 있습니다.
               새로 올리는 것은 상단 <strong>만들기</strong>에서 시작합니다.
             </p>
           </div>

@@ -169,10 +169,10 @@ describe('CreateSeriesForm', () => {
     render(<CreateSeriesForm />)
 
     fireEvent.click(screen.getByRole('radio', { name: /영화·단편/u }))
-    fireEvent.change(screen.getByRole('textbox', { name: '작품 제목' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
       target: { value: '여름의 마지막 밤' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '작품 만들기' }))
+    fireEvent.click(screen.getByRole('button', { name: '시리즈 만들기' }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -197,7 +197,7 @@ describe('EditSeriesForm', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
     render(<EditSeriesForm series={SERIES} />)
-    fireEvent.change(screen.getByRole('textbox', { name: '작품 제목' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
       target: { value: '수정된 첫 번째 꿈' },
     })
     fireEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
@@ -253,7 +253,7 @@ describe('StudioSeriesTable', () => {
     })
     expect(screen.queryByText('첫 번째 꿈')).toBeNull()
     expect(screen.getByText('독립 영화')).toBeDefined()
-    expect(screen.getByText('1개 작품')).toBeDefined()
+    expect(screen.getByText('1개 시리즈')).toBeDefined()
   })
 })
 

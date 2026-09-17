@@ -161,7 +161,7 @@ export function EpisodeCreateWorkspace({
                 <h2 id="studio-create-title">
                   {episodic ? '새 회차 만들기' : '새 영상 연결하기'}
                 </h2>
-                <p>업로드부터 작품 연결 확인까지 이 화면에서 완료합니다.</p>
+                <p>업로드부터 시리즈 연결 확인까지 이 화면에서 완료합니다.</p>
               </div>
               <button
                 type="button"
@@ -243,7 +243,7 @@ export function EpisodeCreateWorkspace({
                   <p>
                     {published
                       ? '이제 모든 시청자가 재생 페이지에서 영상을 볼 수 있습니다.'
-                      : '작품의 콘텐츠 목록에 초안으로 안전하게 저장했습니다. 지금 공개하거나 목록에서 예약·수정 상태를 이어서 관리할 수 있습니다.'}
+                      : '시리즈의 콘텐츠 목록에 초안으로 안전하게 저장했습니다. 지금 공개하거나 목록에서 예약·수정 상태를 이어서 관리할 수 있습니다.'}
                   </p>
                   {publishError === undefined ? null : (
                     <small role="alert">{publishError}</small>

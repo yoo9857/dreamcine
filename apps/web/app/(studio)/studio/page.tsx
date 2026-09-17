@@ -45,7 +45,7 @@ export default async function StudioPage(): Promise<ReactNode> {
           <span>CREATOR STUDIO</span>
           <h1>콘텐츠 스튜디오</h1>
           <p>
-            안녕하세요, {session.user.displayName}님. 작품 현황과 채널 성과를
+            안녕하세요, {session.user.displayName}님. 시리즈 현황과 채널 성과를
             한곳에서 관리하세요.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default async function StudioPage(): Promise<ReactNode> {
           <div className="studio-overview-numbers">
             <div>
               <strong>{dashboard.totals.series}</strong>
-              <span>작품</span>
+              <span>시리즈</span>
             </div>
             <div>
               <strong>{dashboard.totals.episodes}</strong>
@@ -147,7 +147,7 @@ export default async function StudioPage(): Promise<ReactNode> {
           {dashboard.recentEpisodes.length === 0 ? (
             <div className="studio-recent-empty">
               <p>아직 등록한 영상이 없습니다.</p>
-              <Link href="/studio/new">첫 작품 등록하기</Link>
+              <Link href="/studio/new">첫 시리즈 등록하기</Link>
             </div>
           ) : (
             <div className="studio-recent-list">
@@ -183,7 +183,7 @@ export default async function StudioPage(): Promise<ReactNode> {
         <div className="studio-section-title-row">
           <div>
             <span>CONTENT LIBRARY</span>
-            <h2>내 작품</h2>
+            <h2>내 시리즈</h2>
             <p>공개 상태와 실적을 확인하고 회차를 관리합니다.</p>
           </div>
           <Link href="/studio/content">
@@ -194,11 +194,13 @@ export default async function StudioPage(): Promise<ReactNode> {
           <div className="studio-first-content">
             <Clapperboard aria-hidden="true" />
             <div>
-              <strong>첫 작품을 등록해 보세요</strong>
-              <p>작품을 고르고, 영상을 올리고, 회차 정보를 채우면 끝입니다.</p>
+              <strong>첫 시리즈를 등록해 보세요</strong>
+              <p>
+                시리즈를 고르고, 영상을 올리고, 회차 정보를 채우면 끝입니다.
+              </p>
             </div>
             <Link href="/studio/new" className="studio-button primary">
-              작품 등록하기
+              시리즈 등록하기
             </Link>
           </div>
         ) : (

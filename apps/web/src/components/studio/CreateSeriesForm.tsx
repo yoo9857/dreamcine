@@ -15,10 +15,10 @@ function readWorkType(value: FormDataEntryValue | null): WorkType {
 
 export function CreateSeriesForm({
   onCreated,
-  submitLabel = '작품 만들기',
+  submitLabel = '시리즈 만들기',
 }: {
   /**
-   * 작품을 만든 뒤 이동 대신 호출할 콜백. `/studio/new` 의 단계형 흐름은
+   * 시리즈를 만든 뒤 이동 대신 호출할 콜백. `/studio/new` 의 단계형 흐름은
    * 화면을 떠나지 않고 다음 단계로 이어가야 하므로 이 경로를 쓴다.
    */
   readonly onCreated?: (series: { id: string; workType: WorkType }) => void
@@ -54,7 +54,7 @@ export function CreateSeriesForm({
     }
     if (!response.ok || payload.id === undefined) {
       setError(
-        '작품을 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
+        '시리즈를 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
       )
       setBusy(false)
       return
@@ -75,7 +75,7 @@ export function CreateSeriesForm({
       className="studio-series-form"
     >
       <fieldset className="studio-work-type-fieldset">
-        <legend>작품 형식</legend>
+        <legend>시리즈 형식</legend>
         <p>영상의 성격에 맞는 관리 구조와 용어를 적용합니다.</p>
         <div className="studio-work-type-grid">
           {WORK_TYPE_OPTIONS.map((option) => (
@@ -94,8 +94,8 @@ export function CreateSeriesForm({
           ))}
         </div>
       </fieldset>
-      <Input label="작품 제목" name="title" required maxLength={120} />
-      <Textarea label="작품 소개" name="synopsis" maxLength={2000} />
+      <Input label="시리즈 제목" name="title" required maxLength={120} />
+      <Textarea label="시리즈 소개" name="synopsis" maxLength={2000} />
       <label className="studio-field-label">
         관람 등급
         <select

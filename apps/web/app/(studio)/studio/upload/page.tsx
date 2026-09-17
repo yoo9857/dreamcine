@@ -26,12 +26,12 @@ export default async function UploadPage(): Promise<ReactNode> {
           <span>MEDIA LIBRARY</span>
           <h1>미디어 보관함</h1>
           <p>
-            작품과 상관없이 원본 영상만 올려두는 곳입니다. 업로드가 끝나면
+            시리즈와 상관없이 원본 영상만 올려두는 곳입니다. 업로드가 끝나면
             변환이 자동으로 시작되고, 이 페이지를 닫아도 계속됩니다.
           </p>
           <p className="studio-page-note">
-            작품을 공개하려면 <Link href="/studio/new">만들기</Link>에서
-            작품·영상·회차를 한 번에 등록하세요.
+            시리즈를 공개하려면 <Link href="/studio/new">만들기</Link>에서
+            시리즈·영상·회차를 한 번에 등록하세요.
           </p>
         </div>
       </header>
@@ -61,7 +61,7 @@ export default async function UploadPage(): Promise<ReactNode> {
               <CheckCircle2 aria-hidden="true" />
               <div>
                 <strong>회차 연결</strong>
-                <small>완료된 영상은 작품 등록에서 바로 선택</small>
+                <small>완료된 영상은 시리즈 등록에서 바로 선택</small>
               </div>
             </li>
           </ol>

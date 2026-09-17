@@ -111,14 +111,14 @@ export function SeriesPosterUploader({
       {preview === undefined ? (
         <Film aria-hidden="true" />
       ) : (
-        <img src={preview} alt="작품 썸네일" />
+        <img src={preview} alt="시리즈 썸네일" />
       )}
       <input
         ref={inputRef}
         type="file"
         hidden
         accept="image/jpeg,image/png,image/webp"
-        aria-label="작품 썸네일 선택"
+        aria-label="시리즈 썸네일 선택"
         onChange={(event) => void change(event)}
       />
       <button

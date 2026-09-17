@@ -77,11 +77,11 @@ export function StudioSeriesTable({
       <div className="studio-content-toolbar">
         <label className="studio-search-field">
           <Search aria-hidden="true" />
-          <span className="sr-only">작품 검색</span>
+          <span className="sr-only">시리즈 검색</span>
           <input
             type="search"
             value={query}
-            placeholder="제목 또는 작품 소개 검색"
+            placeholder="제목 또는 시리즈 소개 검색"
             onChange={(event) => {
               setQuery(event.currentTarget.value)
             }}
@@ -134,14 +134,14 @@ export function StudioSeriesTable({
               <option value="TITLE">제목순</option>
             </select>
           </label>
-          <strong>{visible.length}개 작품</strong>
+          <strong>{visible.length}개 시리즈</strong>
         </div>
       ) : null}
 
       {visible.length === 0 ? (
         <div className="studio-table-empty">
           <Film aria-hidden="true" />
-          <strong>조건에 맞는 작품이 없습니다</strong>
+          <strong>조건에 맞는 시리즈가 없습니다</strong>
           <p>검색어나 상태·포맷 필터를 변경해 보세요.</p>
         </div>
       ) : (
@@ -149,7 +149,7 @@ export function StudioSeriesTable({
           <table className="studio-content-table">
             <thead>
               <tr>
-                <th>작품</th>
+                <th>시리즈</th>
                 <th>상태</th>
                 <th>영상·회차</th>
                 <th>누적 조회수</th>
@@ -182,7 +182,7 @@ export function StudioSeriesTable({
                           </em>
                           <strong>{item.title}</strong>
                           <small>
-                            {item.synopsis ?? '등록된 작품 소개가 없습니다.'}
+                            {item.synopsis ?? '등록된 시리즈 소개가 없습니다.'}
                           </small>
                         </span>
                       </Link>
