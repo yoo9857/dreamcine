@@ -10,7 +10,6 @@ import {
   Home,
   Plus,
   Settings,
-  UploadCloud,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -19,12 +18,13 @@ import type { MouseEvent, ReactNode } from 'react'
 
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 
+// 등록은 사이드바 항목이 아니라 상단의 단일 액션이다. 예전에는 "업로드" 와
+// "새 시리즈" 가 여기 나란히 있었고, 둘이 한 작업의 앞뒤 단계라는 것이 드러나지
+// 않아 크리에이터가 어디서 시작할지 헷갈렸다. 이제 진입점은 `/studio/new` 하나다.
 const NAVIGATION = [
   { href: '/studio', label: '대시보드', icon: Home },
   { href: '/studio/content', label: '콘텐츠', icon: Clapperboard },
   { href: '/studio#analytics', label: '분석', icon: BarChart3 },
-  { href: '/studio/upload', label: '업로드', icon: UploadCloud },
-  { href: '/studio/series/new', label: '새 시리즈', icon: Plus },
 ] as const
 
 export function StudioShell({
@@ -116,8 +116,7 @@ export function StudioShell({
                   : pathname === item.href ||
                     pathname.startsWith(`${item.href}/`) ||
                     (item.href === '/studio/content' &&
-                      pathname.startsWith('/studio/series/') &&
-                      pathname !== '/studio/series/new')
+                      pathname.startsWith('/studio/series/'))
                 : pathname === '/studio' && activeHash === itemHash
             const Icon = item.icon
             return (
@@ -161,6 +160,10 @@ export function StudioShell({
             <Film aria-hidden="true" />
             <span>Creator Workspace</span>
           </div>
+          <Link href="/studio/new" className="studio-topbar-create">
+            <Plus aria-hidden="true" />
+            <span>만들기</span>
+          </Link>
           <Link href={`/u/${handle}`} className="studio-identity">
             <span className="studio-avatar" aria-hidden="true">
               {initial}

@@ -118,8 +118,10 @@ describe('Uploader', () => {
     expect(
       screen.getByRole('heading', { name: '이제 영상을 작품에 연결하세요' }),
     ).not.toBeNull()
-    expect(screen.getByRole('link', { name: /작품 선택/u })).not.toBeNull()
-    expect(screen.getByRole('link', { name: /새 작품 만들기/u })).not.toBeNull()
+    // 등록 진입점은 `/studio/new` 하나다. 예전의 "작품 선택"·"새 작품 만들기"
+    // 두 갈래를 하나로 합쳤다.
+    const next = screen.getByRole('link', { name: /작품에 연결하기/u })
+    expect(next.getAttribute('href')).toBe('/studio/new')
     expect(router.refresh).toHaveBeenCalledOnce()
   })
 

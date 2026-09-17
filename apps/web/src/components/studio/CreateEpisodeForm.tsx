@@ -222,7 +222,7 @@ export function CreateEpisodeForm({
           <div className="studio-asset-picker-empty">
             <strong>연결할 준비 완료 영상이 없습니다</strong>
             <p>업로드와 변환이 끝나면 이곳에서 바로 선택할 수 있습니다.</p>
-            <Link href="/studio/upload">영상 업로드</Link>
+            <Link href="/studio/upload">미디어 보관함에서 업로드</Link>
           </div>
         ) : (
           <div

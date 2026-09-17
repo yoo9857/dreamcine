@@ -151,21 +151,16 @@ export function Uploader({
             <span>NEXT STEP</span>
             <h2 id="upload-next-title">이제 영상을 작품에 연결하세요</h2>
             <p>
-              준비된 영상은 미디어 보관함에 저장되었습니다. 기존 작품의 회차나
-              본편으로 연결하거나 새 작품을 만들 수 있습니다.
+              준비된 영상은 미디어 보관함에 저장되었습니다. 만들기에서 기존
+              작품의 회차로 연결하거나 새 작품을 만들 수 있습니다.
             </p>
             <div>
-              <Link href="/studio/content" className="studio-button primary">
-                작품 선택 <ArrowRight aria-hidden="true" />
-              </Link>
-              <Link
-                href="/studio/series/new"
-                className="studio-button secondary"
-              >
-                <Plus aria-hidden="true" /> 새 작품 만들기
+              <Link href="/studio/new" className="studio-button primary">
+                <Plus aria-hidden="true" /> 작품에 연결하기{' '}
+                <ArrowRight aria-hidden="true" />
               </Link>
               <a href="#library" className="studio-upload-library-link">
-                <Library aria-hidden="true" /> 미디어 보관함 확인
+                <Library aria-hidden="true" /> 업로드한 원본 확인
               </a>
             </div>
           </div>

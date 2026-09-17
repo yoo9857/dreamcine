@@ -18,7 +18,7 @@ export function DiscoveryCreatorCta(): ReactNode {
         <span>첫 작품을 만들고 ilog의 관객과 만나보세요.</span>
       </div>
       <div className="discovery-creator-cta-actions">
-        <Link href="/studio/upload">
+        <Link href="/studio/new">
           작품 업로드 <ArrowUpRight aria-hidden="true" />
         </Link>
         <Link href="/creator-apply">크리에이터 안내</Link>

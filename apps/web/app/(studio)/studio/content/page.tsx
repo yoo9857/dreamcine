@@ -32,10 +32,10 @@ export default async function StudioContentPage(): Promise<ReactNode> {
         </div>
         <div className="studio-primary-actions">
           <Link href="/studio/upload" className="studio-button secondary">
-            <UploadCloud aria-hidden="true" /> 영상 업로드
+            <UploadCloud aria-hidden="true" /> 미디어 보관함
           </Link>
-          <Link href="/studio/series/new" className="studio-button primary">
-            <Plus aria-hidden="true" /> 새 작품
+          <Link href="/studio/new" className="studio-button primary">
+            <Plus aria-hidden="true" /> 만들기
           </Link>
         </div>
       </header>
@@ -70,6 +70,7 @@ export default async function StudioContentPage(): Promise<ReactNode> {
             <h2>작품 라이브러리</h2>
             <p>
               작품을 선택하면 영상·회차·공개·예약·분석을 관리할 수 있습니다.
+              새로 올리는 것은 상단 <strong>만들기</strong>에서 시작합니다.
             </p>
           </div>
         </div>

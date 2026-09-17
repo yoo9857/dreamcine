@@ -1,12 +1,29 @@
 'use client'
 
+import type { WorkType } from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
 import { useRouter } from 'next/navigation'
 import React, { useState, type ReactNode, type SyntheticEvent } from 'react'
 
 import { WORK_TYPE_OPTIONS } from './work-types'
 
-export function CreateSeriesForm(): ReactNode {
+/** 폼 값은 문자열이다. 서버 응답에 형식이 없을 때만 쓰는 좁힘 helper. */
+function readWorkType(value: FormDataEntryValue | null): WorkType {
+  const match = WORK_TYPE_OPTIONS.find((option) => option.value === value)
+  return match?.value ?? 'SERIES'
+}
+
+export function CreateSeriesForm({
+  onCreated,
+  submitLabel = '작품 만들기',
+}: {
+  /**
+   * 작품을 만든 뒤 이동 대신 호출할 콜백. `/studio/new` 의 단계형 흐름은
+   * 화면을 떠나지 않고 다음 단계로 이어가야 하므로 이 경로를 쓴다.
+   */
+  readonly onCreated?: (series: { id: string; workType: WorkType }) => void
+  readonly submitLabel?: string
+} = {}): ReactNode {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -31,11 +48,20 @@ export function CreateSeriesForm(): ReactNode {
         ageRating: data.get('ageRating'),
       }),
     })
-    const payload = (await response.json()) as { id?: string }
+    const payload = (await response.json()) as {
+      id?: string
+      workType?: WorkType
+    }
     if (!response.ok || payload.id === undefined) {
       setError(
         '작품을 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
       )
+      setBusy(false)
+      return
+    }
+    if (onCreated !== undefined) {
+      const workType = payload.workType ?? readWorkType(data.get('workType'))
+      onCreated({ id: payload.id, workType })
       setBusy(false)
       return
     }
@@ -89,7 +115,7 @@ export function CreateSeriesForm(): ReactNode {
         </p>
       )}
       <Button type="submit" disabled={busy}>
-        {busy ? '만드는 중…' : '작품 만들기'}
+        {busy ? '만드는 중…' : submitLabel}
       </Button>
     </form>
   )

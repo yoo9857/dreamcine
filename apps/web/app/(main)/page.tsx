@@ -227,8 +227,8 @@ function GuestLanding({
               <Link href="/about">About ilog</Link>
               <Link href="/creator-apply">크리에이터 모집</Link>
               <Link href="/studio">스튜디오</Link>
-              <Link href="/studio/series/new">새 시리즈 만들기</Link>
-              <Link href="/studio/upload">에피소드 업로드</Link>
+              <Link href="/studio/new">작품 등록하기</Link>
+              <Link href="/studio/upload">미디어 보관함</Link>
               <Link href="/ads-plan">광고형 멤버십</Link>
             </section>
             <section>

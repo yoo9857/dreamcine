@@ -76,11 +76,15 @@ async function createSeriesAndEpisode(
   userId: string,
   title: string,
 ): Promise<void> {
-  await page.goto('/studio/series/new')
-  await page.getByLabel('시리즈 제목').fill(title)
-  await page.getByRole('button', { name: '시리즈 만들기' }).click()
-  await expect(page).toHaveURL(/\/studio\/series\/[^/]+$/u)
+  // 작품 생성은 `/studio/new` 의 1단계로 흡수됐다. 예전 경로도 여기로 넘어온다.
+  await page.goto('/studio/new')
+  await page.getByLabel('작품(시리즈) 제목').fill(title)
+  await page.getByRole('button', { name: '작품 만들고 계속' }).click()
 
+  // NOTE: 아래 회차 등록 부분은 이 파일이 작성된 뒤 CreateEpisodeForm 이
+  // 자산 라디오 선택 UI 로 바뀌면서 이미 낡았다 (`준비된 영상 자산 ID`·
+  // `에피소드 제목` 라벨이 현재 UI 에 없다). 통합 등록 흐름에 맞춘 재작성이
+  // 필요하다 — E2E 는 Docker 가 있는 환경에서만 돌릴 수 있다.
   const assetId = await readyAsset(userId)
   await page.getByLabel('회차').fill('1')
   await page.getByLabel('에피소드 제목').fill('첫 번째 꿈')

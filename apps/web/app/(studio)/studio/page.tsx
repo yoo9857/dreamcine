@@ -6,7 +6,6 @@ import {
   Heart,
   MessageCircle,
   Plus,
-  UploadCloud,
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -51,11 +50,8 @@ export default async function StudioPage(): Promise<ReactNode> {
           </p>
         </div>
         <div className="studio-primary-actions">
-          <Link href="/studio/upload" className="studio-button secondary">
-            <UploadCloud aria-hidden="true" /> 영상 업로드
-          </Link>
-          <Link href="/studio/series/new" className="studio-button primary">
-            <Plus aria-hidden="true" /> 새 시리즈
+          <Link href="/studio/new" className="studio-button primary">
+            <Plus aria-hidden="true" /> 만들기
           </Link>
         </div>
       </header>
@@ -150,8 +146,8 @@ export default async function StudioPage(): Promise<ReactNode> {
           </div>
           {dashboard.recentEpisodes.length === 0 ? (
             <div className="studio-recent-empty">
-              <p>아직 에피소드가 없습니다.</p>
-              <Link href="/studio/upload">첫 영상 업로드하기</Link>
+              <p>아직 등록한 영상이 없습니다.</p>
+              <Link href="/studio/new">첫 작품 등록하기</Link>
             </div>
           ) : (
             <div className="studio-recent-list">
@@ -187,8 +183,8 @@ export default async function StudioPage(): Promise<ReactNode> {
         <div className="studio-section-title-row">
           <div>
             <span>CONTENT LIBRARY</span>
-            <h2>시리즈 관리</h2>
-            <p>공개 상태와 실적을 확인하고 에피소드를 관리합니다.</p>
+            <h2>내 작품</h2>
+            <p>공개 상태와 실적을 확인하고 회차를 관리합니다.</p>
           </div>
           <Link href="/studio/content">
             전체 콘텐츠 관리 <ArrowRight aria-hidden="true" />
@@ -198,11 +194,11 @@ export default async function StudioPage(): Promise<ReactNode> {
           <div className="studio-first-content">
             <Clapperboard aria-hidden="true" />
             <div>
-              <strong>첫 시리즈를 만들어 보세요</strong>
-              <p>시리즈를 만든 다음 업로드한 영상으로 에피소드를 구성합니다.</p>
+              <strong>첫 작품을 등록해 보세요</strong>
+              <p>작품을 고르고, 영상을 올리고, 회차 정보를 채우면 끝입니다.</p>
             </div>
-            <Link href="/studio/series/new" className="studio-button primary">
-              시리즈 만들기
+            <Link href="/studio/new" className="studio-button primary">
+              작품 등록하기
             </Link>
           </div>
         ) : (
