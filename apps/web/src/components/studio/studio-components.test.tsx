@@ -190,6 +190,37 @@ describe('CreateSeriesForm', () => {
     })
     expect(router.push).toHaveBeenCalledWith('/studio/series/work_1')
   })
+
+  it('hands the created title to onCreated instead of navigating', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: 'work_2',
+          title: '여름의 마지막 밤',
+          workType: 'FILM',
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const onCreated = vi.fn()
+    render(<CreateSeriesForm onCreated={onCreated} />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
+      target: { value: '여름의 마지막 밤' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '시리즈 만들기' }))
+
+    // 다음 단계가 "어느 시리즈에 넣는지" 를 확인시켜 주는 자리라, 형식 이름이
+    // 아니라 방금 입력한 제목이 넘어가야 한다.
+    await waitFor(() => {
+      expect(onCreated).toHaveBeenCalledWith({
+        id: 'work_2',
+        title: '여름의 마지막 밤',
+        workType: 'FILM',
+      })
+    })
+    expect(router.push).not.toHaveBeenCalled()
+  })
 })
 
 describe('EditSeriesForm', () => {

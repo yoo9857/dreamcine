@@ -21,7 +21,11 @@ export function CreateSeriesForm({
    * 시리즈를 만든 뒤 이동 대신 호출할 콜백. `/studio/new` 의 단계형 흐름은
    * 화면을 떠나지 않고 다음 단계로 이어가야 하므로 이 경로를 쓴다.
    */
-  readonly onCreated?: (series: { id: string; workType: WorkType }) => void
+  readonly onCreated?: (series: {
+    id: string
+    title: string
+    workType: WorkType
+  }) => void
   readonly submitLabel?: string
 } = {}): ReactNode {
   const router = useRouter()
@@ -50,6 +54,7 @@ export function CreateSeriesForm({
     })
     const payload = (await response.json()) as {
       id?: string
+      title?: string
       workType?: WorkType
     }
     if (!response.ok || payload.id === undefined) {
@@ -61,7 +66,12 @@ export function CreateSeriesForm({
     }
     if (onCreated !== undefined) {
       const workType = payload.workType ?? readWorkType(data.get('workType'))
-      onCreated({ id: payload.id, workType })
+      // 방금 입력한 제목을 그대로 넘긴다. 다음 단계가 "어느 시리즈에 넣는지"
+      // 를 확인시켜 주는 자리라, 형식 이름으로 대신하면 확인이 되지 않는다.
+      const submitted = data.get('title')
+      const title =
+        payload.title ?? (typeof submitted === 'string' ? submitted : '')
+      onCreated({ id: payload.id, title, workType })
       setBusy(false)
       return
     }

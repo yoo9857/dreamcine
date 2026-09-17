@@ -239,9 +239,7 @@ function WorkStep({
             onCreated={(series) => {
               onSelect({
                 id: series.id,
-                // 생성 직후에는 제목을 서버에서 다시 받지 않는다. 다음 단계의
-                // 안내 문구에만 쓰이므로 형식 이름으로 충분하다.
-                title: workTypeLabel(series.workType),
+                title: series.title,
                 workType: series.workType,
               })
             }}
