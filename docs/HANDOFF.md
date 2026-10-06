@@ -3,6 +3,32 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-10-06 전체 화면 재생·스튜디오 생성 흐름 수정 배포 완료
+
+- 운영 웹 SHA는 `e8f353ef67ea5383897fe886ae0887fedc12c7e2`다. `deploy.yml` 실행
+  `37405292060`으로 반영했고 `deploy_worker=false`(웹만 교체)다. 신규 마이그레이션은 없다.
+- 전체 화면(`7572359`): `/watch`의 `.watch-player-shell video { max-height: 484px }`가
+  전체 화면에서도 걸려 영상이 화면 위쪽 484px 띠에만 그려졌다. `player.css`에서 전체 화면일
+  때 감싸는 틀의 최대 크기와 모서리를 해제한다. 운영 CSS 번들에 규칙이 실린 것을 확인했다.
+- 생성 흐름(`e8f353e`):
+  - 업로드 중 다른 단계로 가면 `<Uploader>`가 떼어지며 use-upload 정리 함수가 전송을 끊었다.
+    한 번 연 업로더는 숨기기만 하고 붙여 둔다.
+  - 흐름 안에서 만든 시리즈가 1단계 목록에 없어 중복 생성을 유도했다. 목록 맨 위에 더한다.
+  - `CreateSeriesForm`이 네트워크 오류·비 JSON 응답에서 "만드는 중…"에 멈췄다. 오류를
+    표시하고 버튼을 되살린다.
+- 배포 전후 `/api/ready`의 DB·Redis·스토리지·큐·메일이 모두 `ok`다. `/`, `/works`, `/login`은
+  200, `/studio/new`는 비로그인 307(로그인 리다이렉트)이다.
+- 생략한 검사(Fast lane): DB·Redis 통합 테스트 12개 파일(로컬에 Docker 없음), E2E, 브라우저에서
+  전체 화면·업로드 단계 이동 수동 확인. 로컬 lint·typecheck·depcruise·format과 단위 테스트
+  1,788개는 통과했다. 9/17 `4cad157`까지는 이미 운영에 배포되어 있었다(`35199501328`).
+- 남은 항목:
+  - `e2e/series-episode.e2e.ts:79-107`이 새 생성 흐름과 맞지 않는다.
+  - 큐 `defaultJobOptions`가 없고, `scheduler-retention.test.ts`는 소스 문자열만 검사한다.
+  - `REMOVE_ON_FAIL`에 개수 상한이 없다.
+  - `O05_INCIDENT.md:147`·`T01_INFRA_DOCKER.md:225`가 Redis 정책을 `allkeys-lru`로 적고
+    있지만, 실제 설정은 `noeviction`이다.
+  - 업로더 문구에 "작품"이 남아 있다.
+
 ## 2026-09-17 운영 장애 — Redis maxmemory 도달로 트랜스코딩 중단
 
 - 증상: 업로드는 되는데 변환이 시작되지 않았다. 워커 로그가
