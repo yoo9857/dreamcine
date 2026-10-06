@@ -1,5 +1,7 @@
 import {
   AppError,
+  canStartConversation,
+  isAuthorRole,
   type SeriesResponse,
   type UserLink,
   type UserProfile,
@@ -12,6 +14,7 @@ import {
   Globe,
   Link2,
   Mail,
+  MessageCircle,
   PencilLine,
   Play,
   UserPlus,
@@ -279,6 +282,105 @@ function WorkCard({
   )
 }
 
+/**
+ * 작가 페이지의 "메시지" 버튼 상태. (ISS-023)
+ *
+ * 서버가 보낼 때 다시 판정하므로 여기는 안내용이다. 보낼 수 없는 경우를
+ * 미리 숨기거나 이유를 붙여, 쓰고 나서야 거절당하는 일을 줄인다.
+ */
+type MessageEntry =
+  | { readonly kind: 'NONE' }
+  | { readonly kind: 'INBOX' }
+  | { readonly kind: 'LOGIN' }
+  | { readonly kind: 'OPEN' }
+  | { readonly kind: 'FOLLOWERS_ONLY' }
+
+function messageEntryFor(
+  profile: UserProfile,
+  signedIn: boolean,
+  isSelf: boolean,
+): MessageEntry {
+  if (isSelf) {
+    return isAuthorRole(profile.role) ? { kind: 'INBOX' } : { kind: 'NONE' }
+  }
+  if (!signedIn) {
+    return isAuthorRole(profile.role) && profile.dmPolicy !== 'NOBODY'
+      ? { kind: 'LOGIN' }
+      : { kind: 'NONE' }
+  }
+  const gate = canStartConversation({
+    senderId: 'viewer',
+    recipient: {
+      id: 'profile',
+      role: profile.role,
+      status: 'ACTIVE',
+      dmPolicy: profile.dmPolicy,
+    },
+    senderFollowsRecipient: profile.isFollowing,
+    blocked: profile.isBlocked,
+  })
+  if (gate.allowed) return { kind: 'OPEN' }
+  return gate.code === 'E_DM_FOLLOWERS_ONLY'
+    ? { kind: 'FOLLOWERS_ONLY' }
+    : { kind: 'NONE' }
+}
+
+function MessageAction({
+  entry,
+  handle,
+}: {
+  readonly entry: MessageEntry
+  readonly handle: string
+}): ReactNode {
+  const compose = `/messages?to=${encodeURIComponent(handle)}`
+  switch (entry.kind) {
+    case 'NONE':
+      return null
+    case 'INBOX':
+      return (
+        <Link href="/messages" className="cp-icon-action" aria-label="메시지함">
+          <MessageCircle aria-hidden="true" />
+          <span>메시지함</span>
+        </Link>
+      )
+    case 'LOGIN':
+      return (
+        <Link
+          href={`/login?next=${encodeURIComponent(compose)}`}
+          className="cp-icon-action"
+          aria-label="로그인하고 메시지 보내기"
+        >
+          <MessageCircle aria-hidden="true" />
+          <span>메시지</span>
+        </Link>
+      )
+    case 'OPEN':
+      return (
+        <Link
+          href={compose}
+          className="cp-icon-action"
+          aria-label="메시지 보내기"
+        >
+          <MessageCircle aria-hidden="true" />
+          <span>메시지</span>
+        </Link>
+      )
+    case 'FOLLOWERS_ONLY':
+      // 닫힌 버튼만 두면 왜 안 되는지 모른다. 이유를 버튼에 붙인다.
+      return (
+        <span
+          className="cp-icon-action is-locked"
+          role="note"
+          title="이 작가는 팔로워의 메시지만 받습니다"
+          aria-label="이 작가는 팔로워의 메시지만 받습니다"
+        >
+          <MessageCircle aria-hidden="true" />
+          <span>팔로워만 메시지</span>
+        </span>
+      )
+  }
+}
+
 function RelatedCreatorCard({
   creator,
 }: {
@@ -394,6 +496,7 @@ export default async function ProfilePage({
           getRelatedCreators(handle),
         ])
     const isSelf = session?.user.handle === profile.handle
+    const messageEntry = messageEntryFor(profile, session !== null, isSelf)
 
     // 숫자는 이 화면에 실제로 보이는 공개 작품에서 센다. 프로필 집계는 비공개
     // 작품까지 세어 "작품 9편" 아래에 6편만 보이는 어긋남을 만들었다.
@@ -517,6 +620,7 @@ export default async function ProfilePage({
                     />
                   </div>
                 )}
+                <MessageAction entry={messageEntry} handle={profile.handle} />
                 <ProfileShareButton
                   title={`${profile.displayName} (@${profile.handle}) · ilog`}
                 />

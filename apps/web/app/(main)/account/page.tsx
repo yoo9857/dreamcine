@@ -2,16 +2,19 @@ import { BadgeCheck, CalendarDays, Mail, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { isAuthorRole } from '@aidream/core'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { AccountSettingsForm } from '@/src/components/account/AccountSettingsForm'
 import { AccountDeletionPanel } from '@/src/components/account/AccountDeletionPanel'
 import { ConsentPreferences } from '@/src/components/account/ConsentPreferences'
+import { MessagingPreference } from '@/src/components/account/MessagingPreference'
 import {
   CONSENT_DOCUMENTS,
   getConsentPreferences,
 } from '@/src/services/auth/consent-preferences'
 import { getMe } from '@/src/services/auth/get-me'
+import { getMessagingPreference } from '@/src/services/message/conversation-queries'
 
 export const metadata = { title: '계정 관리' }
 
@@ -23,6 +26,12 @@ export default async function AccountPage(): Promise<ReactNode> {
     getMe(session.userId),
     getConsentPreferences(session.userId),
   ])
+  // 메시지는 독자가 작가에게 연다. 받는 범위 설정은 받을 수 있는 계정에만 보인다.
+  const messaging = isAuthorRole(profile.role)
+    ? await getMessagingPreference(session)
+    : null
+  const sectionNumber = (base: number): string =>
+    String(messaging === null ? base : base + 1).padStart(2, '0')
   const joinedAt = new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -46,6 +55,7 @@ export default async function AccountPage(): Promise<ReactNode> {
         <span>SETTINGS</span>
         <a href="#profile">프로필</a>
         <a href="#account">계정 정보</a>
+        {messaging === null ? null : <a href="#messaging">메시지</a>}
         <a href="#consents">동의 관리</a>
         <a href="#delete-account">회원탈퇴</a>
         <a href="mailto:support@ilog.kr?subject=ilog%20고객센터%20문의">
@@ -123,13 +133,30 @@ export default async function AccountPage(): Promise<ReactNode> {
         </div>
       </section>
 
+      {messaging === null ? null : (
+        <section
+          className="account-panel"
+          id="messaging"
+          aria-labelledby="messaging-title"
+        >
+          <div className="account-section-heading">
+            <span>03 / MESSAGES</span>
+            <h2 id="messaging-title">메시지 받기</h2>
+            <p>
+              독자가 내 작가 페이지에서 메시지를 보낼 수 있는 범위를 정합니다.
+            </p>
+          </div>
+          <MessagingPreference initialPolicy={messaging.dmPolicy} />
+        </section>
+      )}
+
       <section
         className="account-panel"
         id="consents"
         aria-labelledby="consents-title"
       >
         <div className="account-section-heading">
-          <span>03 / CONSENT</span>
+          <span>{sectionNumber(3)} / CONSENT</span>
           <h2 id="consents-title">동의 관리</h2>
           <p>필수 문서와 마케팅 이메일 수신 여부를 관리합니다.</p>
         </div>
@@ -146,7 +173,7 @@ export default async function AccountPage(): Promise<ReactNode> {
         aria-labelledby="delete-account-heading"
       >
         <div className="account-section-heading">
-          <span>04 / DELETE</span>
+          <span>{sectionNumber(4)} / DELETE</span>
           <h2 id="delete-account-heading">회원탈퇴</h2>
           <p>탈퇴 전 삭제 범위와 본인 확인 절차를 꼭 확인해 주세요.</p>
         </div>

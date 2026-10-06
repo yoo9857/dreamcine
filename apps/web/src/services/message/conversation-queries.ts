@@ -107,6 +107,7 @@ export async function getConversationDetail(
   const permitted = can(actorFromSession(session), 'message.send')
   return {
     ...toConversationSummary(conversation, session.userId),
+    otherId: other.id,
     canSend: permitted && gate.allowed,
     denial: gate.allowed ? null : gate.code,
   }

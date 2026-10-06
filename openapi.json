@@ -142,8 +142,9 @@
           { "$ref": "#/components/schemas/ConversationSummary" },
           {
             "type": "object",
-            "required": ["canSend", "denial"],
+            "required": ["otherId", "canSend", "denial"],
             "properties": {
+              "otherId": { "type": "string" },
               "canSend": { "type": "boolean" },
               "denial": {
                 "type": ["string", "null"],

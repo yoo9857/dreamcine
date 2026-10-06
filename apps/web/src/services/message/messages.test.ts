@@ -18,6 +18,10 @@ import {
 } from './conversation-queries'
 import { messagePreview } from './message-view'
 import {
+  prepareConversation,
+  type PrepareConversationDependencies,
+} from './prepare-conversation'
+import {
   sendMessage,
   startConversation,
   type SendMessageDependencies,
@@ -444,5 +448,76 @@ describe('messagePreview', () => {
     const preview = messagePreview('가'.repeat(200))
     expect(Array.from(preview)).toHaveLength(120)
     expect(preview.endsWith('…')).toBe(true)
+  })
+})
+
+describe('prepareConversation', () => {
+  function prepareDependencies(
+    overrides: Partial<PrepareConversationDependencies> = {},
+  ): PrepareConversationDependencies {
+    return {
+      findRecipient: vi.fn().mockResolvedValue(creatorUser),
+      findBetween: vi.fn().mockResolvedValue(null),
+      socialState: vi
+        .fn()
+        .mockResolvedValue({ isFollowing: false, isBlocked: false }),
+      ...overrides,
+    }
+  }
+
+  it('sends the reader to an existing conversation instead of a second one', async () => {
+    await expect(
+      prepareConversation(
+        reader,
+        'creator',
+        prepareDependencies({
+          findBetween: vi.fn().mockResolvedValue(conversation()),
+        }),
+      ),
+    ).resolves.toEqual({ kind: 'EXISTING', conversationId: 'conv_1' })
+  })
+
+  it('opens a composer with no denial when the creator takes messages', async () => {
+    const prepared = await prepareConversation(
+      reader,
+      'creator',
+      prepareDependencies(),
+    )
+    expect(prepared).toMatchObject({ kind: 'NEW', denial: null })
+  })
+
+  it('tells a non-follower up front that the creator takes followers only', async () => {
+    const prepared = await prepareConversation(
+      reader,
+      'creator',
+      prepareDependencies({
+        findRecipient: vi
+          .fn()
+          .mockResolvedValue({ ...creatorUser, dmPolicy: 'FOLLOWERS' }),
+      }),
+    )
+    expect(prepared).toMatchObject({
+      kind: 'NEW',
+      denial: 'E_DM_FOLLOWERS_ONLY',
+    })
+  })
+
+  it('asks an unverified member to verify before writing', async () => {
+    const prepared = await prepareConversation(
+      sessionFor('reader', { emailVerified: false }),
+      'creator',
+      prepareDependencies(),
+    )
+    expect(prepared).toMatchObject({ denial: 'E_AUTH_EMAIL_NOT_VERIFIED' })
+  })
+
+  it('answers E_USER_NOT_FOUND for an unknown handle', async () => {
+    await expect(
+      prepareConversation(
+        reader,
+        'ghost',
+        prepareDependencies({ findRecipient: vi.fn().mockResolvedValue(null) }),
+      ),
+    ).rejects.toMatchObject({ code: 'E_USER_NOT_FOUND' })
   })
 })

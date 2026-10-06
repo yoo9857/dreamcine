@@ -14,6 +14,7 @@ vi.mock('next/navigation', () => ({
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
   pathname = '/'
 })
 
@@ -65,7 +66,34 @@ describe('NavigationLinks', () => {
     expect(
       screen.getByRole('link', { name: '스튜디오' }).getAttribute('href'),
     ).toBe('/creator-apply')
-    expect(screen.getAllByRole('link')).toHaveLength(6)
+    expect(screen.getAllByRole('link')).toHaveLength(7)
+  })
+
+  it('shows the unread message count on the messages item', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ count: 3 }),
+      }),
+    )
+    render(<NavigationLinks authenticated />)
+
+    expect(
+      await screen.findByRole('link', {
+        name: '메시지, 읽지 않은 메시지 3개',
+      }),
+    ).toBeDefined()
+    expect(screen.getByText('3')).toBeDefined()
+  })
+
+  it('hides messages from guests and does not poll for them', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<NavigationLinks authenticated={false} />)
+
+    expect(screen.queryByRole('link', { name: /메시지/u })).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('keeps Works active on series and watch detail routes', () => {

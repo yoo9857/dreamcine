@@ -168,6 +168,34 @@
   display: none;
 }
 
+/* 읽지 않은 메시지 수. 레일과 모바일 메뉴가 같은 모양을 쓴다. */
+.aidream-nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid #07131a;
+  border-radius: 999px;
+  color: #fff;
+  background: #ff3448;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.aidream-mobile-nav .aidream-nav-badge {
+  top: 3px;
+  right: calc(50% - 22px);
+  border-color: #050c11;
+}
+
 .aidream-rail-links[data-has-active='false'] .aidream-rail-indicator {
   opacity: 0;
 }
@@ -303,6 +331,7 @@
     backdrop-filter: blur(18px);
   }
   .aidream-mobile-nav a {
+    position: relative;
     min-width: 0;
     min-height: 52px;
     display: flex;

@@ -65,6 +65,8 @@ export const DirectMessageDenialSchema = z.enum([
 
 /** 대화 머리. 입력창을 열지, 왜 닫혔는지 알리는지를 서버가 정한다. */
 export const ConversationDetailSchema = ConversationSummarySchema.extend({
+  /** 신고(`USER` 대상)에 쓰는 상대 id. 메시지의 `senderId` 와 같은 값이다. */
+  otherId: z.string().min(1),
   canSend: z.boolean(),
   denial: DirectMessageDenialSchema.nullable(),
 })

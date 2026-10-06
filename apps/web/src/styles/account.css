@@ -760,3 +760,66 @@
     transition: none;
   }
 }
+
+/* 메시지 받는 범위 (T18). 세 칸 중 하나를 고르는 카드. */
+.account-messaging-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px 0 4px;
+  border-top: 1px solid rgb(255 255 255 / 9%);
+}
+
+.account-messaging-options button {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 14px;
+  color: white;
+  background: rgb(255 255 255 / 3%);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.account-messaging-options button:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 24%);
+}
+
+.account-messaging-options button[aria-checked='true'] {
+  border-color: #ff3448;
+  background: rgb(255 52 72 / 10%);
+}
+
+.account-messaging-options button:disabled {
+  cursor: wait;
+}
+
+.account-messaging-options strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.account-messaging-options strong svg {
+  width: 13px;
+  height: 13px;
+}
+
+.account-messaging-options span {
+  color: #8997a1;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .account-messaging-options {
+    grid-template-columns: 1fr;
+  }
+}

@@ -9,12 +9,15 @@ import React, {
   type ReactNode,
 } from 'react'
 
+import { useUnreadMessageCount } from '@/src/components/messages/unread-store'
+
 type NavIconName =
   | 'home'
   | 'works'
   | 'creators'
   | 'events'
   | 'notifications'
+  | 'messages'
   | 'studio'
 
 interface NavigationLinksProps {
@@ -60,6 +63,13 @@ function NavIcon({ name }: { readonly name: NavIconName }): ReactNode {
       </svg>
     )
   }
+  if (name === 'messages') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />
+      </svg>
+    )
+  }
   if (name === 'events') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -97,6 +107,7 @@ export function NavigationLinks({
 }: NavigationLinksProps): ReactNode {
   const pathname = usePathname()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
+  const unreadMessages = useUnreadMessageCount(authenticated)
 
   useEffect(() => {
     setPendingHref(null)
@@ -114,6 +125,7 @@ export function NavigationLinks({
             label: '알람',
             icon: 'notifications',
           },
+          { href: '/messages', label: '메시지', icon: 'messages' },
         ] as const)
       : []),
     {
@@ -148,13 +160,22 @@ export function NavigationLinks({
             key={item.href}
             className={`${active ? 'is-active' : ''} ${pending ? 'is-destination' : ''}`.trim()}
             aria-current={active ? 'page' : undefined}
-            aria-label={item.label}
+            aria-label={
+              item.icon === 'messages' && unreadMessages > 0
+                ? `${item.label}, 읽지 않은 메시지 ${String(unreadMessages)}개`
+                : item.label
+            }
             data-label={item.label}
             onClick={() => {
               if (!active) setPendingHref(item.href)
             }}
           >
             <NavIcon name={item.icon} />
+            {item.icon === 'messages' && unreadMessages > 0 ? (
+              <span className="aidream-nav-badge" aria-hidden="true">
+                {unreadMessages > 99 ? '99+' : unreadMessages}
+              </span>
+            ) : null}
             {mobile ? <span>{item.label}</span> : null}
           </Link>
         )

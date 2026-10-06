@@ -1,0 +1,590 @@
+/* 1:1 메시지 (/messages, T18).
+   작가 페이지와 같은 어두운 톤. 넓은 화면은 목록·대화 2단, 좁은 화면은 한 단. */
+
+.messages-page {
+  --dm-surface: #0b161d;
+  --dm-surface-2: #0f1e27;
+  --dm-hover: #132631;
+  --dm-line: rgb(255 255 255 / 9%);
+  --dm-line-strong: rgb(255 255 255 / 16%);
+  --dm-ink: #f5f7f8;
+  --dm-soft: #c6cfd5;
+  --dm-muted: #8d9aa3;
+  --dm-accent: #ff3448;
+  --dm-mine: linear-gradient(135deg, #ff4d5a, #e8192c);
+  --dm-verified: #5aa9ff;
+  width: 100%;
+  /* 화면 높이에 딱 맞춘다. 목록과 대화가 각자 스크롤하고 페이지는 움직이지 않는다. */
+  height: calc(100dvh - 20px);
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  color: var(--dm-ink);
+}
+
+/* 다른 레일 화면의 하단 여백(104px)은 여기서 필요 없다. */
+.aidream-route-view:has(> .messages-page) {
+  min-height: 0;
+  padding-bottom: 20px;
+}
+
+.dm-page {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--dm-line);
+  border-radius: 22px;
+  background: var(--dm-surface);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 26%);
+}
+
+/* ── 목록 ───────────────────────────────────────────── */
+
+.dm-sidebar {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--dm-line);
+}
+
+.dm-sidebar-head {
+  padding: 22px 22px 14px;
+}
+
+.dm-sidebar-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.dm-sidebar-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 14px;
+  overscroll-behavior: contain;
+}
+
+.dm-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dm-list-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 14px;
+  transition: background-color 140ms ease;
+}
+
+.dm-list-item:hover {
+  background: var(--dm-hover);
+}
+
+.dm-list-item.is-active {
+  background: rgb(255 52 72 / 12%);
+}
+
+.dm-sidebar .dm-list-avatar {
+  width: 48px;
+  height: 48px;
+}
+
+.dm-list-copy {
+  min-width: 0;
+  display: grid;
+  /* 암묵 열은 줄바꿈 없는 미리보기 길이만큼 늘어난다. 칸 너비에 묶는다. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+
+.dm-list-top,
+.dm-list-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dm-list-top strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dm-list-top strong svg,
+.dm-thread-who strong svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--dm-verified);
+}
+
+.dm-list-top time {
+  flex: none;
+  color: var(--dm-muted);
+  font-size: 12px;
+}
+
+.dm-list-preview {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dm-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dm-list-item.is-unread .dm-list-preview {
+  color: var(--dm-ink);
+  font-weight: 650;
+}
+
+.dm-unread-pill {
+  min-width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--dm-accent);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.dm-list-empty,
+.dm-empty-pane {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  color: var(--dm-muted);
+  text-align: center;
+}
+
+.dm-list-empty svg {
+  width: 34px;
+  height: 34px;
+  color: var(--dm-soft);
+}
+
+.dm-list-empty strong,
+.dm-empty-pane strong {
+  color: var(--dm-ink);
+  font-size: 16px;
+}
+
+.dm-list-empty p,
+.dm-empty-pane p {
+  max-width: 34ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.dm-list-empty a {
+  margin-top: 6px;
+  padding: 9px 16px;
+  border: 1px solid var(--dm-line-strong);
+  border-radius: 999px;
+  color: var(--dm-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dm-empty-pane {
+  height: 100%;
+  align-content: center;
+}
+
+.dm-older {
+  display: block;
+  margin: 10px auto;
+  padding: 7px 14px;
+  border: 1px solid var(--dm-line);
+  border-radius: 999px;
+  color: var(--dm-soft);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.dm-older:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* ── 대화 ───────────────────────────────────────────── */
+
+.dm-pane {
+  min-width: 0;
+  min-height: 0;
+}
+
+.dm-thread {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--dm-surface-2);
+}
+
+.dm-thread-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--dm-line);
+}
+
+.dm-back {
+  display: none;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--dm-ink);
+}
+
+.dm-back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dm-thread-who {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.dm-thread .dm-thread-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.dm-thread-who > span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+}
+
+.dm-thread-who strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.dm-thread-who small {
+  color: var(--dm-muted);
+  font-size: 13px;
+}
+
+.dm-thread-report button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--dm-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dm-thread-report button:hover {
+  color: var(--dm-ink);
+  background: var(--dm-hover);
+}
+
+.dm-thread-report svg {
+  width: 17px;
+  height: 17px;
+}
+
+.dm-thread-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 18px 16px;
+  overscroll-behavior: contain;
+}
+
+.dm-thread-start {
+  margin: 18px 0 8px;
+  color: var(--dm-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.dm-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dm-day {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 8px;
+}
+
+.dm-day span {
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: var(--dm-muted);
+  background: rgb(255 255 255 / 5%);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dm-bubble {
+  max-width: min(76%, 560px);
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  align-self: flex-start;
+}
+
+.dm-bubble.is-mine {
+  flex-direction: row-reverse;
+  align-self: flex-end;
+}
+
+.dm-bubble p {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 18px 18px 18px 6px;
+  color: var(--dm-ink);
+  background: #1b2c37;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.dm-bubble.is-mine p {
+  border-radius: 18px 18px 6px;
+  color: #fff;
+  background: var(--dm-mine);
+}
+
+.dm-bubble.is-pending p {
+  opacity: 0.6;
+}
+
+.dm-bubble time {
+  flex: none;
+  padding-bottom: 2px;
+  color: var(--dm-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.dm-new-intro {
+  height: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.dm-thread .dm-new-avatar {
+  width: 84px;
+  height: 84px;
+  font-size: 30px;
+}
+
+.dm-new-intro strong {
+  font-size: 20px;
+}
+
+.dm-new-intro p {
+  max-width: 40ch;
+  margin: 0;
+  color: var(--dm-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── 입력 ───────────────────────────────────────────── */
+
+.dm-thread-foot {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--dm-line);
+}
+
+.dm-composer {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--dm-line-strong);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 5%);
+  transition: border-color 140ms ease;
+}
+
+.dm-composer:focus-within {
+  border-color: rgb(255 255 255 / 32%);
+}
+
+.dm-composer textarea {
+  min-height: 36px;
+  flex: 1;
+  resize: none;
+  padding: 8px 0;
+  border: 0;
+  outline: none;
+  color: var(--dm-ink);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.dm-composer textarea::placeholder {
+  color: var(--dm-muted);
+}
+
+.dm-composer button {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--dm-mine);
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.dm-composer button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.dm-composer button svg {
+  width: 19px;
+  height: 19px;
+}
+
+.dm-composer-count {
+  position: absolute;
+  top: -20px;
+  right: 14px;
+  color: var(--dm-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dm-composer-count.is-over {
+  color: #ff8a94;
+}
+
+.dm-spin {
+  animation: dm-spin 900ms linear infinite;
+}
+
+@keyframes dm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dm-error {
+  margin: 0;
+  color: #ff8a94;
+  font-size: 13px;
+}
+
+.dm-closed {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px dashed var(--dm-line-strong);
+  border-radius: 16px;
+  color: var(--dm-soft);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ── 좁은 화면: 한 번에 한 단 ───────────────────────── */
+
+@media (max-width: 767px) {
+  /* 아래 고정 메뉴(72px)만큼 뺀다. */
+  .messages-page {
+    height: calc(100dvh - 20px - 72px - env(safe-area-inset-bottom));
+    min-height: 440px;
+  }
+
+  .dm-page {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 18px;
+  }
+
+  .dm-page[data-pane='open'] .dm-sidebar,
+  .dm-page[data-pane='closed'] .dm-pane {
+    display: none;
+  }
+
+  .dm-sidebar {
+    border-right: 0;
+  }
+
+  .dm-back {
+    display: grid;
+  }
+
+  .dm-thread-head {
+    padding: 10px 12px;
+  }
+
+  .dm-thread-scroll {
+    padding: 6px 12px 12px;
+  }
+
+  .dm-bubble {
+    max-width: 86%;
+  }
+
+  .dm-thread-foot {
+    padding: 10px 10px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-spin {
+    animation: none;
+  }
+}

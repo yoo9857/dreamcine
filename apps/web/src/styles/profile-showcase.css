@@ -253,6 +253,16 @@
   background: rgb(255 255 255 / 14%);
 }
 
+.cp-icon-action.is-locked {
+  color: var(--cp-muted);
+  cursor: default;
+}
+
+.cp-icon-action.is-locked:hover {
+  border-color: var(--cp-line-strong);
+  background: rgb(255 255 255 / 8%);
+}
+
 .cp-manage svg,
 .cp-icon-action svg {
   width: 17px;
@@ -803,6 +813,24 @@
 
   .cp-follow {
     flex: 1;
+  }
+
+  /* 좁은 화면은 팔로우만 글자를 두고, 메시지·공유는 둥근 아이콘으로 줄인다.
+     이름은 aria-label 이 맡는다. */
+  .cp-actions .cp-icon-action {
+    width: 46px;
+    flex: none;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .cp-actions .cp-icon-action > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .cp-follow button,
