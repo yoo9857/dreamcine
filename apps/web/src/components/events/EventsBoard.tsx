@@ -69,6 +69,26 @@ const EVENTS: readonly EventItem[] = [
   },
 ]
 
+/** 띠에 보일 AI 제작 도구. `fullBleed` 는 앱 아이콘처럼 칸을 꽉 채우는 로고. */
+const AI_TOOLS: readonly {
+  readonly name: string
+  readonly logo: string
+  readonly fullBleed?: boolean
+}[] = [
+  { name: 'ChatGPT', logo: '/brand/ai-tools/openai.svg' },
+  { name: 'Claude', logo: '/brand/ai-tools/claude.svg' },
+  { name: 'Midjourney', logo: '/brand/ai-tools/midjourney.svg' },
+  { name: 'Gemini', logo: '/brand/ai-tools/gemini.svg' },
+  { name: 'Seedance', logo: '/brand/ai-tools/seedance.png' },
+  {
+    name: 'Higgsfield',
+    logo: '/brand/ai-tools/higgsfield.png',
+    fullBleed: true,
+  },
+  { name: 'Runway', logo: '/brand/ai-tools/runway.png', fullBleed: true },
+  { name: 'Pika', logo: '/brand/ai-tools/pika.svg' },
+]
+
 export function EventsBoard(): ReactNode {
   const [category, setCategory] = useState<Category>('전체')
   const featured = EVENTS[0]
@@ -95,34 +115,29 @@ export function EventsBoard(): ReactNode {
           지금 참여할 수 있는 소식 <strong>{EVENTS.length}</strong>
         </p>
       </header>
-      <div className="events-marquee" aria-label="영상 미디어 AI 제휴 브랜드">
+      {/* 작품 제작에 쓰이는 AI 도구. 제휴 표시가 아니다 — 회사 로고를 "제휴 브랜드"
+          로 묶으면 실제 관계와 다르게 읽힌다. 로고 출처: Simple Icons(CC0),
+          각 회사 공식 사이트 아이콘, Wikimedia Commons(Midjourney, 퍼블릭 도메인). */}
+      <div className="events-marquee" aria-label="작품 제작에 쓰이는 AI 도구">
         <div className="events-marquee-track">
-          {[
-            ['ChatGPT', 'openai'],
-            ['Claude', 'anthropic'],
-            ['Midjourney', 'midjourney'],
-            ['Gemini', 'googlegemini'],
-            ['Seedance', 'bytedance'],
-            ['Higgsfield', 'higgsfield'],
-            ['Runway', 'runway'],
-            ['Pika', 'pika'],
-            ['ChatGPT', 'openai'],
-            ['Claude', 'anthropic'],
-            ['Midjourney', 'midjourney'],
-            ['Gemini', 'googlegemini'],
-            ['Seedance', 'bytedance'],
-            ['Higgsfield', 'higgsfield'],
-            ['Runway', 'runway'],
-            ['Pika', 'pika'],
-          ].map(([brand], index) => (
+          {[...AI_TOOLS, ...AI_TOOLS].map((tool, index) => (
             <span
               className="events-brand"
-              key={`${String(brand)}-${String(index)}`}
+              key={`${tool.name}-${String(index)}`}
+              // 두 번째 묶음은 끊김 없는 흐름을 위한 복제라 읽지 않게 한다
+              aria-hidden={index >= AI_TOOLS.length ? true : undefined}
             >
-              <b aria-hidden="true">
-                {String(brand).slice(0, 2).toUpperCase()}
-              </b>
-              {String(brand)}
+              <span
+                className={
+                  tool.fullBleed
+                    ? 'events-brand-logo is-full'
+                    : 'events-brand-logo'
+                }
+                aria-hidden="true"
+              >
+                <img src={tool.logo} alt="" loading="lazy" />
+              </span>
+              {tool.name}
             </span>
           ))}
         </div>
