@@ -150,7 +150,7 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 | T15 | METADATA_UPGRADE | ✅ | ✅ | ✅ | ISS-019 |
 | T16 | ROLE_TIERS | ✅ | ✅ | ✅ | ISS-020 |
 | T17 | SIGNUP_CONSENT_COMPLETION | ✅ | ✅ | 🟡 | — |
-| T18 | DIRECT_MESSAGES | ✅ | ⬜ | ⬜ | ISS-023 |
+| T18 | DIRECT_MESSAGES | ✅ | ✅ | 🟡 | ISS-023 |
 
 범례: ⬜ 미착수 · 🟡 진행중 · ✅ 게이트 통과 · 🔴 게이트 실패(정지)
 

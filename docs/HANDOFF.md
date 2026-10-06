@@ -3,6 +3,42 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-10-06 메시지(T18)·알림 팝업·공지사항·작가 페이지 배포 완료
+
+- 운영 웹 SHA `0dc1e5ec77aa05d04a01a1cf16676c1cbd29c238`, `deploy.yml` 실행 `37436323840`,
+  `deploy_worker=false`. 마이그레이션 `20261006030000_t18_direct_messages` 적용(추가만:
+  `DmPolicy`, `user.dm_policy` 기본값, `conversation`, `direct_message`). 배포 직전 수동 DB
+  백업은 하지 않았다 — 일간 03:00 백업에 의존했고, 실패 시 구 코드가 새 테이블을 무시한다.
+- 기능:
+  - 1:1 메시지(ISS-023): 독자→작가, 작가 답장, `모두/팔로워만/받지 않음`, 4초 대화 갱신,
+    30초 배지.
+  - 알림은 상단 바 LIVE 왼쪽 종 버튼 팝업이 됐고, `/notifications`는 전체 이력이다.
+  - 왼쪽 메뉴의 알람 자리는 공지사항 `/notices`다. 내용은 `src/content/notices.ts`에서
+    관리한다.
+  - 작가 페이지를 어두운 셸로 재구성했다.
+  - 개인정보 처리방침에 메시지 항목을 넣고 `PRIVACY_VERSION`을 2026-10-06으로 올렸다.
+- 운영 확인: `/api/ready` 전부 ok. `/`, `/works`, `/notices`, `/privacy`, 작가 페이지는 200이다.
+  `/messages`는 비로그인 시 스트리밍 리다이렉트(`NEXT_REDIRECT` → `/login?next=/messages`)로
+  넘어간다. 메시지 API는 비로그인 시 `E_AUTH_REQUIRED`를 돌려준다.
+- 전체 게이트(`37434526344`) 결과:
+  - 동작 테스트 2,025/2,025가 통과했다. 새 메시지 통합 테스트를 포함하고, 실제 Postgres를
+    썼다.
+  - 정적, 계약, 번들 예산, 마이그레이션 검사를 통과했다.
+  - **유일한 실패는 `packages/db/src` 커버리지 56.8% < 70%**다. 이 부채는 기존 것이다.
+    `message.repo.ts`는 94.9%다.
+  - 0~16%인 저장소: account-deletion, admin-dashboard, admin-operations, studio,
+    maintenance, metadata, notification, creator-application. 다음 작업으로 통합 테스트를
+    채워야 전체 게이트가 초록이 된다.
+- 이번에 되살린 게이트(8/27 이후 한 번도 끝까지 돌지 못했다):
+  - `minio/minio`·`minio/mc`의 Docker Hub pull이 거부됐다. dev compose를 Bitnami
+    레거시(같은 릴리스, uid 1001, `/bitnami/minio/data`)로 바꿨다. 로컬 개발 MinIO 볼륨
+    경로도 바뀌었다.
+  - `/signup` 초기 JS가 201.4KB로 예산을 넘었다. `Checkbox`를 네이티브 입력으로 바꿔
+    199.5KB가 됐다. 여유가 0.5KB라 다음 후보는 Radix `Select`다.
+  - 동의 이력 정렬 테스트가 알파벳순을 기대했다. Postgres enum 선언 순서로 고쳤다.
+- 관찰: 루트 `tsc -b`가 `apps/web`·`packages/db`의 타입 오류를 놓친 적이 있다(증분 정보).
+  패키지별 `tsc --noEmit -p`를 같이 돌렸다.
+
 ## 2026-10-06 전체 화면 재생·스튜디오 생성 흐름 수정 배포 완료
 
 - 운영 웹 SHA는 `e8f353ef67ea5383897fe886ae0887fedc12c7e2`다. `deploy.yml` 실행
