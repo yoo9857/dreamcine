@@ -482,7 +482,16 @@
   width: 100vw;
   height: 100vh;
   aspect-ratio: auto;
+  border-radius: 0;
   background: #000;
+}
+
+/* 페이지가 감싸는 틀의 제한(예: watch 의 max-height 484px)이 전체 화면까지
+   따라오면 영상이 위쪽 일부에만 그려진다. 전체 화면에서는 틀을 무시한다. */
+.ilog-player:fullscreen .ilog-player-video {
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
 }
 
 .ilog-player:fullscreen .ilog-player-controls {
