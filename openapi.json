@@ -11,6 +11,7 @@
     }
   ],
   "tags": [
+    { "name": "messages", "description": "1:1 메시지 (T18)" },
     {
       "name": "auth",
       "description": "인증 · 계정 라이프사이클"
@@ -75,6 +76,97 @@
       }
     },
     "schemas": {
+      "DmPolicy": {
+        "type": "string",
+        "enum": ["EVERYONE", "FOLLOWERS", "NOBODY"]
+      },
+      "PublicUser": {
+        "type": "object",
+        "required": [
+          "handle",
+          "displayName",
+          "avatarUrl",
+          "tier",
+          "isVerified"
+        ],
+        "properties": {
+          "handle": { "type": "string" },
+          "displayName": { "type": "string" },
+          "avatarUrl": { "type": ["string", "null"], "format": "uri" },
+          "tier": { "type": "string" },
+          "isVerified": { "type": "boolean" }
+        }
+      },
+      "DirectMessage": {
+        "type": "object",
+        "required": [
+          "id",
+          "conversationId",
+          "senderId",
+          "body",
+          "createdAt",
+          "mine"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "conversationId": { "type": "string" },
+          "senderId": { "type": "string" },
+          "body": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "mine": { "type": "boolean" }
+        }
+      },
+      "ConversationSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "other",
+          "startedByMe",
+          "lastMessageAt",
+          "lastMessagePreview",
+          "lastMessageMine",
+          "unread"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "other": { "$ref": "#/components/schemas/PublicUser" },
+          "startedByMe": { "type": "boolean" },
+          "lastMessageAt": { "type": "string", "format": "date-time" },
+          "lastMessagePreview": { "type": "string", "maxLength": 120 },
+          "lastMessageMine": { "type": "boolean" },
+          "unread": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "ConversationDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ConversationSummary" },
+          {
+            "type": "object",
+            "required": ["canSend", "denial"],
+            "properties": {
+              "canSend": { "type": "boolean" },
+              "denial": {
+                "type": ["string", "null"],
+                "enum": [
+                  "E_USER_SELF_ACTION",
+                  "E_SOCIAL_BLOCKED",
+                  "E_DM_NOT_CREATOR",
+                  "E_DM_CLOSED",
+                  "E_DM_FOLLOWERS_ONLY",
+                  null
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "MessageInput": {
+        "type": "object",
+        "required": ["body"],
+        "properties": {
+          "body": { "type": "string", "minLength": 1, "maxLength": 2000 }
+        }
+      },
       "ErrorResponse": {
         "type": "object",
         "required": ["error"],
@@ -863,6 +955,398 @@
     }
   },
   "paths": {
+    "/conversations": {
+      "get": {
+        "tags": ["messages"],
+        "summary": "내 대화 목록 (최근 메시지순)",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "대화 페이지",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConversationSummary"
+                      }
+                    },
+                    "nextCursor": { "type": ["string", "null"] }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["messages"],
+        "summary": "작가에게 메시지 보내기. 두 사람의 대화가 있으면 이어 쓴다",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["handle", "body"],
+                "properties": {
+                  "handle": { "type": "string" },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "보냄",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["conversationId", "message"],
+                  "properties": {
+                    "conversationId": { "type": "string" },
+                    "message": { "$ref": "#/components/schemas/DirectMessage" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "E_USER_SELF_ACTION",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "E_DM_NOT_CREATOR · E_DM_CLOSED · E_DM_FOLLOWERS_ONLY · E_SOCIAL_BLOCKED · E_PERM_DENIED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "E_USER_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "E_DM_TOO_LONG",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "E_RATE_LIMITED (새 대화 20회/일)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/{id}": {
+      "get": {
+        "tags": ["messages"],
+        "summary": "대화 머리 — 상대와 내 쪽 전송 가능 여부",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "대화",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConversationDetail" }
+              }
+            }
+          },
+          "404": {
+            "description": "E_DM_CONVERSATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/{id}/messages": {
+      "get": {
+        "tags": ["messages"],
+        "summary": "메시지 (오래된 순). cursor 는 과거 쪽, after 는 그 메시지 이후",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "after", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "메시지 페이지",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/DirectMessage" }
+                    },
+                    "nextCursor": { "type": ["string", "null"] }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "E_DM_CONVERSATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["messages"],
+        "summary": "답장·이어 보내기",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MessageInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "보냄",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DirectMessage" }
+              }
+            }
+          },
+          "403": {
+            "description": "E_DM_CLOSED · E_DM_FOLLOWERS_ONLY · E_SOCIAL_BLOCKED · E_PERM_DENIED",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "E_DM_CONVERSATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "E_DM_TOO_LONG",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "E_RATE_LIMITED (20회/분)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/{id}/read": {
+      "post": {
+        "tags": ["messages"],
+        "summary": "내 쪽 읽지 않은 수를 0 으로",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "읽음" },
+          "404": {
+            "description": "E_DM_CONVERSATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/unread": {
+      "get": {
+        "tags": ["messages"],
+        "summary": "읽지 않은 메시지 수 (배지)",
+        "responses": {
+          "200": {
+            "description": "수",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["count"],
+                  "properties": { "count": { "type": "integer", "minimum": 0 } }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/messaging": {
+      "get": {
+        "tags": ["messages"],
+        "summary": "메시지 받는 범위",
+        "responses": {
+          "200": {
+            "description": "설정",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["dmPolicy"],
+                  "properties": {
+                    "dmPolicy": { "$ref": "#/components/schemas/DmPolicy" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["messages"],
+        "summary": "메시지 받는 범위 변경",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["dmPolicy"],
+                "properties": {
+                  "dmPolicy": { "$ref": "#/components/schemas/DmPolicy" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "설정",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["dmPolicy"],
+                  "properties": {
+                    "dmPolicy": { "$ref": "#/components/schemas/DmPolicy" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "E_VALIDATION",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/feed": {
       "get": {
         "tags": ["feed"],
