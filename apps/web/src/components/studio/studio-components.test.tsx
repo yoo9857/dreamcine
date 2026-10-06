@@ -221,6 +221,37 @@ describe('CreateSeriesForm', () => {
     })
     expect(router.push).not.toHaveBeenCalled()
   })
+
+  it.each([
+    [
+      'the network fails',
+      () => vi.fn().mockRejectedValue(new TypeError('offline')),
+    ],
+    [
+      'the gateway answers with HTML',
+      () =>
+        vi.fn().mockResolvedValue({
+          ok: false,
+          json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+        }),
+    ],
+  ])('recovers the submit button when %s', async (_case, makeFetch) => {
+    vi.stubGlobal('fetch', makeFetch())
+    render(<CreateSeriesForm />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
+      target: { value: '여름의 마지막 밤' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '시리즈 만들기' }))
+
+    // "만드는 중…" 에 멈추지 않고 다시 누를 수 있어야 한다.
+    expect(await screen.findByRole('alert')).not.toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: '시리즈 만들기' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+  })
 })
 
 describe('EditSeriesForm', () => {

@@ -49,6 +49,12 @@ interface SelectedWork {
   readonly workType: WorkType
 }
 
+/** 1단계 목록이 그리는 데 필요한 필드만. 흐름 안에서 만든 시리즈도 담는다. */
+type WorkOption = Pick<
+  SeriesResponse,
+  'id' | 'title' | 'workType' | 'posterUrl' | 'episodeCount' | 'updatedAt'
+>
+
 function StepNav({
   step,
   onSelect,
@@ -92,7 +98,7 @@ function WorkRow({
   work,
   onSelect,
 }: {
-  readonly work: SeriesResponse
+  readonly work: WorkOption
   readonly onSelect: (work: SelectedWork) => void
 }): ReactNode {
   const empty = work.episodeCount === 0
@@ -136,9 +142,11 @@ function WorkRow({
 function WorkStep({
   works,
   onSelect,
+  onCreated,
 }: {
-  readonly works: readonly SeriesResponse[]
+  readonly works: readonly WorkOption[]
   readonly onSelect: (work: SelectedWork) => void
+  readonly onCreated: (work: SelectedWork) => void
 }): ReactNode {
   // 시리즈가 하나도 없으면 고를 것이 없다. 선택지를 보여주는 대신 바로
   // 만들기로 연다 — 첫 크리에이터에게 빈 목록은 막다른 길로 읽힌다.
@@ -237,7 +245,7 @@ function WorkStep({
           <CreateSeriesForm
             submitLabel="시리즈 만들고 계속"
             onCreated={(series) => {
-              onSelect({
+              onCreated({
                 id: series.id,
                 title: series.title,
                 workType: series.workType,
@@ -259,6 +267,13 @@ export function WorkCreateFlow({
 }): ReactNode {
   const [step, setStep] = useState<FlowStep>('WORK')
   const [work, setWork] = useState<SelectedWork>()
+  // 흐름 안에서 만든 시리즈를 목록에 더한다. 1단계로 돌아왔을 때 방금 만든
+  // 시리즈가 없으면 같은 이름으로 또 만들게 된다.
+  const [workOptions, setWorkOptions] = useState<readonly WorkOption[]>(works)
+  // 업로더는 한 번 열면 흐름이 끝날 때까지 붙여 둔다. 다른 단계로 갈 때
+  // 떼어 내면 use-upload 의 정리 함수가 전송 중인 업로드를 경고 없이 끊는다.
+  const [uploaderOpened, setUploaderOpened] = useState(false)
+  if (step === 'UPLOAD' && !uploaderOpened) setUploaderOpened(true)
   const [assets, setAssets] =
     useState<readonly StudioAssetOption[]>(availableAssets)
   const [preferredAssetId, setPreferredAssetId] = useState<string>()
@@ -266,6 +281,12 @@ export function WorkCreateFlow({
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [publishError, setPublishError] = useState<string>()
+
+  const selectWork = (selected: SelectedWork): void => {
+    setWork(selected)
+    // 준비된 영상이 이미 있으면 업로드를 강제하지 않는다.
+    setStep(assets.length === 0 ? 'UPLOAD' : 'DETAILS')
+  }
 
   const useUploadedAsset = async (assetId: string): Promise<void> => {
     const response = await fetch('/api/studio/assets/available', {
@@ -318,30 +339,43 @@ export function WorkCreateFlow({
       <div className="studio-create-flow-body">
         {step === 'WORK' ? (
           <WorkStep
-            works={works}
-            onSelect={(selected) => {
-              setWork(selected)
-              // 준비된 영상이 이미 있으면 업로드를 강제하지 않는다.
-              setStep(assets.length === 0 ? 'UPLOAD' : 'DETAILS')
+            works={workOptions}
+            onSelect={selectWork}
+            onCreated={(created) => {
+              setWorkOptions((current) => [
+                {
+                  id: created.id,
+                  title: created.title,
+                  workType: created.workType,
+                  episodeCount: 0,
+                  updatedAt: new Date().toISOString(),
+                },
+                ...current.filter((option) => option.id !== created.id),
+              ])
+              selectWork(created)
             }}
           />
         ) : null}
 
-        {step === 'UPLOAD' ? (
-          <div className="studio-create-upload">
-            <Uploader context="episode" onReady={useUploadedAsset} />
-            {assets.length === 0 ? null : (
-              <button
-                type="button"
-                className="studio-create-skip"
-                onClick={() => {
-                  setStep('DETAILS')
-                }}
-              >
-                이미 올린 영상 {assets.length}개 중에서 고르기{' '}
-                <ArrowRight aria-hidden="true" />
-              </button>
-            )}
+        {uploaderOpened ? (
+          // `.studio-create-upload` 의 display 가 hidden 속성을 덮으므로
+          // 숨김은 바깥 래퍼에 둔다.
+          <div hidden={step !== 'UPLOAD'}>
+            <div className="studio-create-upload">
+              <Uploader context="episode" onReady={useUploadedAsset} />
+              {assets.length === 0 ? null : (
+                <button
+                  type="button"
+                  className="studio-create-skip"
+                  onClick={() => {
+                    setStep('DETAILS')
+                  }}
+                >
+                  이미 올린 영상 {assets.length}개 중에서 고르기{' '}
+                  <ArrowRight aria-hidden="true" />
+                </button>
+              )}
+            </div>
           </div>
         ) : null}
 

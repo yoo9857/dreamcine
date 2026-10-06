@@ -40,19 +40,28 @@ export function CreateSeriesForm({
     setError(null)
     const data = new FormData(event.currentTarget)
     const synopsis = data.get('synopsis')
-    const response = await fetch('/api/series', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        title: data.get('title'),
-        workType: data.get('workType'),
-        ...(typeof synopsis === 'string' && synopsis !== ''
-          ? { synopsis }
-          : {}),
-        ageRating: data.get('ageRating'),
-      }),
-    })
-    const payload = (await response.json()) as {
+    let response: Response
+    try {
+      response = await fetch('/api/series', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: data.get('title'),
+          workType: data.get('workType'),
+          ...(typeof synopsis === 'string' && synopsis !== ''
+            ? { synopsis }
+            : {}),
+          ageRating: data.get('ageRating'),
+        }),
+      })
+    } catch {
+      // 잡지 않으면 버튼이 "만드는 중…" 에서 멈추고 아무 안내도 뜨지 않는다.
+      setError('네트워크 연결을 확인한 뒤 다시 시도해 주세요.')
+      setBusy(false)
+      return
+    }
+    // 게이트웨이 오류는 HTML 로 온다. JSON 이 아니면 실패로 다룬다.
+    const payload = ((await response.json().catch(() => null)) ?? {}) as {
       id?: string
       title?: string
       workType?: WorkType

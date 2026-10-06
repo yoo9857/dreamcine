@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import type { SeriesResponse } from '@aidream/core'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -15,6 +21,20 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/studio/new',
   useRouter: () => router,
 }))
+
+// 업로더가 떼어지면 use-upload 가 전송 중인 업로드를 끊는다. 실제 업로더 대신
+// 붙고 떼어지는 시점만 기록한다.
+const uploaderLifecycle = vi.hoisted(() => ({ unmount: vi.fn() }))
+
+vi.mock('@/src/components/upload/Uploader', async () => {
+  const { useEffect } = await import('react')
+  return {
+    Uploader: () => {
+      useEffect(() => uploaderLifecycle.unmount, [])
+      return <div data-testid="uploader" />
+    },
+  }
+})
 
 const WORK: SeriesResponse = {
   id: 'series_1',
@@ -45,10 +65,12 @@ const ASSET: StudioAssetOption = {
 beforeEach(() => {
   router.refresh.mockReset()
   router.push.mockReset()
+  uploaderLifecycle.unmount.mockReset()
 })
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
 })
 
 describe('WorkCreateFlow', () => {
@@ -136,5 +158,62 @@ describe('WorkCreateFlow', () => {
     }))
     render(<WorkCreateFlow works={many} availableAssets={[ASSET]} />)
     expect(screen.getByLabelText('시리즈 검색')).not.toBeNull()
+  })
+
+  it('keeps an upload running when the creator steps back to change the series', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    expect(screen.getByTestId('uploader')).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /STEP 1/u }))
+
+    // 1단계로 돌아가도 업로더는 숨겨질 뿐 떼어지지 않는다.
+    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
+    expect(screen.getByTestId('uploader').closest('[hidden]')).not.toBeNull()
+  })
+
+  it('lists a series created in the flow when the creator returns to step 1', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...WORK,
+              id: 'series_new',
+              title: '로봇 마을',
+              episodeCount: 0,
+            }),
+            { status: 201, headers: { 'content-type': 'application/json' } },
+          ),
+        ),
+      ),
+    )
+    const { container } = render(
+      <WorkCreateFlow works={[]} availableAssets={[ASSET]} />,
+    )
+    const title = container.querySelector('input[name="title"]')
+    const form = title?.closest('form')
+    if (title === null || form === null || form === undefined) {
+      throw new Error('series form is missing')
+    }
+    fireEvent.change(title, { target: { value: '로봇 마을' } })
+    fireEvent.submit(form)
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getAllByRole('button', { name: /STEP/u })[2]
+          ?.getAttribute('aria-current'),
+      ).toBe('step')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /STEP 1/u }))
+
+    // 빈 생성 폼이 다시 열리면 같은 이름의 시리즈를 또 만들게 된다.
+    expect(
+      screen.queryByRole('button', { name: '시리즈 만들고 계속' }),
+    ).toBeNull()
+    expect(screen.getByRole('button', { name: /로봇 마을/u })).not.toBeNull()
   })
 })
