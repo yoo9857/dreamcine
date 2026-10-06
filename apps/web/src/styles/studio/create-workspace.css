@@ -9,6 +9,10 @@
 .studio-shell * {
   box-sizing: border-box;
 }
+/* 이후 파일의 링크 규칙이 이 상속을 덮는다. 지정 없는 링크만 브라우저 파랑을 벗는다. */
+.studio-shell a {
+  color: inherit;
+}
 
 /* 콘텐츠 생성은 페이지 아래에 길게 펼치지 않고 업로드부터 연결까지 한 작업면에서 처리한다. */
 body.studio-modal-open {

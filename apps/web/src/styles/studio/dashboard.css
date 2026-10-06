@@ -58,12 +58,13 @@
   border-color: var(--aidream-border);
 }
 .studio-button.primary {
-  border-color: var(--aidream-accent);
-  color: var(--aidream-bg);
-  background: var(--aidream-accent);
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5a5f, #ff1e2d);
 }
 .studio-button.primary:hover {
-  background: var(--aidream-accent-hover);
+  border-color: transparent;
+  filter: brightness(1.08);
 }
 .studio-button svg {
   width: 16px;

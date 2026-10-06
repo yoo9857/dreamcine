@@ -16,13 +16,13 @@
   margin-left: auto;
   padding: 9px 16px;
   border-radius: 999px;
-  color: var(--aidream-bg);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
-  background: var(--aidream-accent);
+  background: linear-gradient(135deg, #ff5a5f, #ff1e2d);
 }
 .studio-topbar-create:hover {
-  background: var(--aidream-accent-hover);
+  filter: brightness(1.08);
 }
 .studio-topbar-create svg {
   width: 15px;

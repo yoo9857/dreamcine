@@ -5,10 +5,52 @@
  * 원본과 같아야 캐스케이드가 보존되므로, `(studio)/layout.tsx` 의 임포트
  * 순서를 바꾸지 않는다.
  */
+/*
+ * 홈·작품·작가·시청과 같은 시네마틱 팔레트.
+ * 전역 라이트 토큰은 배경이 #fff, 강조색이 보라라 스튜디오만 흰 화면이 된다.
+ * 여기 값은 series-showcase / profile-showcase / discovery-home 과 맞춘다.
+ */
+html:has(.studio-shell),
+body:has(.studio-shell) {
+  /* 라이트 테마의 color-scheme 이 루트에 남으면 스크롤바·네이티브 팝업이 하얗게 뜬다. */
+  color-scheme: dark !important;
+  background-color: #07131a;
+  color: #f5f7f8;
+}
+body:has(.studio-shell) .aidream-theme-control {
+  display: none;
+}
+
 .studio-shell {
+  --aidream-bg: #07131a;
+  --aidream-bg-elevated: #0c1820;
+  --aidream-bg-overlay: #12222c;
+  --aidream-fg: #f5f7f8;
+  --aidream-fg-secondary: #c6cfd5;
+  --aidream-fg-muted: #8d9aa3;
+  --aidream-accent: #ff3448;
+  --aidream-accent-hover: #ff5264;
+  --aidream-accent-subtle: #2a1419;
+  --aidream-danger: #ff7a7a;
+  --aidream-danger-subtle: #3a1620;
+  --aidream-warning: #f0b849;
+  --aidream-warning-subtle: #3a2c12;
+  --aidream-success: #4ade80;
+  --aidream-success-subtle: #12301f;
+  --aidream-tier-silver: #c8c8d4;
+  --aidream-tier-silver-subtle: #26262f;
+  --aidream-tier-gold: #e8b93f;
+  --aidream-tier-gold-subtle: #332708;
+  --aidream-tier-platinum: #7fd4e8;
+  --aidream-tier-platinum-subtle: #0d2b33;
+  --aidream-tier-diamond: #a78bfa;
+  --aidream-tier-diamond-subtle: #221a3f;
+  --aidream-border: rgb(255 255 255 / 16%);
+  --aidream-border-subtle: rgb(255 255 255 / 9%);
   min-height: 100dvh;
   color: var(--aidream-fg);
   background: var(--aidream-bg);
+  color-scheme: dark;
 }
 .studio-sidebar {
   position: fixed;
@@ -36,6 +78,19 @@
 .studio-brand-row svg {
   max-width: 100%;
   height: auto;
+}
+.studio-brand-row img {
+  mix-blend-mode: screen;
+}
+.studio-shell input::placeholder,
+.studio-shell textarea::placeholder {
+  color: var(--aidream-fg-muted);
+}
+.studio-shell input:-webkit-autofill,
+.studio-shell textarea:-webkit-autofill {
+  -webkit-text-fill-color: var(--aidream-fg);
+  caret-color: var(--aidream-fg);
+  box-shadow: 0 0 0 1000px var(--aidream-bg-elevated) inset;
 }
 .studio-brand-row > span {
   padding-left: 11px;
@@ -192,4 +247,28 @@
   width: min(100%, 1460px);
   margin: 0 auto;
   padding: 34px 36px 80px;
+}
+
+/* 작품 페이지의 재생 버튼과 같은 흰 글자 + 붉은 그라데이션. */
+.studio-shell .bg-accent.text-bg {
+  color: #fff;
+  background-image: linear-gradient(135deg, #ff5a5f, #ff1e2d);
+}
+.studio-shell .bg-accent.text-bg:hover {
+  filter: brightness(1.08);
+}
+/* danger 토큰 #ff7a7a 는 어두운 바탕의 글자색이다. 버튼 면으로 쓰면 연분홍이 된다. */
+.studio-shell .bg-danger.text-bg {
+  color: #fff;
+  background-color: #c41230;
+  background-image: none;
+}
+.studio-shell .bg-danger.text-bg:hover {
+  filter: brightness(1.08);
+}
+.studio-shell .peer-checked\:opacity-100 {
+  color: #fff;
+}
+.studio-shell [role='switch'][data-state='checked'] > span {
+  background-color: #fff;
 }
