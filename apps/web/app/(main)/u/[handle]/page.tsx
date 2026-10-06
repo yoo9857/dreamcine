@@ -1,30 +1,35 @@
-import { AppError, type SeriesResponse, type UserProfile } from '@aidream/core'
+import {
+  AppError,
+  type SeriesResponse,
+  type UserLink,
+  type UserProfile,
+} from '@aidream/core'
 import { Avatar, TierBadge } from '@aidream/ui'
 import {
-  ArrowDown,
-  ArrowUpRight,
+  ArrowRight,
   BadgeCheck,
-  Camera,
+  CalendarDays,
+  Globe,
+  Link2,
   Mail,
-  MessageCircle,
   PencilLine,
   Play,
-  Video,
+  UserPlus,
 } from 'lucide-react'
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
+import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
+import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
+import { ProfileShareButton } from '@/src/components/profile/ProfileShareButton'
 import { JsonLd } from '@/src/components/seo/JsonLd'
-import { ProfilePopularCarousel } from '@/src/components/profile/ProfilePopularCarousel'
-import { ShowcaseThemeToggle } from '@/src/components/showcase/ShowcaseThemeToggle'
+import { FollowButton } from '@/src/components/social/FollowButton'
+import { workTypeLabel } from '@/src/components/studio/work-types'
 import { profileJsonLd } from '@/src/lib/seo/json-ld'
 import { absoluteUrlOrNull } from '@/src/lib/site-url'
-import { FollowButton } from '@/src/components/social/FollowButton'
-import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import '@/src/styles/profile-showcase.css'
 import { getProfile } from '@/src/services/user/get-profile'
 import { getProfileSeries } from '@/src/services/user/get-profile-series'
@@ -190,51 +195,118 @@ function posterFor(series: SeriesResponse, index: number): string {
   )
 }
 
-function Corner({
-  className = '',
-}: {
-  readonly className?: string
-}): ReactNode {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      viewBox="0 0 18 18"
-      width="18"
-      height="18"
-    >
-      <path d="M0 0v18C0 8.059 8.059 0 18 0Z" />
-    </svg>
-  )
+const COMPACT = new Intl.NumberFormat('ko-KR', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+/** 1.2만, 3,400 처럼 한국어 단위로 줄인다. 조회수는 문자열(BigInt)로 온다. */
+function compact(value: number | string): string {
+  const number = typeof value === 'string' ? Number(value) : value
+  return Number.isFinite(number) ? COMPACT.format(number) : '0'
 }
 
+const JOINED = new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric',
+  month: 'long',
+  timeZone: 'Asia/Seoul',
+})
+
+function linkHref(link: UserLink): string {
+  return link.kind === 'EMAIL' && !link.url.startsWith('mailto:')
+    ? `mailto:${link.url}`
+    : link.url
+}
+
+function LinkIcon({ kind }: { readonly kind: UserLink['kind'] }): ReactNode {
+  if (kind === 'EMAIL') return <Mail aria-hidden="true" />
+  if (kind === 'WEBSITE') return <Globe aria-hidden="true" />
+  return <Link2 aria-hidden="true" />
+}
+
+/**
+ * 롱폼 포스터는 16:9, 숏폼은 9:16 으로 올라온다(SeriesPosterUploader).
+ * 예전 카드는 모든 포스터를 세로로 잘라 화면 하나에 두 편만 보였다.
+ */
 function WorkCard({
   series,
   index,
+  featured = false,
 }: {
   readonly series: SeriesResponse
   readonly index: number
+  readonly featured?: boolean
+}): ReactNode {
+  const vertical = series.workType === 'SHORT_FORM'
+  const className = [
+    'cp-card',
+    vertical ? 'is-vertical' : '',
+    featured ? 'is-featured' : '',
+  ]
+    .filter((name) => name !== '')
+    .join(' ')
+  return (
+    <li className={className}>
+      <Link href={`/series/${series.id}`}>
+        <span className="cp-card-media">
+          <img
+            src={posterFor(series, index)}
+            alt=""
+            loading={index < 4 ? 'eager' : 'lazy'}
+            decoding="async"
+          />
+          <span className="cp-card-badges">
+            {featured ? <span className="is-hot">인기 1위</span> : null}
+            <span>{workTypeLabel(series.workType)}</span>
+            {series.isCompleted ? <span>완결</span> : null}
+          </span>
+          <span className="cp-card-play" aria-hidden="true">
+            <Play fill="currentColor" />
+          </span>
+        </span>
+        <span className="cp-card-copy">
+          <strong>{series.title}</strong>
+          {featured && series.synopsis !== null ? (
+            <span className="cp-card-synopsis">{series.synopsis}</span>
+          ) : null}
+          <small>
+            {series.episodeCount}화 · 조회 {compact(series.totalViews)}
+          </small>
+        </span>
+      </Link>
+    </li>
+  )
+}
+
+function RelatedCreatorCard({
+  creator,
+}: {
+  readonly creator: RelatedCreator
 }): ReactNode {
   return (
-    <article className="profile-work-card">
-      <Link href={`/series/${series.id}`} aria-label={`${series.title} 보기`}>
-        <div className="profile-work-label">
-          <span>{series.title}</span>
-          <span className="profile-work-label-arrow">
-            <ArrowUpRight aria-hidden="true" />
-          </span>
-          <Corner className="profile-work-label-corner profile-work-label-corner-bottom" />
-          <Corner className="profile-work-label-corner profile-work-label-corner-right" />
-        </div>
-        <div className="profile-work-image">
-          <img src={posterFor(series, index)} alt={`${series.title} 포스터`} />
-        </div>
-        <div className="profile-work-meta">
-          <span>{String(index + 1).padStart(2, '0')}</span>
-          <span>{series.episodeCount} EPISODES</span>
-        </div>
+    <li>
+      <Link href={`/u/${creator.handle}`} className="cp-related-card">
+        <Avatar
+          name={creator.displayName}
+          src={creator.avatarUrl}
+          size="lg"
+          className="cp-related-avatar"
+        />
+        <span>
+          <strong>
+            {creator.displayName}
+            {creator.isVerified ? (
+              <BadgeCheck role="img" aria-label="인증 채널" />
+            ) : null}
+          </strong>
+          <small>
+            작품 {creator.seriesCount}편 · 팔로워{' '}
+            {compact(creator.followerCount)}
+          </small>
+        </span>
+        <ArrowRight aria-hidden="true" />
       </Link>
-    </article>
+    </li>
   )
 }
 
@@ -303,13 +375,7 @@ export default async function ProfilePage({
 }: {
   readonly params: Promise<{ handle: string }>
 }): Promise<ReactNode> {
-  const [{ handle }, session, cookieStore] = await Promise.all([
-    params,
-    getServerSession(),
-    cookies(),
-  ])
-  const currentTheme =
-    parseTheme(cookieStore.get(THEME_COOKIE)?.value) ?? 'dark'
+  const [{ handle }, session] = await Promise.all([params, getServerSession()])
 
   try {
     const previewProfile =
@@ -326,14 +392,42 @@ export default async function ProfilePage({
           getProfileSeries(handle),
           getRelatedCreators(handle),
         ])
-    const sortedSeries = [...series].sort(
+    const isSelf = session?.user.handle === profile.handle
+
+    // 숫자는 이 화면에 실제로 보이는 공개 작품에서 센다. 프로필 집계는 비공개
+    // 작품까지 세어 "작품 9편" 아래에 6편만 보이는 어긋남을 만들었다.
+    const byViews = [...series].sort(
       (left, right) => Number(right.totalViews) - Number(left.totalViews),
     )
-    const isSelf = session?.user.handle === profile.handle
-    const messageHref = `mailto:?subject=${encodeURIComponent(`ilog · @${profile.handle}님께 메시지`)}`
+    const longFormByDate = series.filter(
+      (item) => item.workType !== 'SHORT_FORM',
+    )
+    // 가장 많이 본 롱폼을 그리드 첫 칸에 2x2 로 키운다. 따로 큰 영역을 두면
+    // 노트북 첫 화면이 그것으로 차서 다른 작품이 보이지 않는다.
+    const featured =
+      longFormByDate.length >= 3
+        ? byViews.find((item) => item.workType !== 'SHORT_FORM')
+        : undefined
+    const longForm =
+      featured === undefined
+        ? longFormByDate
+        : [featured, ...longFormByDate.filter((item) => item !== featured)]
+    const shortForm = series.filter((item) => item.workType === 'SHORT_FORM')
+    const episodeTotal = series.reduce(
+      (sum, item) => sum + item.episodeCount,
+      0,
+    )
+    const heroImage =
+      profile.bannerUrl ??
+      (byViews[0] === undefined
+        ? FALLBACK_POSTERS[0]
+        : posterFor(byViews[0], 0))
+    const links = [...profile.links].sort(
+      (left, right) => left.order - right.order,
+    )
 
     return (
-      <div className="profile-showcase">
+      <div className="creator-page" id="discovery-top">
         <JsonLd
           document={profileJsonLd({
             handle: profile.handle,
@@ -344,215 +438,183 @@ export default async function ProfilePage({
             joinedAt: profile.joinedAt,
           })}
         />
-        <header className="profile-floating-header">
-          <nav aria-label="프로필 메뉴">
-            <Link href="/" className="profile-wordmark" aria-label="ilog 홈">
-              <Play aria-hidden="true" fill="currentColor" />
-              <span>ILOG</span>
-            </Link>
-            <div className="profile-header-links">
-              <a href="#popular">인기 작품</a>
-              <a href="#works">작품</a>
-              <a href="#about">소개</a>
+        <DiscoveryTopbar user={session?.user ?? null} />
+
+        <main className="cp">
+          <section className="cp-hero" aria-labelledby="cp-name">
+            <div className="cp-hero-art" aria-hidden="true">
+              <img src={heroImage} alt="" fetchPriority="high" />
             </div>
-            <ShowcaseThemeToggle
-              current={currentTheme}
-              className="profile-theme-pill"
-            />
-          </nav>
-          <Corner className="profile-corner profile-corner-bottom" />
-          <Corner className="profile-corner profile-corner-right" />
-        </header>
 
-        <a className="profile-mobile-menu" href="#works">
-          <span>Menu</span>
-          <Corner className="profile-mobile-corner-bottom" />
-          <Corner className="profile-mobile-corner-left" />
-        </a>
+            <div className="cp-hero-inner">
+              <Avatar
+                name={profile.displayName}
+                src={profile.avatarUrl}
+                size="lg"
+                className="cp-avatar"
+              />
 
-        <div className="profile-layout">
-          <section className="profile-popular-wrap" id="popular">
-            <ProfilePopularCarousel
-              profileName={profile.displayName}
-              items={
-                sortedSeries.length === 0
-                  ? [
-                      {
-                        id: 'coming-soon',
-                        title: '첫 작품을 준비하고 있어요',
-                        image: FALLBACK_POSTERS[0],
-                        views: '0',
-                      },
-                    ]
-                  : sortedSeries.slice(0, 5).map((item, index) => ({
-                      id: item.id,
-                      title: item.title,
-                      image: posterFor(item, index),
-                      views: item.totalViews,
-                      href: `/series/${item.id}`,
-                    }))
-              }
-            />
-          </section>
+              <div className="cp-identity">
+                <h1 id="cp-name">
+                  {profile.displayName}
+                  {profile.isVerified ? (
+                    <BadgeCheck
+                      className="cp-verified"
+                      role="img"
+                      aria-label="인증 채널"
+                    />
+                  ) : null}
+                </h1>
+                <p className="cp-handle">
+                  <span>@{profile.handle}</span>
+                  <TierBadge tier={profile.tier} size="sm" />
+                  <span className="cp-joined">
+                    <CalendarDays aria-hidden="true" />
+                    {JOINED.format(profile.joinedAt)} 가입
+                  </span>
+                </p>
+                <p className="cp-bio">
+                  {profile.bio ??
+                    profile.channelDescription ??
+                    '장면과 감정 사이의 이야기를 영상으로 기록합니다.'}
+                </p>
+                {profile.channelKeywords.length === 0 ? null : (
+                  <ul className="cp-tags" aria-label="채널 키워드">
+                    {profile.channelKeywords.map((keyword) => (
+                      <li key={keyword}>#{keyword}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-          <div className="profile-right-column">
-            <section className="profile-intro-grid" id="about">
-              <div className="profile-about-card">
-                <div className="profile-identity">
-                  <Avatar
-                    name={profile.displayName}
-                    src={profile.avatarUrl}
-                    size="lg"
-                    className="profile-avatar"
-                  />
-                  <div>
-                    <h1>{profile.displayName}</h1>
-                    <p>
-                      @{profile.handle} · FILMMAKER
-                      {profile.isVerified ? (
-                        <BadgeCheck
-                          className="profile-verified"
-                          role="img"
-                          aria-label="인증 채널"
-                        />
-                      ) : null}
-                      <TierBadge tier={profile.tier} size="sm" />
-                    </p>
-                  </div>
-                </div>
+              <div className="cp-actions">
                 {isSelf ? (
-                  <Link href="/account#profile" className="profile-manage-link">
+                  <Link href="/account#profile" className="cp-manage">
                     <PencilLine aria-hidden="true" />
                     프로필 관리
                   </Link>
-                ) : null}
-                <p className="profile-bio">
-                  {profile.bio ??
-                    '장면과 감정 사이의 이야기를 영상으로 기록합니다. 새로운 작품으로 곧 만나요.'}
-                </p>
-                <div className="profile-stats">
-                  {profile.followerCount === null ? null : (
-                    <span>{profile.followerCount} FOLLOWERS</span>
-                  )}
-                  <span>{profile.seriesCount} WORKS</span>
-                </div>
-                {isSelf ? null : (
-                  <div className="profile-follow">
+                ) : session === null ? (
+                  // 비활성 버튼은 고장처럼 보인다. 로그인 후 이 화면으로 돌아온다.
+                  <Link
+                    href={`/login?next=${encodeURIComponent(`/u/${profile.handle}`)}`}
+                    className="cp-follow-login"
+                  >
+                    <UserPlus aria-hidden="true" />
+                    팔로우
+                  </Link>
+                ) : (
+                  <div className="cp-follow">
                     <FollowButton
                       handle={profile.handle}
                       initialFollowing={profile.isFollowing}
                       initialCount={profile.followerCount ?? 0}
-                      disabled={session === null || profile.isBlocked}
+                      disabled={profile.isBlocked}
                     />
                   </div>
                 )}
+                <ProfileShareButton
+                  title={`${profile.displayName} (@${profile.handle}) · ilog`}
+                />
               </div>
+            </div>
 
-              <div className="profile-link-stack">
-                <a
-                  href={`https://instagram.com/${profile.handle}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>Instagram</span>
-                  <span className="profile-link-icon">
-                    <Camera aria-hidden="true" />
-                    <ArrowUpRight aria-hidden="true" />
-                  </span>
-                </a>
-                <a
-                  href={`https://youtube.com/@${profile.handle}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>YouTube</span>
-                  <span className="profile-link-icon">
-                    <Video aria-hidden="true" />
-                    <ArrowUpRight aria-hidden="true" />
-                  </span>
-                </a>
-                <a href="#contact">
-                  <span>Contact me</span>
-                  <span className="profile-link-icon">
-                    <Mail aria-hidden="true" />
-                    <ArrowUpRight aria-hidden="true" />
-                  </span>
-                </a>
-                <a className="profile-message-link" href={messageHref}>
-                  <span>Message</span>
-                  <span className="profile-link-icon">
-                    <MessageCircle aria-hidden="true" />
-                    <ArrowUpRight aria-hidden="true" />
-                  </span>
-                </a>
-              </div>
-            </section>
-
-            <section className="profile-works" id="works">
-              <header className="profile-section-bar">
+            <div className="cp-hero-foot">
+              <dl className="cp-stats">
+                {profile.followerCount === null ? null : (
+                  <div>
+                    <dt>팔로워</dt>
+                    <dd>{compact(profile.followerCount)}</dd>
+                  </div>
+                )}
                 <div>
-                  <span>작품</span>
-                  <ArrowDown aria-hidden="true" />
+                  <dt>작품</dt>
+                  <dd>{series.length}</dd>
                 </div>
-                <span>{series.length} PROJECTS</span>
-              </header>
-              {series.length === 0 ? (
-                <div className="profile-empty-work">
-                  <p>NEXT STORY</p>
-                  <h2>새로운 작품을 준비하고 있습니다.</h2>
+                <div>
+                  <dt>회차</dt>
+                  <dd>{compact(episodeTotal)}</dd>
                 </div>
-              ) : (
-                <div className="profile-work-grid">
-                  {series.map((item, index) => (
-                    <WorkCard key={item.id} series={item} index={index} />
+                <div>
+                  <dt>총 조회</dt>
+                  <dd>{compact(profile.totalViews)}</dd>
+                </div>
+              </dl>
+              {links.length === 0 ? null : (
+                <ul className="cp-links" aria-label="외부 링크">
+                  {links.map((link) => (
+                    <li key={link.id}>
+                      <a
+                        href={linkHref(link)}
+                        target={link.kind === 'EMAIL' ? undefined : '_blank'}
+                        rel="noopener noreferrer nofollow"
+                      >
+                        <LinkIcon kind={link.kind} />
+                        {link.label}
+                      </a>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </section>
+            </div>
+          </section>
 
-            <footer className="profile-footer" id="contact">
-              <div className="profile-related-heading">
-                <p>EXPLORE MORE CREATORS</p>
-                <h2>비슷한 다른 작가의 작품 보기</h2>
+          <section className="cp-section" id="works" aria-labelledby="cp-works">
+            <header className="cp-section-head">
+              <h2 id="cp-works">
+                작품 <span>{series.length}</span>
+              </h2>
+            </header>
+            {series.length === 0 ? (
+              <div className="cp-empty">
+                <strong>아직 공개한 작품이 없습니다</strong>
+                <p>첫 작품이 공개되면 이곳에 가장 먼저 올라옵니다.</p>
               </div>
+            ) : (
+              <>
+                {longForm.length === 0 ? null : (
+                  <ul className="cp-grid">
+                    {longForm.map((item, index) => (
+                      <WorkCard
+                        key={item.id}
+                        series={item}
+                        index={index}
+                        featured={item === featured}
+                      />
+                    ))}
+                  </ul>
+                )}
+                {shortForm.length === 0 ? null : (
+                  <>
+                    <h3 className="cp-subhead">숏폼</h3>
+                    <ul className="cp-grid is-vertical">
+                      {shortForm.map((item, index) => (
+                        <WorkCard key={item.id} series={item} index={index} />
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
+            )}
+          </section>
 
-              <div className="profile-related-list">
-                {relatedCreators.map((creator, index) => (
-                  <Link key={creator.handle} href={`/u/${creator.handle}`}>
-                    <span className="profile-related-number">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <Avatar
-                      name={creator.displayName}
-                      src={creator.avatarUrl}
-                      size="lg"
-                      className="profile-related-avatar"
-                    />
-                    <span className="profile-related-name">
-                      <strong>{creator.displayName}</strong>
-                      <small>@{creator.handle}</small>
-                    </span>
-                    <span className="profile-related-stats">
-                      {creator.seriesCount} WORKS · {creator.followerCount}{' '}
-                      FOLLOWERS
-                    </span>
-                    <ArrowUpRight aria-hidden="true" />
-                  </Link>
-                ))}
-              </div>
-
-              <div className="profile-related-bottom">
-                <small>
-                  © {new Date().getFullYear()} ILOG CREATOR PROFILE
-                </small>
-                <Link href="/search">
-                  <span>모든 작가 둘러보기</span>
-                  <ArrowUpRight aria-hidden="true" />
+          {relatedCreators.length === 0 ? null : (
+            <section className="cp-section" aria-labelledby="cp-related">
+              <header className="cp-section-head">
+                <h2 id="cp-related">비슷한 작가</h2>
+                <Link href="/creators" className="cp-more">
+                  모든 작가 <ArrowRight aria-hidden="true" />
                 </Link>
-              </div>
-            </footer>
-          </div>
-        </div>
+              </header>
+              <ul className="cp-related">
+                {relatedCreators.map((creator) => (
+                  <RelatedCreatorCard key={creator.handle} creator={creator} />
+                ))}
+              </ul>
+            </section>
+          )}
+        </main>
+
+        <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
       </div>
     )
   } catch (error: unknown) {

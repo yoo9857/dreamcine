@@ -76,17 +76,20 @@
 
 .aidream-route-view:not(.is-discovery-home):not(.is-works-gallery):not(
     .is-creators-gallery
-  ):not(.is-watch-experience) {
+  ):not(.is-watch-experience):not(.is-profile-showcase) {
   padding: 24px 16px 104px 32px;
 }
 
 .aidream-route-view.is-works-gallery,
 .aidream-route-view.is-creators-gallery,
-.aidream-route-view.is-watch-experience {
+.aidream-route-view.is-watch-experience,
+.aidream-route-view.is-profile-showcase {
   padding: 0 16px 104px 32px;
 }
 
-@media (min-width: 768px) and (max-width: 1350px) {
+/* 80rem 콘텐츠의 왼쪽 여백이 레일(18px + 64px)보다 좁아지는 폭까지는 레일 자리를
+   비운다. 1351~1407px 노트북(1366 등)에서 레일이 카드 가장자리를 덮었다. */
+@media (min-width: 768px) and (max-width: 1407px) {
   .aidream-route-view:not(.is-discovery-home) {
     padding-right: 24px;
     padding-left: 104px;
@@ -228,6 +231,7 @@
 
 .aidream-app-shell:has(.is-works-gallery) .aidream-session-actions,
 .aidream-app-shell:has(.is-creators-gallery) .aidream-session-actions,
+.aidream-app-shell:has(.is-profile-showcase) .aidream-session-actions,
 .aidream-app-shell:has(.is-watch-experience) .aidream-session-actions,
 .aidream-app-shell:has(.is-browse-home) .aidream-session-actions {
   display: none;
@@ -276,12 +280,13 @@
   }
   .aidream-route-view:not(.is-discovery-home):not(.is-works-gallery):not(
       .is-creators-gallery
-    ):not(.is-watch-experience) {
+    ):not(.is-watch-experience):not(.is-profile-showcase) {
     padding: 20px 16px;
   }
   .aidream-route-view.is-works-gallery,
   .aidream-route-view.is-creators-gallery,
-  .aidream-route-view.is-watch-experience {
+  .aidream-route-view.is-watch-experience,
+  .aidream-route-view.is-profile-showcase {
     padding: 0 16px 20px;
   }
   .aidream-mobile-nav {
@@ -360,13 +365,6 @@
   animation-name: aidream-theme-ripple;
 }
 
-:root[data-theme-transition] .profile-showcase,
-:root[data-theme-transition] .profile-floating-header,
-:root[data-theme-transition] .profile-about-card,
-:root[data-theme-transition] .profile-link-stack > a,
-:root[data-theme-transition] .profile-section-bar,
-:root[data-theme-transition] .profile-work-label,
-:root[data-theme-transition] .profile-footer,
 :root[data-theme-transition] .series-showcase,
 :root[data-theme-transition] .series-floating-header,
 :root[data-theme-transition] .series-intro,
