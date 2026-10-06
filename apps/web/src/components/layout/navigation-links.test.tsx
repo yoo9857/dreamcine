@@ -120,13 +120,21 @@ describe('NavigationLinks', () => {
     ).toBe('page')
   })
 
+  it('shows notices to everyone in place of the old alerts item', () => {
+    render(<NavigationLinks authenticated={false} />)
+    expect(
+      screen.getByRole('link', { name: '공지사항' }).getAttribute('href'),
+    ).toBe('/notices')
+    expect(screen.queryByRole('link', { name: '알람' })).toBeNull()
+  })
+
   it('uses the rendered item count for the mobile grid', () => {
     const { container } = render(
       <NavigationLinks authenticated={false} mobile />,
     )
 
     expect(container.querySelector('nav')?.getAttribute('style')).toContain(
-      '--nav-count: 5',
+      '--nav-count: 6',
     )
   })
 })

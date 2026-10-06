@@ -16,7 +16,7 @@ type NavIconName =
   | 'works'
   | 'creators'
   | 'events'
-  | 'notifications'
+  | 'notices'
   | 'messages'
   | 'studio'
 
@@ -56,10 +56,10 @@ function NavIcon({ name }: { readonly name: NavIconName }): ReactNode {
       </svg>
     )
   }
-  if (name === 'notifications') {
+  if (name === 'notices') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+        <path d="M4 10v4a1 1 0 0 0 1 1h3l6 4V5L8 9H5a1 1 0 0 0-1 1ZM18 9a4 4 0 0 1 0 6" />
       </svg>
     )
   }
@@ -118,15 +118,10 @@ export function NavigationLinks({
     { href: '/works', label: '작품', icon: 'works' },
     { href: '/creators', label: '작가', icon: 'creators' },
     { href: '/events', label: '이벤트', icon: 'events' },
+    // 알림은 상단 바의 팝업으로 옮겼다. 이 자리는 모두가 보는 공지사항이다.
+    { href: '/notices', label: '공지사항', icon: 'notices' },
     ...(authenticated
-      ? ([
-          {
-            href: '/notifications',
-            label: '알람',
-            icon: 'notifications',
-          },
-          { href: '/messages', label: '메시지', icon: 'messages' },
-        ] as const)
+      ? ([{ href: '/messages', label: '메시지', icon: 'messages' }] as const)
       : []),
     {
       href: creatorRegistered ? '/studio' : '/creator-apply',

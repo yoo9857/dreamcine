@@ -6,6 +6,7 @@ import type { SessionUser } from '@/src/auth/types'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 
 import { BrowseAccountMenu } from './BrowseAccountMenu'
+import { NotificationBell } from './NotificationBell'
 
 function SearchIcon(): ReactNode {
   return (
@@ -41,6 +42,7 @@ export function DiscoveryTopbar({
         <button type="submit">검색</button>
       </Form>
       <div className="discovery-top-actions">
+        {user === null ? null : <NotificationBell />}
         <div className="discovery-live" aria-label="새 콘텐츠 업데이트 중">
           <span /> LIVE
         </div>

@@ -16,9 +16,12 @@ export function RouteTransition({
   const isWorksGallery = pathname === '/works'
   const isCreatorsGallery = pathname === '/creators'
   const isWatchExperience = pathname.startsWith('/watch/')
-  // 메시지함은 작가 페이지와 같은 틀(상단 바 + 여백 없는 시작)을 쓴다.
+  // 메시지함·공지사항은 작가 페이지와 같은 틀을 쓴다. 상단 바가 로그인 버튼을
+  // 가지므로 떠 있는 로그인 버튼을 숨겨야 겹치지 않는다.
   const isMessages =
-    pathname === '/messages' || pathname.startsWith('/messages/')
+    pathname === '/messages' ||
+    pathname.startsWith('/messages/') ||
+    pathname === '/notices'
 
   return (
     <div

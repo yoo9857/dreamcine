@@ -139,6 +139,200 @@
   gap: 18px;
 }
 
+/* ── 알림 버튼·팝업 (LIVE 왼쪽) ───────────────────── */
+.notification-bell {
+  position: relative;
+}
+
+.notification-bell-trigger {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 50%;
+  color: #d5dde2;
+  background: rgb(255 255 255 / 4%);
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.notification-bell-trigger:hover,
+.notification-bell-trigger[aria-expanded='true'] {
+  border-color: rgb(255 255 255 / 24%);
+  color: white;
+  background: rgb(255 255 255 / 10%);
+}
+
+.notification-bell-trigger svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.notification-bell-badge {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid #07131a;
+  border-radius: 999px;
+  color: white;
+  background: #ff3448;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.notification-popover {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 12px);
+  right: -8px;
+  width: min(380px, calc(100vw - 28px));
+  max-height: min(560px, calc(100dvh - 100px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 22px;
+  color: #f5f7f8;
+  background: #09151c;
+  box-shadow:
+    0 32px 100px rgb(0 0 0 / 60%),
+    0 1px 0 rgb(255 255 255 / 5%) inset;
+  transform-origin: top right;
+  animation: browse-menu-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.notification-popover header,
+.notification-popover footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.notification-popover header {
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.notification-popover header strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.notification-popover header button {
+  padding: 6px 12px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  color: #d5dde2;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-popover header button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.notification-popover footer {
+  justify-content: center;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.notification-popover footer a {
+  color: #ff8585;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.notification-popover-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.notification-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 0;
+  border-radius: 14px;
+  color: #aab5bd;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.notification-item:hover {
+  background: rgb(255 255 255 / 6%);
+}
+
+.notification-item.is-unread {
+  color: #f5f7f8;
+}
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+}
+
+.notification-item.is-unread .notification-dot {
+  background: #ff3448;
+}
+
+.notification-copy {
+  display: grid;
+  gap: 3px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.notification-item.is-unread .notification-copy > span {
+  font-weight: 700;
+}
+
+.notification-copy time {
+  color: #7d8a93;
+  font-size: 12px;
+}
+
+.notification-popover-empty {
+  margin: 0;
+  padding: 40px 20px;
+  color: #8f9aa3;
+  font-size: 14px;
+  text-align: center;
+}
+
 .discovery-auth-actions {
   display: flex;
   align-items: center;
@@ -1728,7 +1922,20 @@
     min-width: 66px;
   }
   .discovery-top-actions {
-    gap: 0;
+    gap: 8px;
+  }
+  .notification-bell-trigger {
+    width: 40px;
+    height: 40px;
+  }
+  /* 좁은 화면은 버튼 옆이 아니라 상단 바 아래에 화면 폭으로 띄운다. */
+  .notification-popover {
+    position: fixed;
+    top: calc(66px + env(safe-area-inset-top));
+    right: 14px;
+    left: 14px;
+    width: auto;
+    max-height: calc(100dvh - 66px - 96px - env(safe-area-inset-top));
   }
   .discovery-auth-actions a:first-child {
     display: none;
