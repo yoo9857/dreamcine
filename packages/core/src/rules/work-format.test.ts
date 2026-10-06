@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { aspectRatioOf, isShortFormWork } from './work-format.js'
+import {
+  aspectRatioOf,
+  isShortFormFormat,
+  isShortFormWork,
+} from './work-format.js'
 
 function item(
   workType: 'SERIES' | 'SHORT_FORM' | 'FILM' | undefined,
@@ -49,5 +53,26 @@ describe('isShortFormWork', () => {
 
   it('keeps works without a known ratio in long form', () => {
     expect(isShortFormWork(item('SERIES', null))).toBe(false)
+  })
+})
+
+describe('isShortFormFormat', () => {
+  it('uses the same rule for a series as for a feed item', () => {
+    // 형식을 고르지 않은 세로 광고(lip balm, 0.5625)는 어디서나 숏폼이다
+    expect(isShortFormFormat({ workType: 'AD', aspectRatio: 0.5625 })).toBe(
+      true,
+    )
+    expect(
+      isShortFormFormat({ workType: 'SHORT_FORM', aspectRatio: null }),
+    ).toBe(true)
+    expect(isShortFormFormat({ workType: 'SERIES', aspectRatio: 16 / 9 })).toBe(
+      false,
+    )
+    // 비율을 아직 모르면(공개 회차 없음) 형식만 본다
+    expect(isShortFormFormat({ workType: 'FILM' })).toBe(false)
+    // 정사각은 롱폼
+    expect(isShortFormFormat({ workType: 'SERIES', aspectRatio: 1 })).toBe(
+      false,
+    )
   })
 })

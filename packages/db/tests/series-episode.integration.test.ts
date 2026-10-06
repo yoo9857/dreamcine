@@ -282,4 +282,42 @@ describe('T08 series/episode repositories', () => {
       episodeId: null,
     })
   })
+
+  it('reports each series video ratio from its first published episode', async () => {
+    const vertical = await fixture('ratio_v')
+    const landscape = await fixture('ratio_h')
+    const empty = await fixture('ratio_none')
+    await database.videoAsset.update({
+      where: { id: vertical.assetId },
+      data: { width: 1080, height: 1920 },
+    })
+    await database.videoAsset.update({
+      where: { id: landscape.assetId },
+      data: { width: 1920, height: 1080 },
+    })
+    for (const item of [vertical, landscape]) {
+      await database.episode.create({
+        data: {
+          seriesId: item.seriesId,
+          assetId: item.assetId,
+          number: 1,
+          title: 'Episode',
+          status: 'PUBLISHED',
+          publishedAt: new Date(),
+        },
+      })
+    }
+
+    const ratios = await repo.findSeriesAspectRatios([
+      vertical.seriesId,
+      landscape.seriesId,
+      empty.seriesId,
+    ])
+
+    expect(ratios.get(vertical.seriesId)).toBeCloseTo(0.5625)
+    expect(ratios.get(landscape.seriesId)).toBeCloseTo(16 / 9)
+    // 공개 회차가 없으면 비율을 모른다 — 형식만으로 판정한다
+    expect(ratios.has(empty.seriesId)).toBe(false)
+    expect((await repo.findSeriesAspectRatios([])).size).toBe(0)
+  })
 })

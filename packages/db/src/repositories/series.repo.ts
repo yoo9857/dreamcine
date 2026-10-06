@@ -112,6 +112,41 @@ export function listPublicSeriesByOwner(
   })
 }
 
+/**
+ * 작품별 첫 공개 회차 원본 영상의 가로/세로 비율. 숏폼 판정(`isShortFormFormat`)에
+ * 쓴다. 작품마다 회차를 따로 묻지 않도록 한 번에 가져온다. 비율을 모르면 빠진다.
+ */
+export function findSeriesAspectRatios(
+  seriesIds: readonly string[],
+): Promise<ReadonlyMap<string, number>> {
+  return executeDb(async () => {
+    if (seriesIds.length === 0) return new Map()
+    const rows = await db.episode.findMany({
+      where: {
+        seriesId: { in: [...seriesIds] },
+        status: 'PUBLISHED',
+        deletedAt: null,
+        asset: { width: { gt: 0 }, height: { gt: 0 } },
+      },
+      select: {
+        seriesId: true,
+        asset: { select: { width: true, height: true } },
+      },
+      orderBy: [{ seriesId: 'asc' }, { number: 'asc' }, { id: 'asc' }],
+      distinct: ['seriesId'],
+    })
+    const ratios = new Map<string, number>()
+    for (const row of rows) {
+      const width = row.asset?.width ?? null
+      const height = row.asset?.height ?? null
+      if (width !== null && height !== null && width > 0 && height > 0) {
+        ratios.set(row.seriesId, width / height)
+      }
+    }
+    return ratios
+  })
+}
+
 export function findPublicSeriesDetail(
   id: string,
 ): Promise<SeriesDetailRecord | null> {

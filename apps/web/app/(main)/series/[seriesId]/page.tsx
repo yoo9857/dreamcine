@@ -1,4 +1,5 @@
 import {
+  isShortFormFormat,
   type AgeRating,
   type EpisodeResponse,
   type PlaybackResponse,
@@ -221,7 +222,21 @@ function OtherWorkCard({
   return (
     <li className="sp-card">
       <Link href={`/series/${series.id}`}>
-        <span className="sp-card-media">
+        <span
+          className={
+            isShortFormFormat(series)
+              ? 'sp-card-media is-vertical'
+              : 'sp-card-media'
+          }
+        >
+          {isShortFormFormat(series) ? (
+            // 세로 포스터는 통째로 가운데 두고, 같은 그림을 흐리게 깔아 양옆을 채운다.
+            <span
+              className="sp-card-backdrop"
+              aria-hidden="true"
+              style={{ backgroundImage: `url("${posterFor(series, index)}")` }}
+            />
+          ) : null}
           <img src={posterFor(series, index)} alt="" loading="lazy" />
           <span className="sp-card-badge">
             {workTypeLabel(series.workType)}
@@ -327,7 +342,7 @@ export default async function SeriesPage({
     ? series.episodeCount
     : detail.episodes.length
   // 숏폼은 9:16 으로 올라온다(SeriesPosterUploader). 16:9 틀에 넣으면 가운데 띠만 남는다.
-  const vertical = series.workType === 'SHORT_FORM'
+  const vertical = isShortFormFormat(series)
 
   /*
     구조화 데이터는 API 응답(`SeriesResponse`)이 아니라 도메인 엔티티에서

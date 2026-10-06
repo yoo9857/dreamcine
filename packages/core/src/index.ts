@@ -120,7 +120,11 @@ export {
   type StartConversationResponse,
   type UpdateMessagingPreferenceInput,
 } from './schemas/message.schema.js'
-export { aspectRatioOf, isShortFormWork } from './rules/work-format.js'
+export {
+  aspectRatioOf,
+  isShortFormFormat,
+  isShortFormWork,
+} from './rules/work-format.js'
 export {
   PaginationSchema,
   parsePagination,

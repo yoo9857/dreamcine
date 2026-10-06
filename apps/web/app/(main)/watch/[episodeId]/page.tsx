@@ -1,4 +1,4 @@
-import { AppError, type FeedItem } from '@aidream/core'
+import { AppError, isShortFormWork, type FeedItem } from '@aidream/core'
 import {
   findEpisodeById,
   findEpisodeMetaView,
@@ -240,12 +240,10 @@ export default async function WatchPage(
     const candidates = recommendations.items.filter(
       (item) => item.episodeId !== episodeId,
     )
-    const shorts = candidates.filter(
-      (item) => item.durationSec !== null && item.durationSec <= 180,
-    )
-    const longs = candidates.filter(
-      (item) => item.durationSec === null || item.durationSec > 180,
-    )
+    // 숏폼·롱폼은 작품 목록·홈과 같은 규칙(형식 + 실제 영상 비율)으로 나눈다.
+    // 예전에는 "3분 이하" 로 갈라, 23초짜리 가로 영상이 숏폼 칸에 세로로 잘려 들어갔다.
+    const shorts = candidates.filter((item) => isShortFormWork(item))
+    const longs = candidates.filter((item) => !isShortFormWork(item))
     const publishedAt =
       episode.publishedAt?.toLocaleDateString('ko-KR', {
         year: 'numeric',
@@ -316,8 +314,9 @@ export default async function WatchPage(
               </>
             )
           }
-          shortItems={shorts.length === 0 ? candidates.slice(0, 3) : shorts}
-          longItems={longs.length === 0 ? candidates.slice(3, 9) : longs}
+          // 없으면 빈 상태를 보인다. 롱폼을 "SHORT" 칸에 채워 넣지 않는다.
+          shortItems={shorts}
+          longItems={longs}
           comments={
             <CommentThread
               episodeId={episodeId}

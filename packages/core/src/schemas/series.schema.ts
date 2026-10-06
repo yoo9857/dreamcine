@@ -39,6 +39,11 @@ export const SeriesResponseSchema = z.object({
   commentsOff: z.boolean(),
   episodeCount: z.number().int().min(0),
   totalViews: z.string(),
+  /**
+   * 첫 공개 회차 원본 영상의 가로/세로. 숏폼 판정(`isShortFormFormat`)에 쓴다.
+   * 아직 공개 회차가 없으면 없다.
+   */
+  aspectRatio: z.number().positive().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 })

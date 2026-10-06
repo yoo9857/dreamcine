@@ -49,6 +49,8 @@ vi.mock('@aidream/db', () => ({
   updateEpisodeWithTags: mocks.updateEpisodeWithTags,
   listPublicSeries: mocks.listPublicSeries,
   findPublicSeriesDetail: mocks.findPublicSeriesDetail,
+  // 숏폼 판정용 영상 비율. 이 테스트는 비율을 모르는 경우(빈 결과)를 쓴다.
+  findSeriesAspectRatios: vi.fn().mockResolvedValue(new Map()),
   listSeriesByOwner: mocks.listSeriesByOwner,
   listEpisodesBySeries: mocks.listEpisodesBySeries,
 }))

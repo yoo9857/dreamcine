@@ -18,7 +18,9 @@ export function aspectRatioOf(
 }
 
 /**
- * 작품 형식 판정.
+ * 작품 형식 판정. **숏폼/롱폼을 가르는 유일한 규칙이다** — 피드·작품 목록·홈 선반·
+ * 작가 페이지·작품 페이지가 모두 이것을 쓴다. (예전에는 작가·작품 페이지만
+ * workType 만 보고 판정해, 세로 광고가 목록에서는 숏폼·작가 페이지에서는 롱폼이었다)
  *
  * 1. 업로더가 SHORT_FORM 을 고른 작품은 그대로 숏폼이다.
  * 2. 형식을 고르지 않은 작품은 workType 이 SERIES 로 기본 저장되어 숏폼을
@@ -27,10 +29,21 @@ export function aspectRatioOf(
  *
  * 재생시간은 쓰지 않는다. 짧은 롱폼 작품이 숏폼으로 잘못 노출되던 원인이다.
  */
+export function isShortFormFormat(work: {
+  readonly workType?: string | undefined
+  readonly aspectRatio?: number | null | undefined
+}): boolean {
+  if (work.workType === 'SHORT_FORM') return true
+  const ratio = work.aspectRatio ?? null
+  return ratio !== null && ratio < PORTRAIT_MAX_RATIO
+}
+
+/** 피드 항목용. `isShortFormFormat` 과 같은 규칙이다. */
 export function isShortFormWork(
   item: Pick<FeedItem, 'series' | 'aspectRatio'>,
 ): boolean {
-  if (item.series.workType === 'SHORT_FORM') return true
-  const ratio = item.aspectRatio ?? null
-  return ratio !== null && ratio < PORTRAIT_MAX_RATIO
+  return isShortFormFormat({
+    workType: item.series.workType,
+    aspectRatio: item.aspectRatio,
+  })
 }
