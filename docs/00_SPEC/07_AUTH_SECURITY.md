@@ -72,6 +72,8 @@
 | 좋아요 `social.like` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
 | 팔로우 `social.follow` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
 | 재생목록 생성 `playlist.create` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
+| 메시지 보내기 `message.send` | ✗ | ✗ | ○ | ○ | ○ | ○ | ○ |
+| 메시지함 열람 `message.read` | ✗ | ○ | ○ | ○ | ○ | ○ | ○ |
 | 신고 `report.create` | ✗ | ○ | ○ | ○ | ○ | ○ | ○ |
 | 자기 프로필 수정 `profile.update` | ✗ | 자 | 자 | 자 | 자 | 자 | 자 |
 | 시리즈 생성 `series.create` | ✗ | ✗ | ✗ | ○ | ○ | ✗ | ○ |

@@ -18,6 +18,8 @@
 | `/watch/[episodeId]` | 플레이어 | — (연령제한 시 필수) | SSR (재생정보) + 클라이언트 플레이어 |
 | `/u/[handle]` | 프로필 | — | SSR |
 | `/notifications` | 알림 | 필수 | 클라이언트 |
+| `/messages` | 받은 메시지함 (`?to={handle}` 은 새 대화 작성) | 필수 | SSR + 클라이언트 갱신 |
+| `/messages/[conversationId]` | 1:1 대화 | 필수 | SSR + 클라이언트 갱신 |
 | `/login`, `/signup`, `/verify` | 인증 | — | 클라이언트 |
 | `/studio` | 크리에이터 대시보드 | CREATOR | SSR |
 | `/studio/new` | **시리즈 등록 (단일 진입점)** — 시리즈 → 영상 → 회차 3단계 | CREATOR | SSR + 클라이언트 |

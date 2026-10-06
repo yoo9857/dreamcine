@@ -64,7 +64,8 @@ docs/
 │  ├─ T13_PWA_PHASE2.md         PWA 마감 + Expo 앱 전환 대비 (API 안정화 계약)
 │  ├─ T14_DESIGN_SYSTEM.md      디자인 토큰 · 프리미티브 21개 · 테마 (T07 앞)
 │  ├─ T15_METADATA_UPGRADE.md   회원 정보 · 콘텐츠 메타데이터 · SEO 표면 (ISS-019)
-│  └─ T16_ROLE_TIERS.md         7단계 역할 사다리 · 회원 등급 (ISS-020)
+│  ├─ T16_ROLE_TIERS.md         7단계 역할 사다리 · 회원 등급 (ISS-020)
+│  └─ T18_DIRECT_MESSAGES.md    독자·작가 1:1 메시지 (ISS-023)
 │
 └─ 20_OPS/                      ← 운영 · 예외 · 유지보수
    ├─ O01_DEPLOY.md             Akamai VPS 배포 · 무중단 전환 · 롤백
@@ -149,6 +150,7 @@ T00 BOOTSTRAP  (하네스 먼저 깐다 — 이게 없으면 아무것도 시작
 | T15 | METADATA_UPGRADE | ✅ | ✅ | ✅ | ISS-019 |
 | T16 | ROLE_TIERS | ✅ | ✅ | ✅ | ISS-020 |
 | T17 | SIGNUP_CONSENT_COMPLETION | ✅ | ✅ | 🟡 | — |
+| T18 | DIRECT_MESSAGES | ✅ | ⬜ | ⬜ | ISS-023 |
 
 범례: ⬜ 미착수 · 🟡 진행중 · ✅ 게이트 통과 · 🔴 게이트 실패(정지)
 

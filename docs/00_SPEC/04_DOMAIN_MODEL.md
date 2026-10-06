@@ -190,6 +190,12 @@ enum LinkKind {
   OTHER
 }
 
+enum DmPolicy {
+  EVERYONE
+  FOLLOWERS
+  NOBODY
+}
+
 enum ConsentKind {
   TOS
   PRIVACY
@@ -268,6 +274,7 @@ model User {
   trailerEpisodeId   String?    @map("trailer_episode_id")
   profileVisibility  Visibility @default(PUBLIC) @map("profile_visibility")
   hideFollowerCount  Boolean    @default(false) @map("hide_follower_count")
+  dmPolicy           DmPolicy   @default(EVERYONE) @map("dm_policy")
   verifiedAt         DateTime?  @map("verified_at")
 
   // ───── 지역·언어 (12_GLOBAL_EXPANSION §2 language != market)
@@ -319,6 +326,9 @@ model User {
   blocking       Block[]         @relation("blocker")
   blockedBy      Block[]         @relation("blocked")
   notifications  Notification[]
+  conversationsStarted  Conversation[]  @relation("dmInitiator")
+  conversationsReceived Conversation[]  @relation("dmRecipient")
+  directMessages        DirectMessage[]
   reportsMade    Report[]        @relation("reporter")
   accounts       Account[]
   sessions       Session[]
@@ -677,6 +687,43 @@ model Comment {
   @@index([episodeId, createdAt(sort: Desc)])
   @@index([parentId, createdAt])
   @@map("comment")
+}
+
+/// 1:1 대화. 두 사람 사이에 하나 (ISS-023).
+/// `initiator` 는 대화를 연 쪽(독자), `recipient` 는 받은 쪽(작가)이다.
+model Conversation {
+  id                 String   @id @default(cuid())
+  initiatorId        String   @map("initiator_id")
+  recipientId        String   @map("recipient_id")
+  lastMessageAt      DateTime @default(now()) @map("last_message_at")
+  lastMessagePreview String   @default("") @map("last_message_preview") @db.VarChar(120)
+  lastSenderId       String?  @map("last_sender_id")
+  initiatorUnread    Int      @default(0) @map("initiator_unread")
+  recipientUnread    Int      @default(0) @map("recipient_unread")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  initiator User            @relation("dmInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  recipient User            @relation("dmRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  messages  DirectMessage[]
+
+  @@unique([initiatorId, recipientId])
+  @@index([initiatorId, lastMessageAt(sort: Desc)])
+  @@index([recipientId, lastMessageAt(sort: Desc)])
+  @@map("conversation")
+}
+
+model DirectMessage {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  body           String   @db.VarChar(2000)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("direct_message")
 }
 
 model WatchProgress {
@@ -1109,6 +1156,15 @@ CREATED ──▶ UPLOADING ──▶ UPLOADED
 **철칙**: 카운터는 **읽기 최적화용 캐시**다. 진실은 항상 실제 행의 개수다.
 카운터가 틀렸다고 서비스가 깨지면 안 된다. (예: 좋아요 버튼은 `Like` 존재 여부로 판단)
 
+### 메시지 읽지 않은 수 (ISS-023)
+
+| 카운터 | 증가 | 감소 |
+|---|---|---|
+| `Conversation.initiatorUnread` | 받은 쪽이 보낼 때 +1 (같은 트랜잭션) | 연 쪽이 읽으면 0 |
+| `Conversation.recipientUnread` | 연 쪽이 보낼 때 +1 (같은 트랜잭션) | 받은 쪽이 읽으면 0 |
+
+배지 수는 내 쪽 카운터의 합이다. 메시지 행을 세지 않는다.
+
 ## 5. 소프트 삭제 규칙
 
 `deletedAt` 을 가진 모델: `User` `Series` `Episode` `Comment`
@@ -1150,6 +1206,8 @@ CREATED ──▶ UPLOADING ──▶ UPLOADED
 | `user(tier, tierPoints desc)` | 등급별 순위·재평가 배치 스캔 |
 | `role_grant(userId, createdAt desc)` | 계정별 역할 변경 이력 |
 | `role_grant(toRole, createdAt desc)` | "최근 ADMIN 이 된 계정" 감사 |
+| `conversation(initiatorId, lastMessageAt desc)` · `conversation(recipientId, lastMessageAt desc)` | 내 메시지함 (연 대화·받은 대화) |
+| `direct_message(conversationId, createdAt desc, id desc)` | 대화 화면 페이지·새 메시지 갱신 |
 
 새 인덱스가 필요하다고 판단되면 `EXPLAIN ANALYZE` 결과를 `_ISSUES.md` 에 첨부해 제안한다.
 

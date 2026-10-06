@@ -96,6 +96,14 @@ export const MESSAGES: Record<ErrorCode, MessageEntry> = {
   E_COMMENT_DEPTH_EXCEEDED: '답글은 한 단계까지만 달 수 있습니다.',
   E_COMMENT_DISABLED: '이 작품은 댓글이 닫혀 있습니다.',
 
+  // 메시지
+  E_DM_NOT_CREATOR: '작가에게만 메시지를 보낼 수 있습니다.',
+  E_DM_CLOSED: '이 작가는 지금 메시지를 받지 않습니다.',
+  E_DM_FOLLOWERS_ONLY:
+    '이 작가는 팔로워의 메시지만 받습니다. 팔로우한 뒤 보내 주세요.',
+  E_DM_CONVERSATION_NOT_FOUND: '대화를 찾을 수 없습니다.',
+  E_DM_TOO_LONG: '메시지는 2000자까지 보낼 수 있습니다.',
+
   // 신고 · 심사
   E_REPORT_DUPLICATE: '이미 신고한 대상입니다.',
   E_REPORT_NOT_FOUND: '신고를 찾을 수 없습니다.',

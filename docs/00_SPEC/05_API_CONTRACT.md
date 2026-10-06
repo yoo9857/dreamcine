@@ -259,6 +259,37 @@ Errors:   E_COMMENT_TOO_LONG, E_COMMENT_DEPTH_EXCEEDED, E_COMMENT_DISABLED,
           E_EPISODE_NOT_FOUND, E_SOCIAL_BLOCKED, E_RATE_LIMITED
 ```
 
+## 7-1. 메시지 (T18, ISS-023)
+
+모두 `auth: required`. 대화는 두 사람 사이에 하나다. 참여자가 아니면 대화가 있어도
+`E_DM_CONVERSATION_NOT_FOUND` 로 답한다.
+
+| 메서드 | 경로 | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/conversations` | `message.read` | 내 대화 목록. 최근 메시지순 커서 페이지 |
+| POST | `/api/conversations` | `message.send` | 작가에게 메시지 보내기. 대화가 있으면 이어 쓴다 → 201 |
+| GET | `/api/conversations/:id` | `message.read` | 대화 머리(상대·내 쪽 전송 가능 여부) |
+| GET | `/api/conversations/:id/messages` | `message.read` | 메시지. `cursor` 는 과거 쪽, `after` 는 그 메시지 이후 새 것 |
+| POST | `/api/conversations/:id/messages` | `message.send` | 답장·이어 보내기 → 201 |
+| POST | `/api/conversations/:id/read` | `message.read` | 내 쪽 읽지 않은 수를 0 으로 → 204 |
+| GET | `/api/messages/unread` | `message.read` | `{ count }` — 배지용 |
+| GET | `/api/account/messaging` | 로그인 | `{ dmPolicy }` |
+| PATCH | `/api/account/messaging` | 로그인 | `{ dmPolicy: EVERYONE \| FOLLOWERS \| NOBODY }` |
+
+```ts
+// POST /api/conversations
+Request  { handle: string, body: string }       // body 1..DM_MAX_LEN
+Response 201 { conversationId: string, message: MessageResponse }
+Errors   E_USER_NOT_FOUND, E_USER_SELF_ACTION, E_DM_NOT_CREATOR, E_DM_CLOSED,
+         E_DM_FOLLOWERS_ONLY, E_SOCIAL_BLOCKED, E_DM_TOO_LONG
+
+MessageResponse { id, conversationId, senderId, body, createdAt, mine: boolean }
+ConversationSummary {
+  id, other: PublicUser, startedByMe: boolean,
+  lastMessageAt, lastMessagePreview, lastMessageMine: boolean, unread: number
+}
+```
+
 ## 8. 신고 · 심사 (T12)
 
 | 메서드 | 경로 | 권한 | 설명 |
@@ -308,6 +339,8 @@ Response 503: { status: 'degraded', checks: { db: 'ok', redis: 'fail', storage: 
 | 업로드 총량 | 50GB / 1일 | userId |
 | `POST /api/episodes/*/comments` | 30회 / 10분 | userId |
 | `POST /api/reports` | 20회 / 1일 | userId |
+| `POST /api/conversations` (새 대화) | 20회 / 1일 | userId |
+| `POST /api/conversations/*/messages` | 20회 / 1분 | userId |
 | `POST /api/episodes/*/age-confirm` | 10회 / 10분 | userId 또는 IP |
 | `POST /api/episodes/*/progress` | 10회 / 1분 | userId+episodeId |
 | `POST /api/episodes/*/views` | 10회 / 1분 | userId 또는 IP |

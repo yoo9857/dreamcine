@@ -36,7 +36,7 @@ E_{도메인}_{사유}
 ```
 
 도메인: `AUTH` `PERM` `USER` `SERIES` `EPISODE` `UPLOAD` `ASSET` `MEDIA`
-`FEED` `SOCIAL` `COMMENT` `REPORT` `RATE` `STORAGE` `QUEUE` `DB` `SYS`
+`FEED` `SOCIAL` `COMMENT` `DM` `REPORT` `RATE` `STORAGE` `QUEUE` `DB` `SYS`
 
 ## 3. 카탈로그
 
@@ -119,6 +119,11 @@ E_{도메인}_{사유}
 | `E_COMMENT_TOO_LONG` | 422 | ✗ | 1000자 초과 |
 | `E_COMMENT_DEPTH_EXCEEDED` | 422 | ✗ | 대댓글 1단까지만 |
 | `E_COMMENT_DISABLED` | 403 | ✗ | 크리에이터가 댓글 차단 |
+| `E_DM_NOT_CREATOR` | 403 | ✗ | 제작 역할이 아닌 회원에게 대화를 열 수 없음 |
+| `E_DM_CLOSED` | 403 | ✗ | 받는 사람이 메시지를 받지 않음 |
+| `E_DM_FOLLOWERS_ONLY` | 403 | ✗ | 받는 사람이 팔로워에게만 받음 |
+| `E_DM_CONVERSATION_NOT_FOUND` | 404 | ✗ | 없는 대화 또는 참여자 아님 (존재 숨김) |
+| `E_DM_TOO_LONG` | 422 | ✗ | 2000자 초과 |
 
 ### 신고 · 심사
 
