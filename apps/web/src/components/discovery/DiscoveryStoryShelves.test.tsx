@@ -58,4 +58,48 @@ describe('DiscoveryStoryShelves', () => {
       screen.getAllByRole('link', { name: '내일의 기억 보기' }).length,
     ).toBe(5)
   })
+
+  it('ranks the trending row by views, not feed order', () => {
+    const quiet = {
+      ...liveItem,
+      episodeId: 'quiet',
+      title: '조용한 작품',
+      viewCount: '0',
+    }
+    const popular = {
+      ...liveItem,
+      episodeId: 'popular',
+      title: '인기 작품',
+      viewCount: '5000',
+    }
+    const view = render(<DiscoveryStoryShelves items={[quiet, popular]} />)
+
+    const trending = view.container.querySelector('#shelf-track-trending')
+    const first = trending?.querySelector('.discovery-shelf-card a')
+    expect(first?.getAttribute('aria-label')).toBe('인기 작품 보기')
+    expect(first?.querySelector('.discovery-shelf-rank')?.textContent).toBe('1')
+  })
+
+  it('shows a vertical video whole instead of cropping it to 16:9', () => {
+    const vertical: FeedItem = {
+      ...liveItem,
+      episodeId: 'vertical',
+      title: '세로 영상',
+      aspectRatio: 9 / 16,
+    }
+    const view = render(<DiscoveryStoryShelves items={[vertical, liveItem]} />)
+
+    const verticalCard = screen
+      .getAllByRole('link', { name: '세로 영상 보기' })[0]
+      ?.querySelector('.discovery-shelf-visual')
+    expect(verticalCard?.classList.contains('is-vertical')).toBe(true)
+    expect(
+      verticalCard?.querySelector('.discovery-shelf-backdrop'),
+    ).not.toBeNull()
+    const landscape = screen
+      .getAllByRole('link', { name: '실시간 인기 작품 보기' })[0]
+      ?.querySelector('.discovery-shelf-visual')
+    expect(landscape?.classList.contains('is-vertical')).toBe(false)
+    expect(view.container).toBeTruthy()
+  })
 })

@@ -1074,6 +1074,27 @@
   transition: transform 380ms ease;
 }
 
+/* 세로 영상: 16:9 칸에 9:16 전체를 가운데 두고, 같은 그림을 흐리게 깔아 양옆을
+   채운다. cover 로 자르면 세로 영상은 가운데 띠만 남는다. */
+.discovery-shelf-visual.is-vertical img {
+  position: relative;
+  z-index: 1;
+  width: auto;
+  height: 100%;
+  margin-inline: auto;
+  display: block;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+}
+
+.discovery-shelf-backdrop {
+  position: absolute;
+  inset: -12%;
+  background-position: center;
+  background-size: cover;
+  filter: blur(18px) brightness(0.55) saturate(1.2);
+}
+
 .discovery-shelf-card:hover .discovery-shelf-visual,
 .discovery-shelf-card:focus-within .discovery-shelf-visual {
   z-index: 2;

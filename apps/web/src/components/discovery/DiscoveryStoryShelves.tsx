@@ -1,6 +1,6 @@
 'use client'
 
-import type { FeedItem } from '@aidream/core'
+import { isShortFormWork, type FeedItem } from '@aidream/core'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -19,6 +19,8 @@ interface ShelfCard {
   readonly subtitle: string
   readonly imageUrl: string
   readonly viewCount?: string
+  /** 세로(9:16) 영상. 16:9 칸에서 잘리지 않게 전체를 가운데에 보여준다. */
+  readonly vertical?: boolean
 }
 
 const curatedCards: readonly ShelfCard[] = [
@@ -104,6 +106,24 @@ function rotate<T>(items: readonly T[], offset: number): readonly T[] {
   return [...items.slice(start), ...items.slice(0, start)]
 }
 
+/**
+ * "지금 가장 많이 보는" 순위. 조회수가 큰 순서로 세운다 — 피드 순서를 그대로
+ * 쓰면 1위에 조회 0 작품이 오기도 했다. 조회가 같으면 원래 순서를 지킨다.
+ */
+function byViews(cards: readonly ShelfCard[]): readonly ShelfCard[] {
+  return cards
+    .map((card, index) => ({ card, index }))
+    .sort((left, right) => {
+      const a =
+        left.card.viewCount === undefined ? -1n : BigInt(left.card.viewCount)
+      const b =
+        right.card.viewCount === undefined ? -1n : BigInt(right.card.viewCount)
+      if (a === b) return left.index - right.index
+      return b > a ? 1 : -1
+    })
+    .map(({ card }) => card)
+}
+
 function cardsFrom(items: readonly FeedItem[]): readonly ShelfCard[] {
   const liveCards = items.flatMap((item): readonly ShelfCard[] =>
     item.thumbUrl === null
@@ -116,6 +136,7 @@ function cardsFrom(items: readonly FeedItem[]): readonly ShelfCard[] {
             subtitle: `${item.series.title} · ${item.creator.displayName}`,
             imageUrl: item.thumbUrl,
             viewCount: item.viewCount,
+            vertical: isShortFormWork(item),
           },
         ],
   )
@@ -182,12 +203,26 @@ function ShelfTrack({
                   {index + 1}
                 </strong>
               ) : null}
-              <div className="discovery-shelf-visual">
+              <div
+                className={
+                  card.vertical === true
+                    ? 'discovery-shelf-visual is-vertical'
+                    : 'discovery-shelf-visual'
+                }
+              >
+                {card.vertical === true ? (
+                  // 같은 그림을 흐리게 깔아 양옆을 채우고, 원본 9:16 은 가운데에 통째로 둔다.
+                  <span
+                    className="discovery-shelf-backdrop"
+                    aria-hidden="true"
+                    style={{ backgroundImage: `url("${card.imageUrl}")` }}
+                  />
+                ) : null}
                 <Image
                   src={card.imageUrl}
                   alt=""
-                  width={480}
-                  height={270}
+                  width={card.vertical === true ? 270 : 480}
+                  height={card.vertical === true ? 480 : 270}
                   unoptimized={card.imageUrl.startsWith('http')}
                   sizes="(max-width: 767px) 54vw, (max-width: 1200px) 25vw, 18vw"
                 />
@@ -260,7 +295,7 @@ export function DiscoveryStoryShelves({
             </div>
           </header>
           <ShelfTrack
-            cards={rotate(cards, row.offset)}
+            cards={'ranked' in row ? byViews(cards) : rotate(cards, row.offset)}
             rowId={row.id}
             ranked={'ranked' in row}
           />
