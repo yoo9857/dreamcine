@@ -210,10 +210,12 @@ describe('database repository integration', () => {
 
     const consentRows = await repo.listUserConsents(optedIn.id)
     expect(consentRows).toHaveLength(3)
+    // `kind` 는 Postgres enum 이라 선언 순서(TOS → PRIVACY → MARKETING)로
+    // 정렬된다. 알파벳순이 아니다 — 필수 문서가 먼저 오는 이 순서가 화면에도 맞다.
     expect(consentRows.map((consent) => consent.kind)).toEqual([
-      'MARKETING',
-      'PRIVACY',
       'TOS',
+      'PRIVACY',
+      'MARKETING',
     ])
 
     await repo.setUserConsent({
