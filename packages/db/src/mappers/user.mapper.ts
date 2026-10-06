@@ -24,6 +24,7 @@ export function mapUser(row: PrismaUser): User {
     trailerEpisodeId: row.trailerEpisodeId,
     profileVisibility: row.profileVisibility,
     hideFollowerCount: row.hideFollowerCount,
+    dmPolicy: row.dmPolicy,
     verifiedAt: row.verifiedAt,
     country: row.country,
     locale: row.locale,

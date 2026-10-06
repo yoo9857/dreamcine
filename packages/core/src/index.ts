@@ -9,6 +9,7 @@ export {
   ContentLicense,
   CreditRole,
   DeletionRequestStatus,
+  DmPolicy,
   EpisodeStatus,
   Gender,
   LinkKind,
@@ -85,6 +86,40 @@ export {
   type NotificationPayload,
 } from './schemas/notification.schema.js'
 export { rankScore, type RankInput } from './rules/rank-score.js'
+export {
+  canSendInConversation,
+  canStartConversation,
+  type DirectMessageDenial,
+  type DirectMessageGate,
+  type DirectMessageParty,
+} from './rules/direct-message.js'
+export {
+  ConversationDetailSchema,
+  ConversationListQuerySchema,
+  ConversationPageSchema,
+  ConversationSummarySchema,
+  DirectMessageDenialSchema,
+  DmPolicySchema,
+  MessageListQuerySchema,
+  MessagePageSchema,
+  MessageResponseSchema,
+  SendMessageSchema,
+  StartConversationResponseSchema,
+  StartConversationSchema,
+  UnreadMessageCountSchema,
+  UpdateMessagingPreferenceSchema,
+  type ConversationDetail,
+  type ConversationListQuery,
+  type ConversationPage,
+  type ConversationSummary,
+  type MessageListQuery,
+  type MessagePage,
+  type MessageResponse,
+  type SendMessageInput,
+  type StartConversationInput,
+  type StartConversationResponse,
+  type UpdateMessagingPreferenceInput,
+} from './schemas/message.schema.js'
 export { aspectRatioOf, isShortFormWork } from './rules/work-format.js'
 export {
   PaginationSchema,

@@ -90,6 +90,28 @@ const MATRIX: Record<Action, Record<ActorRole, readonly [boolean, boolean]>> = {
     ADMIN: [true, true],
   },
 
+  // ── 메시지 보내기: 참여와 같다 (ISS-023)
+  'message.send': {
+    GUEST: [false, false],
+    VIEWER: [false, false],
+    MEMBER: [true, true],
+    CREATOR: [true, true],
+    PARTNER: [true, true],
+    MODERATOR: [true, true],
+    ADMIN: [true, true],
+  },
+
+  // ── 메시지함 열람: 로그인만 하면 된다
+  'message.read': {
+    GUEST: [false, false],
+    VIEWER: [true, true],
+    MEMBER: [true, true],
+    CREATOR: [true, true],
+    PARTNER: [true, true],
+    MODERATOR: [true, true],
+    ADMIN: [true, true],
+  },
+
   // ── 신고: 미인증 계정도 된다. 피해 신고를 인증 뒤에 두지 않는다
   'report.create': {
     GUEST: [false, false],

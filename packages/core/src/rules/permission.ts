@@ -31,6 +31,9 @@ export const ACTIONS = [
   'profile.update',
   'user.viewAudit',
   'monetization.view',
+  // ── ISS-023 1:1 메시지
+  'message.send',
+  'message.read',
 ] as const
 
 export type Action = (typeof ACTIONS)[number]
@@ -133,7 +136,12 @@ export function can(
     case 'social.follow':
     case 'social.like':
     case 'playlist.create':
+    case 'message.send':
       return canParticipate
+
+    // ── 메시지함 열람: 로그인만 하면 된다. 받은 답장을 인증 전에도 읽게 한다.
+    case 'message.read':
+      return !isGuest
 
     // ── 신고: 가입만 했으면 된다. 미인증 계정도 신고는 할 수 있어야 한다 —
     //    피해 신고를 인증 절차 뒤에 두면 그 시간만큼 피해가 계속된다.

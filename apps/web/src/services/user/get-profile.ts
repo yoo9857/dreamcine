@@ -76,6 +76,7 @@ async function runGetProfile(
     locale: user.locale,
     isVerified: user.verifiedAt !== null,
     role: user.role,
+    dmPolicy: user.dmPolicy,
     tier: user.tier,
     // 배지 여부는 내려보내지 않는다. `TIER_ALLOWANCE[tier].badge` 로 유도되는
     // 값이라 같이 실으면 두 값이 갈라질 수 있고, 갈라진 쪽이 화면에 뜬다.

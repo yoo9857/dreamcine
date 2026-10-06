@@ -90,6 +90,9 @@ export const ReportTarget = ['EPISODE', 'SERIES', 'COMMENT', 'USER'] as const
 
 export const Visibility = ['PUBLIC', 'UNLISTED', 'PRIVATE'] as const
 
+/** 1:1 메시지를 받는 범위 (ISS-023). */
+export const DmPolicy = ['EVERYONE', 'FOLLOWERS', 'NOBODY'] as const
+
 export const LinkKind = [
   'WEBSITE',
   'YOUTUBE',
@@ -169,6 +172,7 @@ export type AgeRating = (typeof AgeRating)[number]
 export type WorkType = (typeof WorkType)[number]
 export type Visibility = (typeof Visibility)[number]
 export type LinkKind = (typeof LinkKind)[number]
+export type DmPolicy = (typeof DmPolicy)[number]
 export type ConsentKind = (typeof ConsentKind)[number]
 export type ContentLicense = (typeof ContentLicense)[number]
 export type CreditRole = (typeof CreditRole)[number]

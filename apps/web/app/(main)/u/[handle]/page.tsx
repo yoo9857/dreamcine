@@ -66,6 +66,7 @@ const PREVIEW_PROFILE: UserProfile = {
   locale: 'ko-KR',
   isVerified: true,
   role: 'CREATOR',
+  dmPolicy: 'EVERYONE',
   tier: 'GOLD',
   tierPoints: 18_400,
   followerCount: 12_840,

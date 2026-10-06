@@ -142,6 +142,12 @@ enum LinkKind {
   OTHER
 }
 
+enum DmPolicy {
+  EVERYONE
+  FOLLOWERS
+  NOBODY
+}
+
 enum ConsentKind {
   TOS
   PRIVACY
@@ -234,6 +240,7 @@ model User {
   trailerEpisodeId   String?    @map("trailer_episode_id")
   profileVisibility  Visibility @default(PUBLIC) @map("profile_visibility")
   hideFollowerCount  Boolean    @default(false) @map("hide_follower_count")
+  dmPolicy           DmPolicy   @default(EVERYONE) @map("dm_policy")
   verifiedAt         DateTime?  @map("verified_at")
 
   // ───── 지역·언어 (12_GLOBAL_EXPANSION §2 language != market)
@@ -277,19 +284,22 @@ model User {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  series         Series[]
-  uploadSessions UploadSession[]
-  likes          Like[]
-  comments       Comment[]
-  watchProgress  WatchProgress[]
-  following      Follow[]        @relation("follower")
-  followers      Follow[]        @relation("following")
-  blocking       Block[]         @relation("blocker")
-  blockedBy      Block[]         @relation("blocked")
-  notifications  Notification[]
-  reportsMade    Report[]        @relation("reporter")
-  accounts       Account[]
-  sessions       Session[]
+  series                Series[]
+  uploadSessions        UploadSession[]
+  likes                 Like[]
+  comments              Comment[]
+  watchProgress         WatchProgress[]
+  following             Follow[]        @relation("follower")
+  followers             Follow[]        @relation("following")
+  blocking              Block[]         @relation("blocker")
+  blockedBy             Block[]         @relation("blocked")
+  notifications         Notification[]
+  conversationsStarted  Conversation[]  @relation("dmInitiator")
+  conversationsReceived Conversation[]  @relation("dmRecipient")
+  directMessages        DirectMessage[]
+  reportsMade           Report[]        @relation("reporter")
+  accounts              Account[]
+  sessions              Session[]
 
   trailerEpisode  Episode?                 @relation("channelTrailer", fields: [trailerEpisodeId], references: [id], onDelete: SetNull)
   links           UserLink[]
@@ -646,6 +656,43 @@ model Comment {
   @@index([episodeId, createdAt(sort: Desc)])
   @@index([parentId, createdAt])
   @@map("comment")
+}
+
+/// 1:1 대화. 두 사람 사이에 하나 (ISS-023, T18).
+/// `initiator` 는 대화를 연 쪽(독자), `recipient` 는 받은 쪽(작가)이다.
+model Conversation {
+  id                 String   @id @default(cuid())
+  initiatorId        String   @map("initiator_id")
+  recipientId        String   @map("recipient_id")
+  lastMessageAt      DateTime @default(now()) @map("last_message_at")
+  lastMessagePreview String   @default("") @map("last_message_preview") @db.VarChar(120)
+  lastSenderId       String?  @map("last_sender_id")
+  initiatorUnread    Int      @default(0) @map("initiator_unread")
+  recipientUnread    Int      @default(0) @map("recipient_unread")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  initiator User            @relation("dmInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  recipient User            @relation("dmRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  messages  DirectMessage[]
+
+  @@unique([initiatorId, recipientId])
+  @@index([initiatorId, lastMessageAt(sort: Desc)])
+  @@index([recipientId, lastMessageAt(sort: Desc)])
+  @@map("conversation")
+}
+
+model DirectMessage {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  body           String   @db.VarChar(2000)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("direct_message")
 }
 
 model WatchProgress {

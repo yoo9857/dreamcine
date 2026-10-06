@@ -1,5 +1,6 @@
 import type {
   AgeRating,
+  DmPolicy,
   AssetStatus,
   EpisodeStatus,
   NotifType,
@@ -45,6 +46,8 @@ export interface User {
   trailerEpisodeId: string | null
   profileVisibility: Visibility
   hideFollowerCount: boolean
+  /** 1:1 메시지를 받는 범위 (ISS-023). */
+  dmPolicy: DmPolicy
   verifiedAt: Date | null
   country: string | null
   locale: string
@@ -270,6 +273,8 @@ export interface UserProfile extends PublicUserSummary {
   country: string | null
   locale: string
   role: UserRole
+  /** 작가 페이지가 "메시지" 버튼 상태를 정하는 데 쓴다. */
+  dmPolicy: DmPolicy
   tierPoints: number
   /**
    * `hideFollowerCount` 가 켜지면 `null` 이다. 0 이나 실제 값을 보내고 UI 에서
