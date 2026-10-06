@@ -404,9 +404,13 @@ export default async function ProfilePage({
     )
     // 가장 많이 본 롱폼을 그리드 첫 칸에 2x2 로 키운다. 따로 큰 영역을 두면
     // 노트북 첫 화면이 그것으로 차서 다른 작품이 보이지 않는다.
+    // 조회가 하나도 없으면 "인기 1위" 가 거짓말이 된다. 키우지 않는다.
     const featured =
       longFormByDate.length >= 3
-        ? byViews.find((item) => item.workType !== 'SHORT_FORM')
+        ? byViews.find(
+            (item) =>
+              item.workType !== 'SHORT_FORM' && Number(item.totalViews) > 0,
+          )
         : undefined
     const longForm =
       featured === undefined
