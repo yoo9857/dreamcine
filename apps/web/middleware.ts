@@ -38,6 +38,10 @@ export function contentSecurityPolicy(nonce: string): string {
   */
   const cdn = cdnOrigin()
   const storage = objectStorageOrigin()
+  // THREAD(Higgsfield × ilog) 임베드. 세그먼트는 cdn, 포스터는 CloudFront.
+  // Safari 는 m3u8 을 media 로 직접 열고, 그 외는 hls.js 가 connect 로 받는다.
+  const higgsfieldHls = 'https://cdn.higgsfield.ai'
+  const higgsfieldImage = 'https://d2ol7oe51mr4n9.cloudfront.net'
   // Next 개발 번들의 소스맵/HMR 런타임만 eval을 사용한다. 운영 정책은 기존처럼
   // nonce 기반으로 유지해 `unsafe-eval`을 절대 포함하지 않는다.
   const scriptSource =
@@ -57,11 +61,16 @@ export function contentSecurityPolicy(nonce: string): string {
     "default-src 'self'",
     scriptSource,
     "style-src 'self' 'unsafe-inline'",
-    withSources("img-src 'self' data: blob:", [cdn]),
-    withSources("media-src 'self' blob:", [cdn]),
+    withSources("img-src 'self' data: blob:", [
+      cdn,
+      higgsfieldImage,
+      higgsfieldHls,
+    ]),
+    withSources("media-src 'self' blob:", [cdn, higgsfieldHls]),
     withSources("connect-src 'self'", [
       cdn,
       storage,
+      higgsfieldHls,
       'https://basemaps.cartocdn.com',
       'https://tiles.basemaps.cartocdn.com',
       'https://*.basemaps.cartocdn.com',

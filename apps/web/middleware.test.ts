@@ -34,7 +34,7 @@ describe('contentSecurityPolicy', () => {
     const connect = directives.find((part) => part.startsWith('connect-src'))
 
     expect(connect).toBe(
-      `connect-src 'self' https://cdn.example.com https://jp-osa-1.linodeobjects.com ${MAP_SOURCES}`,
+      `connect-src 'self' https://cdn.example.com https://jp-osa-1.linodeobjects.com https://cdn.higgsfield.ai ${MAP_SOURCES}`,
     )
   })
 
@@ -48,7 +48,7 @@ describe('contentSecurityPolicy', () => {
       .find((part) => part.startsWith('connect-src'))
 
     expect(connect).toBe(
-      `connect-src 'self' http://127.0.0.1:9000 ${MAP_SOURCES}`,
+      `connect-src 'self' http://127.0.0.1:9000 https://cdn.higgsfield.ai ${MAP_SOURCES}`,
     )
   })
 

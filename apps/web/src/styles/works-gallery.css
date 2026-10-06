@@ -280,6 +280,101 @@
   gap: 30px 18px;
 }
 
+.works-partner-list {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.works-partner-film {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.7fr);
+  gap: 22px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 18px;
+  background: #0c1820;
+}
+
+.works-partner-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #07131a;
+}
+
+.works-partner-stage video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3840 / 1648;
+  object-fit: contain;
+  background: #07131a;
+}
+
+.works-partner-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #fff;
+  background: linear-gradient(180deg, rgb(5 12 16 / 8%), rgb(5 12 16 / 28%));
+  cursor: pointer;
+}
+
+.works-partner-play svg {
+  width: 22px;
+  height: 22px;
+  padding: 16px;
+  border-radius: 50%;
+  fill: currentcolor;
+  background: #ff3448;
+  box-shadow: 0 12px 30px rgb(255 30 45 / 35%);
+}
+
+.works-partner-copy {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px 8px 4px;
+}
+
+.works-partner-copy > span {
+  color: #ff3448;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.works-partner-copy h3 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.works-partner-copy p {
+  margin: 0;
+  color: #8d9aa3;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.works-partner-copy p + p {
+  color: #c6cfd5;
+  font-size: 12px;
+}
+
+.works-partner-copy a {
+  width: fit-content;
+  margin-top: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .works-long-card {
   min-width: 0;
 }
@@ -772,6 +867,18 @@
   .works-long-grid {
     grid-template-columns: 1fr;
     gap: 28px;
+  }
+  .works-partner-list {
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .works-partner-film {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 10px;
+  }
+  .works-partner-copy {
+    padding: 4px 6px 8px;
   }
   .works-long-visual {
     border-radius: 10px;

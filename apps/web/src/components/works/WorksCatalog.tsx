@@ -8,6 +8,8 @@ import React, { useMemo, useState, type ReactNode } from 'react'
 
 import { useInfiniteFeed } from '@/src/hooks/use-infinite-feed'
 
+import { HiggsfieldThread } from './HiggsfieldThread'
+
 type WorkFormat = 'all' | 'long' | 'short'
 
 function formatDuration(durationSec: number | null): string {
@@ -227,9 +229,8 @@ export function WorksCatalog({
               </div>
               <small>{longForm.length} LOADED</small>
             </header>
-            {longForm.length === 0 ? (
-              <EmptyFormat label="롱폼" />
-            ) : (
+            <HiggsfieldThread />
+            {longForm.length === 0 ? null : (
               <div className="works-long-grid">
                 {longForm.map((item) => (
                   <LongFormCard item={item} key={item.episodeId} />
