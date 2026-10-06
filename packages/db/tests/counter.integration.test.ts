@@ -66,16 +66,23 @@ describe('T10 counter reconciliation', () => {
       new Date(Date.now() - 60_000),
     )
     await context.repo.incrementEpisodeViews(episode.id, 3n)
-    const [updatedEpisode, updatedCreator] = await Promise.all([
+    await context.repo.incrementEpisodeViews(episode.id, 2n)
+    const [updatedEpisode, updatedCreator, updatedSeries] = await Promise.all([
       context.database.episode.findUniqueOrThrow({ where: { id: episode.id } }),
       context.database.user.findUniqueOrThrow({ where: { id: creator.id } }),
+      context.database.series.findUniqueOrThrow({
+        where: { id: episode.seriesId },
+      }),
     ])
     expect(mismatches.length).toBeGreaterThanOrEqual(3)
     expect(updatedEpisode).toMatchObject({
       likeCount: 1,
       commentCount: 1,
-      viewCount: 3n,
+      viewCount: 5n,
     })
     expect(updatedCreator.followerCount).toBe(1)
+    // 조회는 회차·작품·작가 합계에 함께 쌓인다
+    expect(updatedSeries.totalViews).toBe(5n)
+    expect(updatedCreator.totalViews).toBe(5n)
   })
 })

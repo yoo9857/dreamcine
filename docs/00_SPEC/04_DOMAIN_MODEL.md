@@ -1146,9 +1146,11 @@ CREATED ──▶ UPLOADING ──▶ UPLOADED
 | `Episode.avgWatchSec` | `WatchProgress` 집계 배치가 덮어쓴다 | 배치가 진실 |
 | `Series.episodeCount` | 상태 전이 시 재계산 | |
 | `Series.totalLikes` · `Series.followerCount` | 하위 에피소드 집계 배치 | 배치가 진실 |
+| `Series.totalViews` | `counter.flush` 가 `Episode.viewCount` 와 같은 트랜잭션에서 `increment` (2026-10-06) | 기존 값은 마이그레이션 `20261006100000_backfill_total_views` 로 채움 |
 | `User.followerCount` | 트랜잭션 내 동시 갱신 | |
 | `User.followingCount` | `Follow` 삽입/삭제와 동시 갱신 | 야간 배치 대조 |
-| `User.episodeCount` · `User.totalViews` | 소유 시리즈 집계 배치 | 배치가 진실 |
+| `User.episodeCount` | 소유 시리즈 집계 배치 | 배치가 진실 |
+| `User.totalViews` | `counter.flush` 가 회차·작품과 같은 트랜잭션에서 `increment` (2026-10-06) | 위 마이그레이션으로 채움 |
 | `Playlist.itemCount` | `PlaylistItem` 삽입/삭제와 동시 갱신 | |
 | `User.tierPoints` · `User.tier` | `tier.reevaluate` 배치가 `evaluateTier()` 로 덮어쓴다 | 배치가 진실. **하락도 반영한다** |
 | `Tag.useCount` | 태그 연결/해제 시 | |
