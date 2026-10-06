@@ -11,8 +11,9 @@ export function RouteTransition({
   const pathname = usePathname()
   const isDiscoveryHome = pathname === '/' || pathname === '/browse'
   const isBrowseHome = pathname === '/browse'
-  const isProfileShowcase = pathname.startsWith('/u/')
-  const isWorkShowcase = pathname.startsWith('/series/')
+  // 작가·작품 페이지는 같은 어두운 셸(상단 바 + 레일)을 쓴다.
+  const isProfileShowcase =
+    pathname.startsWith('/u/') || pathname.startsWith('/series/')
   const isWorksGallery = pathname === '/works'
   const isCreatorsGallery = pathname === '/creators'
   const isWatchExperience = pathname.startsWith('/watch/')
@@ -25,7 +26,7 @@ export function RouteTransition({
 
   return (
     <div
-      className={`aidream-route-view${isDiscoveryHome ? ' is-discovery-home' : ''}${isBrowseHome ? ' is-browse-home' : ''}${isProfileShowcase || isMessages ? ' is-profile-showcase' : ''}${isWorkShowcase ? ' is-work-showcase' : ''}${isWorksGallery ? ' is-works-gallery' : ''}${isCreatorsGallery ? ' is-creators-gallery' : ''}${isWatchExperience ? ' is-watch-experience' : ''}`}
+      className={`aidream-route-view${isDiscoveryHome ? ' is-discovery-home' : ''}${isBrowseHome ? ' is-browse-home' : ''}${isProfileShowcase || isMessages ? ' is-profile-showcase' : ''}${isWorksGallery ? ' is-works-gallery' : ''}${isCreatorsGallery ? ' is-creators-gallery' : ''}${isWatchExperience ? ' is-watch-experience' : ''}`}
     >
       {children}
     </div>

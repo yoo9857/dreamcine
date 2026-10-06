@@ -394,17 +394,6 @@
   animation-name: aidream-theme-ripple;
 }
 
-:root[data-theme-transition] .series-showcase,
-:root[data-theme-transition] .series-floating-header,
-:root[data-theme-transition] .series-intro,
-:root[data-theme-transition] .series-facts > div,
-:root[data-theme-transition] .series-other-works,
-:root[data-theme-transition] .series-other-card > a,
-:root[data-theme-transition] .series-other-label,
-:root[data-theme-transition] .series-creator-card {
-  transition: none;
-}
-
 @keyframes aidream-theme-ripple {
   from {
     clip-path: circle(

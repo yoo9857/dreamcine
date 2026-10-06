@@ -1,22 +1,29 @@
-import { type PlaybackResponse, type SeriesResponse } from '@aidream/core'
+import {
+  type AgeRating,
+  type EpisodeResponse,
+  type PlaybackResponse,
+  type SeriesResponse,
+} from '@aidream/core'
 import { findSeriesById, listEpisodesBySeries } from '@aidream/db'
 import type { Metadata } from 'next'
 import { Avatar } from '@aidream/ui'
-import { ArrowUpRight, Play } from 'lucide-react'
-import { cookies, headers } from 'next/headers'
+import { ArrowRight, BadgeCheck, Play } from 'lucide-react'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
+import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
+import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import { WatchPlayer } from '@/src/components/player/HlsPlayer'
+import { ProfileShareButton } from '@/src/components/profile/ProfileShareButton'
 import { JsonLd } from '@/src/components/seo/JsonLd'
-import { ShowcaseThemeToggle } from '@/src/components/showcase/ShowcaseThemeToggle'
+import { workTypeLabel } from '@/src/components/studio/work-types'
 import {
   buildSeriesJsonLd,
   buildSeriesMetadata,
 } from '@/src/lib/seo/series-metadata'
-import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import '@/src/styles/player.css'
 import '@/src/styles/series-showcase.css'
 import { getPlayback } from '@/src/services/episode/get-playback'
@@ -78,22 +85,42 @@ const PREVIEW_CREATOR: SeriesCreator = {
   isVerified: true,
 }
 
-function Corner({
-  className = '',
-}: {
-  readonly className?: string
-}): ReactNode {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      viewBox="0 0 18 18"
-      width="18"
-      height="18"
-    >
-      <path d="M0 0v18C0 8.059 8.059 0 18 0Z" />
-    </svg>
-  )
+/** 미리보기 작품(`preview-1`)의 회차. DB 에 없는 데모라 재생 링크는 걸지 않는다. */
+const PREVIEW_EPISODE_TITLES = [
+  '사라지는 장면',
+  '기억 보관소',
+  '세 번째 선택',
+  '되감기',
+  '빈 프레임',
+  '서로의 내일',
+  '마지막 상영',
+  '내일의 기억',
+] as const
+
+function previewEpisodes(series: SeriesResponse): EpisodeResponse[] {
+  if (series.id !== 'preview-1') return []
+  return PREVIEW_EPISODE_TITLES.map((title, index) => ({
+    id: `preview-ep-${String(index + 1)}`,
+    seriesId: series.id,
+    seasonId: null,
+    assetId: null,
+    number: index + 1,
+    title,
+    description:
+      index === 0
+        ? '기억을 영상으로 보관하는 회사에 첫 출근한 날, 지워져야 할 장면 하나가 사라지지 않는다.'
+        : null,
+    status: 'PUBLISHED',
+    ageRating: series.ageRating,
+    aiDisclosure: null,
+    publishAt: null,
+    publishedAt: new Date(Date.UTC(2026, 7, 26 + index * 7)).toISOString(),
+    viewCount: String(Math.round(48_000 / (index + 1))),
+    likeCount: 0,
+    commentCount: 0,
+    createdAt: series.createdAt,
+    updatedAt: series.updatedAt,
+  }))
 }
 
 function posterFor(series: SeriesResponse, index = 0): string {
@@ -101,6 +128,86 @@ function posterFor(series: SeriesResponse, index = 0): string {
     series.posterUrl ??
     PREVIEW_POSTERS.at(index % PREVIEW_POSTERS.length) ??
     '/brand/posters/tomorrow.png'
+  )
+}
+
+const AGE_LABELS: Readonly<Record<AgeRating, string>> = {
+  ALL: '전체 관람가',
+  A12: '12세 이상',
+  A15: '15세 이상',
+  A19: '청소년 관람불가',
+}
+
+const COMPACT = new Intl.NumberFormat('ko-KR', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+function compact(value: string | number): string {
+  const number = Number(value)
+  return Number.isFinite(number) ? COMPACT.format(number) : '0'
+}
+
+const DATE = new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'Asia/Seoul',
+})
+
+function EpisodeRow({
+  episode,
+  fallbackImage,
+  playable,
+}: {
+  readonly episode: EpisodeResponse
+  readonly fallbackImage: string
+  readonly playable: boolean
+}): ReactNode {
+  const body = (
+    <>
+      <span className="sp-ep-thumb">
+        <img
+          src={episode.thumbUrl ?? fallbackImage}
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+        <span className="sp-ep-number">{episode.number}화</span>
+        {playable ? (
+          <span className="sp-ep-play" aria-hidden="true">
+            <Play fill="currentColor" />
+          </span>
+        ) : null}
+      </span>
+      <span className="sp-ep-copy">
+        <strong>{episode.title}</strong>
+        {episode.description === null ? null : (
+          <span className="sp-ep-desc">{episode.description}</span>
+        )}
+        <small>
+          {episode.publishedAt === null
+            ? '공개 예정'
+            : DATE.format(new Date(episode.publishedAt))}
+          {' · '}조회 {compact(episode.viewCount)}
+        </small>
+      </span>
+    </>
+  )
+  return (
+    <li>
+      {playable ? (
+        <Link
+          href={`/watch/${episode.id}`}
+          className="sp-ep"
+          aria-label={`${String(episode.number)}화 ${episode.title} 보기`}
+        >
+          {body}
+        </Link>
+      ) : (
+        <div className="sp-ep">{body}</div>
+      )}
+    </li>
   )
 }
 
@@ -112,25 +219,22 @@ function OtherWorkCard({
   readonly index: number
 }): ReactNode {
   return (
-    <article className="series-other-card">
+    <li className="sp-card">
       <Link href={`/series/${series.id}`}>
-        <div className="series-other-image">
-          <img src={posterFor(series, index)} alt={`${series.title} 포스터`} />
-          <span className="series-other-label">
-            <span>작품 보기</span>
-            <span className="series-other-label-arrow">
-              <ArrowUpRight aria-hidden="true" />
-            </span>
-            <Corner className="series-other-label-corner series-other-label-corner-bottom" />
-            <Corner className="series-other-label-corner series-other-label-corner-right" />
+        <span className="sp-card-media">
+          <img src={posterFor(series, index)} alt="" loading="lazy" />
+          <span className="sp-card-badge">
+            {workTypeLabel(series.workType)}
           </span>
-        </div>
-        <div className="series-other-copy">
+        </span>
+        <span className="sp-card-copy">
           <strong>{series.title}</strong>
-          <small>{series.episodeCount} EPISODES</small>
-        </div>
+          <small>
+            {series.episodeCount}화 · 조회 {compact(series.totalViews)}
+          </small>
+        </span>
       </Link>
-    </article>
+    </li>
   )
 }
 
@@ -173,22 +277,21 @@ export default async function SeriesPage({
 }: {
   readonly params: Promise<{ seriesId: string }>
 }): Promise<ReactNode> {
-  const { seriesId } = await params
-  const cookieStore = await cookies()
-  const currentTheme =
-    parseTheme(cookieStore.get(THEME_COOKIE)?.value) ?? 'dark'
+  const [{ seriesId }, session] = await Promise.all([
+    params,
+    getServerSession(),
+  ])
   const isPortfolioPreview = /^preview-[1-5]$/u.test(seriesId)
 
   let detail: SeriesDetailResponse
   let creator: SeriesCreator
   let otherSeries: readonly SeriesResponse[]
   let playback: PlaybackResponse | null = null
-  let authenticated = false
 
   if (isPortfolioPreview) {
     const selected = PREVIEW_WORKS.find((series) => series.id === seriesId)
     if (selected === undefined) notFound()
-    detail = { series: selected, episodes: [] }
+    detail = { series: selected, episodes: previewEpisodes(selected) }
     creator = PREVIEW_CREATOR
     otherSeries = PREVIEW_WORKS.filter((series) => series.id !== seriesId)
   } else {
@@ -200,15 +303,11 @@ export default async function SeriesPage({
       (series) => series.id !== detail.series.id,
     )
 
-    const firstEpisode = detail.episodes[0]
-    if (firstEpisode !== undefined) {
-      const [session, requestHeaders] = await Promise.all([
-        getServerSession(),
-        headers(),
-      ])
-      authenticated = session !== null
+    const first = detail.episodes[0]
+    if (first !== undefined) {
+      const requestHeaders = await headers()
       playback = await getPlayback({
-        episodeId: firstEpisode.id,
+        episodeId: first.id,
         session,
         cookieHeader: requestHeaders.get('cookie'),
         now: new Date(),
@@ -216,8 +315,12 @@ export default async function SeriesPage({
     }
   }
 
-  const releaseYear = new Date(detail.series.createdAt).getFullYear()
+  const { series } = detail
+  const releaseYear = new Date(series.createdAt).getFullYear()
   const firstEpisode = detail.episodes[0]
+  const poster = posterFor(series)
+  // 미리보기 회차는 DB 에 없어 재생 화면으로 보낼 수 없다.
+  const playable = !isPortfolioPreview
 
   /*
     구조화 데이터는 API 응답(`SeriesResponse`)이 아니라 도메인 엔티티에서
@@ -241,154 +344,148 @@ export default async function SeriesPage({
         })
 
   return (
-    <div className="series-showcase">
+    <div className="series-page" id="discovery-top">
       {jsonLdDocuments.map((document, index) => (
         <JsonLd key={`jsonld-${String(index)}`} document={document} />
       ))}
-      <header className="series-floating-header">
-        <nav aria-label="작품 메뉴">
-          <Link href="/" className="series-wordmark" aria-label="ilog 홈">
-            <Play aria-hidden="true" fill="currentColor" />
-            <span>ILOG</span>
-          </Link>
-          <div className="series-header-links">
-            <Link href={`/u/${creator.handle}`}>작가</Link>
-            <a href="#watch">영상</a>
-            <a href="#other-works">다른 작품</a>
+      <DiscoveryTopbar user={session?.user ?? null} />
+
+      <main className="sp">
+        <section className="sp-hero" aria-labelledby="sp-title">
+          <div className="sp-hero-glow" aria-hidden="true">
+            <img src={poster} alt="" />
           </div>
-          <ShowcaseThemeToggle
-            current={currentTheme}
-            className="series-theme-pill"
-          />
-        </nav>
-        <Corner className="series-corner series-corner-bottom" />
-        <Corner className="series-corner series-corner-right" />
-      </header>
 
-      <a className="series-mobile-menu" href="#watch">
-        <span>Menu</span>
-        <Corner className="series-mobile-corner-bottom" />
-        <Corner className="series-mobile-corner-left" />
-      </a>
-
-      <div className="series-layout">
-        <aside className="series-cover-wrap">
-          <div className="series-cover">
-            <img
-              src={posterFor(detail.series)}
-              alt={`${detail.series.title} 대표 이미지`}
-            />
-            <div className="series-cover-label">
-              <span>{detail.series.title}</span>
-              <Corner className="series-cover-label-bottom" />
-              <Corner className="series-cover-label-right" />
-            </div>
-          </div>
-        </aside>
-
-        <main className="series-content">
-          <section className="series-intro">
-            <div className="series-intro-heading">
-              <p className="series-intro-kicker">
-                FILM · {String(releaseYear)}
-              </p>
-              <h1>{detail.series.title}</h1>
-            </div>
-            <p className="series-intro-description">
-              {detail.series.synopsis ?? '작품 소개가 아직 없습니다.'}
+          <div className="sp-hero-copy">
+            <p className="sp-kicker">
+              <span>{workTypeLabel(series.workType)}</span>
+              <span>{releaseYear}</span>
+              <span>{AGE_LABELS[series.ageRating]}</span>
+              <span className={series.isCompleted ? 'is-done' : 'is-live'}>
+                {series.isCompleted ? '완결' : '연재 중'}
+              </span>
             </p>
-          </section>
+            <h1 id="sp-title">{series.title}</h1>
+            <p className="sp-synopsis">
+              {series.synopsis ?? '작품 소개가 아직 없습니다.'}
+            </p>
+            <p className="sp-stats">
+              {series.episodeCount}화 · 조회 {compact(series.totalViews)}
+            </p>
 
-          <section className="series-video-section" id="watch">
-            <div className="series-video-frame">
-              {playback === null ? (
-                <div className="series-video-unavailable">
-                  <Play aria-hidden="true" />
-                  <p>현재 재생 가능한 영상이 없습니다.</p>
-                  {firstEpisode === undefined ? null : (
-                    <Link href={`/watch/${firstEpisode.id}`}>
-                      에피소드 보기
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <WatchPlayer
-                  episodeId={playback.episodeId}
-                  authenticated={authenticated}
-                  masterUrl={playback.masterUrl}
-                  {...(playback.posterUrl === undefined
-                    ? {}
-                    : { posterUrl: playback.posterUrl })}
-                  {...(playback.spriteUrl === undefined
-                    ? {}
-                    : { spriteUrl: playback.spriteUrl })}
-                  {...(playback.spriteVttUrl === undefined
-                    ? {}
-                    : { spriteVttUrl: playback.spriteVttUrl })}
-                  startAtSec={playback.startAtSec}
-                  durationSec={playback.durationSec}
-                />
-              )}
-            </div>
-          </section>
-
-          <dl className="series-facts">
-            <div>
-              <dt>배경</dt>
-              <dd>ILOG ORIGINAL · {detail.series.ageRating}</dd>
-            </div>
-            <div>
-              <dt>출시년</dt>
-              <dd>{releaseYear}</dd>
-            </div>
-            <div>
-              <dt>작가</dt>
-              <dd>
-                <Link href={`/u/${creator.handle}`}>
-                  {creator.displayName} · @{creator.handle}
+            <div className="sp-actions">
+              {firstEpisode !== undefined && playable ? (
+                <Link href={`/watch/${firstEpisode.id}`} className="sp-play">
+                  <Play aria-hidden="true" fill="currentColor" />
+                  1화 보기
                 </Link>
-              </dd>
+              ) : (
+                <a href="#episodes" className="sp-play">
+                  <Play aria-hidden="true" fill="currentColor" />
+                  회차 보기
+                </a>
+              )}
+              <ProfileShareButton title={`${series.title} · ilog`} />
             </div>
-            <div>
-              <dt>에피소드</dt>
-              <dd>{detail.series.episodeCount}</dd>
-            </div>
-          </dl>
 
-          <section className="series-creator-card">
-            <Avatar
-              name={creator.displayName}
-              src={creator.avatarUrl}
-              size="lg"
-              className="series-creator-avatar"
-            />
-            <div>
-              <span>CREATED BY</span>
-              <h2>{creator.displayName}</h2>
-              <p>@{creator.handle}</p>
-            </div>
-            <Link href={`/u/${creator.handle}`}>
-              작가 프로필
-              <ArrowUpRight aria-hidden="true" />
+            <Link href={`/u/${creator.handle}`} className="sp-creator">
+              <Avatar
+                name={creator.displayName}
+                src={creator.avatarUrl}
+                size="md"
+                className="sp-creator-avatar"
+              />
+              <span>
+                <small>작가</small>
+                <strong>
+                  {creator.displayName}
+                  {creator.isVerified ? (
+                    <BadgeCheck role="img" aria-label="인증 채널" />
+                  ) : null}
+                </strong>
+              </span>
+              <ArrowRight aria-hidden="true" />
             </Link>
-          </section>
-        </main>
-      </div>
-
-      <section className="series-other-works" id="other-works">
-        <header>
-          <div>
-            <p>MORE FROM THE CREATOR</p>
-            <h2>다른 작품들</h2>
           </div>
-          <Link href={`/u/${creator.handle}`}>전체 보기</Link>
-        </header>
-        <div className="series-other-grid">
-          {otherSeries.slice(0, 4).map((series, index) => (
-            <OtherWorkCard key={series.id} series={series} index={index} />
-          ))}
-        </div>
-      </section>
+
+          <div className="sp-media" id="watch">
+            {playback === null ? (
+              <div className="sp-media-poster">
+                <img src={poster} alt={`${series.title} 대표 이미지`} />
+                {firstEpisode !== undefined && playable ? (
+                  <Link
+                    href={`/watch/${firstEpisode.id}`}
+                    className="sp-media-play"
+                    aria-label="1화 재생"
+                  >
+                    <Play aria-hidden="true" fill="currentColor" />
+                  </Link>
+                ) : null}
+              </div>
+            ) : (
+              <WatchPlayer
+                episodeId={playback.episodeId}
+                authenticated={session !== null}
+                masterUrl={playback.masterUrl}
+                {...(playback.posterUrl === undefined
+                  ? {}
+                  : { posterUrl: playback.posterUrl })}
+                {...(playback.spriteUrl === undefined
+                  ? {}
+                  : { spriteUrl: playback.spriteUrl })}
+                {...(playback.spriteVttUrl === undefined
+                  ? {}
+                  : { spriteVttUrl: playback.spriteVttUrl })}
+                startAtSec={playback.startAtSec}
+                durationSec={playback.durationSec}
+              />
+            )}
+          </div>
+        </section>
+
+        <section className="sp-section" id="episodes" aria-labelledby="sp-eps">
+          <header className="sp-section-head">
+            <h2 id="sp-eps">
+              회차 <span>{detail.episodes.length}</span>
+            </h2>
+          </header>
+          {detail.episodes.length === 0 ? (
+            <div className="sp-empty">
+              <strong>아직 공개된 회차가 없습니다</strong>
+              <p>첫 회차가 공개되면 이곳에서 바로 볼 수 있습니다.</p>
+            </div>
+          ) : (
+            <ol className="sp-episodes">
+              {detail.episodes.map((episode) => (
+                <EpisodeRow
+                  key={episode.id}
+                  episode={episode}
+                  fallbackImage={poster}
+                  playable={playable}
+                />
+              ))}
+            </ol>
+          )}
+        </section>
+
+        {otherSeries.length === 0 ? null : (
+          <section className="sp-section" aria-labelledby="sp-more">
+            <header className="sp-section-head">
+              <h2 id="sp-more">{creator.displayName}의 다른 작품</h2>
+              <Link href={`/u/${creator.handle}`} className="sp-more">
+                작가 페이지 <ArrowRight aria-hidden="true" />
+              </Link>
+            </header>
+            <ul className="sp-grid">
+              {otherSeries.slice(0, 8).map((item, index) => (
+                <OtherWorkCard key={item.id} series={item} index={index + 1} />
+              ))}
+            </ul>
+          </section>
+        )}
+      </main>
+
+      <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
     </div>
   )
 }
