@@ -19,6 +19,7 @@
   margin: 0 auto;
   padding: 132px 32px 110px;
 }
+/* 위 규칙은 예전 이벤트 화면용이다. 지금 화면(.events-board-modern)은 아래에서 덮는다. */
 .events-hero {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -239,7 +240,7 @@
   white-space: nowrap;
 }
 @media (max-width: 767px) {
-  .events-board {
+  .events-board:not(.events-board-modern) {
     padding: 92px 16px 70px;
   }
   .events-hero {
@@ -281,12 +282,74 @@
   }
 }
 
-.events-board-modern {
-  padding-top: 92px;
+/* 상단 바·다른 목록 화면과 같은 폭·간격. 예전에는 1180px 로 좁히고 위를 92px
+   비워, 상단 바와 가장자리가 어긋나고 첫 화면이 빈 공간으로 시작했다. */
+.events-board.events-board-modern {
+  width: 100%;
+  display: grid;
+  gap: 30px;
+  padding: 0 0 40px;
+}
+
+.events-page-hero {
+  min-height: 142px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  overflow: hidden;
+  padding: 20px 30px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(3 12 18 / 98%) 0%,
+      rgb(5 15 21 / 80%) 54%,
+      rgb(5 15 21 / 45%) 100%
+    ),
+    radial-gradient(circle at 86% 18%, rgb(255 45 70 / 28%), transparent 34%),
+    url('/brand/works/red-horizon.png') center 40% / cover;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 20%);
+}
+
+.events-page-hero span {
+  color: #ff6877;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.19em;
+}
+
+.events-page-hero h1 {
+  margin: 4px 0;
+  font-size: clamp(34px, 3.6vw, 50px);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.events-page-hero p {
+  margin: 0;
+  color: #a6b0b7;
+  font-size: 13px;
+}
+
+.events-page-hero .events-page-count {
+  flex: none;
+  padding: 9px 14px;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 999px;
+  background: rgb(7 17 24 / 72%);
+  backdrop-filter: blur(12px);
+}
+
+.events-page-count strong {
+  margin-left: 4px;
+  color: white;
+  font-weight: 850;
 }
 .events-marquee {
   width: 100%;
-  margin: 0 0 38px;
+  margin: 0;
   overflow: hidden;
   border: 0;
   background: transparent;
@@ -413,6 +476,9 @@
 }
 .events-feature-modern-copy h2 {
   margin: 0;
+  /* 한국어 단어 중간에서 줄이 바뀌지 않게 ("모
+집") */
+  word-break: keep-all;
   font-size: clamp(28px, 3vw, 43px);
   line-height: 1.1;
   letter-spacing: -0.05em;
@@ -457,9 +523,6 @@
   height: 150px;
 }
 @media (max-width: 767px) {
-  .events-board-modern {
-    padding-top: 92px;
-  }
   .events-modern-heading {
     display: block;
   }
@@ -483,9 +546,6 @@
   .events-feature-kicker {
     margin-top: 28px;
   }
-  .events-modern-list-head {
-    margin-top: 58px;
-  }
   .events-modern-grid {
     grid-template-columns: 1fr;
   }
@@ -493,5 +553,14 @@
 @media (min-width: 768px) and (max-width: 1050px) {
   .events-modern-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .events-page-hero {
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 20px;
   }
 }

@@ -84,6 +84,17 @@ export function EventsBoard(): ReactNode {
   }, [category, featured.id])
   return (
     <section className="events-board events-board-modern">
+      {/* 작품·작가 목록과 같은 머리 카드. 페이지마다 첫 화면 구성이 같아야 길을 잃지 않는다. */}
+      <header className="events-page-hero">
+        <div>
+          <span>EVENTS &amp; OPEN CALLS</span>
+          <h1>이벤트</h1>
+          <p>공모전·이벤트·워크숍에 참여하고 다음 장면을 함께 만드세요.</p>
+        </div>
+        <p className="events-page-count">
+          지금 참여할 수 있는 소식 <strong>{EVENTS.length}</strong>
+        </p>
+      </header>
       <div className="events-marquee" aria-label="영상 미디어 AI 제휴 브랜드">
         <div className="events-marquee-track">
           {[

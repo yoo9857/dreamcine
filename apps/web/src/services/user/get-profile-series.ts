@@ -15,7 +15,10 @@ export async function getProfileSeries(
 
   const page = await listPublicSeriesByOwner({ ownerId: user.id, limit: 100 })
   // 숏폼 판정은 형식(workType)과 실제 영상 비율을 함께 본다 — 목록·홈과 같은 규칙.
-  const ratios = await findSeriesAspectRatios(page.items.map((item) => item.id))
+  // 못 구해도 목록은 그대로 낸다 — 비율이 없으면 형식만으로 판정한다.
+  const ratios = await findSeriesAspectRatios(
+    page.items.map((item) => item.id),
+  ).catch(() => new Map<string, number>())
   return page.items.map((item) => {
     const ratio = ratios.get(item.id)
     return ratio === undefined
