@@ -3,6 +3,29 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-10-06 Higgsfield 페스티벌 영상·스튜디오 색 배포 완료
+
+- 운영 웹 SHA `62c8aaba7bf26a0cb54ead193c3118d7936f69af`. 이미지 run `37456736513` 성공.
+  `deploy.yml` run `37458288640`, `deploy_worker=false`. 마이그레이션 없음.
+- 같은 push에 커밋이 두 개라 얕은 checkout이 비교 기준을 못 봐 워커 이미지도 같이
+  빌드됐다. 서버 워커·스케줄러는 재시작하지 않았다.
+- `/works` 롱폼 맨 위, 피드 카드 위에 Higgsfield Global Film Festival 두 편을 둔다.
+  THREAD(pandaproduction, 5:44), Borrowed Wounds(jeffzambrano, 14:30). 재생을 누르기
+  전에는 포스터만 보이고, 누르면 `cdn.higgsfield.ai` HLS만 받는다. 수 GB 원본 mp4는
+  넣지 않았다. 피드의 `N LOADED`에는 세지 않는다. SHORT FORM이면 롱폼과 함께 숨긴다.
+- CSP: `img-src`에 Higgsfield 포스터 호스트와 HLS 호스트, `media-src`·`connect-src`에
+  `https://cdn.higgsfield.ai`.
+- 스튜디오는 라이트 테마를 따라가지 않고 공개 페이지와 같은 어두운 청록·빨강으로 고정.
+  테마 토글은 스튜디오에서 숨긴다. 로그인 화면의 운영 확인은 이번 배포에서 하지 않았다.
+- 운영 확인: `/api/health` 200, `/api/ready`의 DB·Redis·스토리지·큐·메일 ok.
+  `/works`에 두 제목과 HLS 주소가 있다. 운영 브라우저에서 Borrowed Wounds 재생 시
+  포스터 버튼이 사라지고 master·480p·init·m4s가 받아졌다. 콘솔 오류 없음.
+- 로컬 검사: 작품 목록 3, CSP 3, 커밋 훅의 lint·typecheck·depcruise·format.
+  push의 gate 잡은 건너뛰었다(Fast lane). 전체 게이트는 돌리지 않았다.
+- 이 인수인계 커밋은 문서뿐이다. 웹 이미지를 다시 배포하지 않는다.
+- 커밋하지 않은 로컬 파일: `BUG.jpg`, `BUG.png`, `BUG2.png`, 포스터용 이미지 폴더.
+  저장소에 넣지 않는다.
+
 ## 2026-10-06 메시지(T18)·알림 팝업·공지사항·작가 페이지 배포 완료
 
 - 운영 웹 SHA `0dc1e5ec77aa05d04a01a1cf16676c1cbd29c238`, `deploy.yml` 실행 `37436323840`,
