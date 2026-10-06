@@ -18,7 +18,7 @@ export interface Notice {
 export const NOTICES: readonly Notice[] = [
   {
     id: '2026-10-06-higgsfield',
-    title: 'Higgsfield의 허가를 받아 AI 영상을 소개합니다',
+    title: '힉스필드의 공식 AI 영상을 소개합니다',
     date: '2026-10-06',
     category: '공지',
     pinned: true,
