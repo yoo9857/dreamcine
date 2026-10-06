@@ -301,6 +301,19 @@
   margin-left: 3px;
 }
 
+/* 숏폼: 세로 9:16 틀. 높이 상한(--sp-vh)에서 폭을 거꾸로 계산해야 틀과 그림의
+   폭이 같다 — 폭을 따로 정하면 높이가 잘린 만큼 옆에 검은 띠가 남는다. */
+.sp-media.is-vertical {
+  --sp-vh: min(620px, 72dvh);
+  justify-self: center;
+  width: min(100%, calc(var(--sp-vh) * 9 / 16));
+}
+
+.sp-media.is-vertical .sp-media-poster,
+.sp-media.is-vertical .ilog-player {
+  aspect-ratio: 9 / 16;
+}
+
 /* ── 섹션 공통 ─────────────────────────────────────────── */
 
 .sp-section {
@@ -485,6 +498,14 @@ a.sp-ep:focus-visible .sp-ep-play {
   font-variant-numeric: tabular-nums;
 }
 
+.sp-episodes.is-vertical .sp-ep {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.sp-episodes.is-vertical .sp-ep-thumb {
+  aspect-ratio: 9 / 16;
+}
+
 /* ── 다른 작품 ─────────────────────────────────────────── */
 
 .sp-grid {
@@ -590,6 +611,12 @@ a.sp-ep:focus-visible .sp-ep-play {
 
   .sp-media {
     border-radius: 14px;
+  }
+
+  /* 휴대폰에서 세로 포스터가 첫 화면을 다 채우지 않게 낮춘다 — 제목과 재생
+     버튼이 함께 보여야 한다. */
+  .sp-media.is-vertical {
+    --sp-vh: min(440px, 52dvh);
   }
 
   .sp-hero-copy {

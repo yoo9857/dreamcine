@@ -321,6 +321,13 @@ export default async function SeriesPage({
   const poster = posterFor(series)
   // 미리보기 회차는 DB 에 없어 재생 화면으로 보낼 수 없다.
   const playable = !isPortfolioPreview
+  // 화면의 숫자는 보이는 공개 회차에서 센다. 시리즈 집계는 비공개 회차까지 세어
+  // "12화" 아래에 회차가 8개만 보이는 어긋남을 만든다. (미리보기는 데모 숫자)
+  const episodeTotal = isPortfolioPreview
+    ? series.episodeCount
+    : detail.episodes.length
+  // 숏폼은 9:16 으로 올라온다(SeriesPosterUploader). 16:9 틀에 넣으면 가운데 띠만 남는다.
+  const vertical = series.workType === 'SHORT_FORM'
 
   /*
     구조화 데이터는 API 응답(`SeriesResponse`)이 아니라 도메인 엔티티에서
@@ -370,7 +377,7 @@ export default async function SeriesPage({
               {series.synopsis ?? '작품 소개가 아직 없습니다.'}
             </p>
             <p className="sp-stats">
-              {series.episodeCount}화 · 조회 {compact(series.totalViews)}
+              {episodeTotal}화 · 조회 {compact(series.totalViews)}
             </p>
 
             <div className="sp-actions">
@@ -408,7 +415,10 @@ export default async function SeriesPage({
             </Link>
           </div>
 
-          <div className="sp-media" id="watch">
+          <div
+            className={vertical ? 'sp-media is-vertical' : 'sp-media'}
+            id="watch"
+          >
             {playback === null ? (
               <div className="sp-media-poster">
                 <img src={poster} alt={`${series.title} 대표 이미지`} />
@@ -455,7 +465,9 @@ export default async function SeriesPage({
               <p>첫 회차가 공개되면 이곳에서 바로 볼 수 있습니다.</p>
             </div>
           ) : (
-            <ol className="sp-episodes">
+            <ol
+              className={vertical ? 'sp-episodes is-vertical' : 'sp-episodes'}
+            >
               {detail.episodes.map((episode) => (
                 <EpisodeRow
                   key={episode.id}
