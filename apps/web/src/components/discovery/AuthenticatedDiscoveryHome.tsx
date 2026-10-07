@@ -50,6 +50,44 @@ const developmentBrowseItem = {
   isLiked: false,
 } satisfies FeedItem
 
+const developmentBrowseShorts = [
+  {
+    episodeId: 'preview-paper-dance',
+    title: '종이비가 내리는 순간',
+    thumbUrl: '/brand/works/paper-dance.png',
+    durationSec: 47,
+    viewCount: '23410',
+    series: {
+      id: 'preview-paper-dance',
+      title: '종이비가 내리는 순간',
+      slug: 'paper-dance',
+      workType: 'SHORT_FORM',
+    },
+  },
+  {
+    episodeId: 'preview-city-short',
+    title: '네온이 꺼지기 전',
+    thumbUrl: '/brand/posters/city.png',
+    durationSec: 72,
+    viewCount: '18800',
+    series: {
+      id: 'preview-city-short',
+      title: '네온이 꺼지기 전',
+      slug: 'city-short',
+      workType: 'SHORT_FORM',
+    },
+  },
+] as const
+
+const developmentBrowseItems: readonly FeedItem[] = [
+  developmentBrowseItem,
+  ...developmentBrowseShorts.map((item) => ({
+    ...developmentBrowseItem,
+    ...item,
+    aspectRatio: 9 / 16,
+  })),
+]
+
 function DiscoveryFallback(): ReactNode {
   return (
     <div className="discovery-loading" aria-label="인기 에피소드 불러오는 중">
@@ -89,7 +127,7 @@ async function PopularDiscovery({
   const isDevelopmentPreview =
     process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
   const page = isDevelopmentPreview
-    ? { items: [developmentBrowseItem], nextCursor: null }
+    ? { items: developmentBrowseItems, nextCursor: null }
     : await getFeed({ type: 'popular', limit: 20 }, session)
   const lead = page.items[0]
   if (lead === undefined) {

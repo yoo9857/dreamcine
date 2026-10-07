@@ -96,10 +96,31 @@ describe('WorksCatalog', () => {
     const view = within(container)
 
     // 세로 영상 1편만 숏폼, 짧은 가로 영상은 롱폼에 남는다.
-    expect(view.getByText('2 LOADED')).toBeTruthy()
+    // 페스티벌 2편도 같은 롱폼 칸에 들어가 개수에 포함된다.
+    expect(view.getByText('4 LOADED')).toBeTruthy()
     expect(view.getByText('1 LOADED')).toBeTruthy()
     expect(view.getByRole('heading', { name: '세로 작품' })).toBeTruthy()
     expect(view.queryByRole('heading', { name: '짧은 롱폼' })).toBeNull()
+
+    const grid = container.querySelector('.works-long-grid')
+    expect(grid).toBeTruthy()
+    const titles = [
+      ...(grid as HTMLElement).querySelectorAll('.works-card-title'),
+    ].map((node) => node.textContent)
+    expect(titles.slice(0, 4)).toEqual([
+      'THREAD',
+      'Borrowed Wounds',
+      '긴 작품',
+      '짧은 롱폼',
+    ])
+    expect(container.querySelector('.works-partner-list')).toBeNull()
+    expect(view.queryByText('HIGGSFIELD × ILOG')).toBeNull()
+    expect(
+      view.getByRole('link', { name: 'THREAD' }).getAttribute('href'),
+    ).toBe('/watch/higgsfield/thread')
+    expect(
+      view.getAllByRole('link', { name: 'Higgsfield 프로필' }).length,
+    ).toBe(2)
   })
 
   it('renders card skeletons while the next cursor page is loading', () => {

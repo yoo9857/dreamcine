@@ -722,3 +722,14 @@
 - 영향: 메시지 본문은 개인정보다. 처리방침의 수집 항목에 "회원 간 메시지"를 더해야
   한다(별도 확인). 신고는 기존 `USER` 대상을 쓰고 새 신고 대상은 만들지 않는다.
 - 상태: RESOLVED (사용자 결정으로 스펙 반영)
+
+## [DEP-004] 사용자 제공 Prisma Hero의 Framer Motion 의존성
+
+- 사용자 요구 (2026-10-07): `framer-motion`을 설치하고 제공한 Prisma Hero,
+  WordsPullUp, WordsPullUpMultiStyle 컴포넌트를 크리에이터 지원 페이지에 통합한다.
+- 결정: `framer-motion@14.0.0`을 `@aidream/web`에 정확한 버전으로 추가한다.
+  기존 `lucide-react`를 재사용하며, 새 상태 관리나 context provider는 추가하지 않는다.
+- 범위: `apps/web/components/ui/prisma-hero.tsx`의 단어 등장 애니메이션만 사용한다.
+  reduced-motion에서는 단어 애니메이션과 배경 영상 자동재생을 끈다.
+- 근거: 이 세션에서 사용자가 패키지 설치를 명시적으로 요청했다.
+- 상태: APPROVED (사용자 명시 요청)

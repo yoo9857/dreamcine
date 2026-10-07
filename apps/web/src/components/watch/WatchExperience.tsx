@@ -74,9 +74,11 @@ function ShortCard({
 function LongCard({
   item,
   index,
+  caption,
 }: {
   readonly item: FeedItem
   readonly index: number
+  readonly caption?: string | null
 }): ReactNode {
   return (
     <Link className="watch-long-card" href={`/watch/${item.episodeId}`}>
@@ -91,9 +93,13 @@ function LongCard({
       <p>
         <UserTierLine user={item.creator} link={false} compact />
       </p>
-      <small>
-        <Eye /> 조회 {count(item.viewCount)} · 좋아요 {count(item.likeCount)}
-      </small>
+      {caption == null ? (
+        <small>
+          <Eye /> 조회 {count(item.viewCount)} · 좋아요 {count(item.likeCount)}
+        </small>
+      ) : (
+        <small>{caption}</small>
+      )}
     </Link>
   )
 }
@@ -193,18 +199,24 @@ export function WatchExperience({
   shortItems,
   longItems,
   comments,
+  credit = null,
+  sourceUrl = null,
+  longCaption = null,
 }: {
   readonly player: ReactNode
   readonly title: string
   readonly seriesTitle: string
   readonly description: string | null
   readonly creator: PublicUserSummary
-  readonly viewCount: string
+  readonly viewCount: string | null
   readonly publishedAt: string | null
   readonly actions: ReactNode
   readonly shortItems: readonly FeedItem[]
   readonly longItems: readonly FeedItem[]
   readonly comments: ReactNode
+  readonly credit?: string | null
+  readonly sourceUrl?: string | null
+  readonly longCaption?: ((item: FeedItem) => string | null) | null
 }): ReactNode {
   return (
     <main className="watch-experience">
@@ -235,14 +247,32 @@ export function WatchExperience({
                   <small>@{creator.handle}</small>
                 </div>
               </Link>
-              <p>
-                <Eye /> 조회 {count(viewCount)}
-                {publishedAt === null ? '' : ` · ${publishedAt}`}
-              </p>
+              {viewCount === null && publishedAt === null ? null : (
+                <p>
+                  {viewCount === null ? null : (
+                    <>
+                      <Eye /> 조회 {count(viewCount)}
+                    </>
+                  )}
+                  {publishedAt === null
+                    ? ''
+                    : `${viewCount === null ? '' : ' · '}${publishedAt}`}
+                </p>
+              )}
               <div className="watch-actions">{actions}</div>
             </div>
             {description === null ? null : (
               <p className="watch-synopsis">{description}</p>
+            )}
+            {credit === null ? null : (
+              <p className="watch-credit">원작 {credit}</p>
+            )}
+            {sourceUrl === null ? null : (
+              <p className="watch-source">
+                <a href={sourceUrl} target="_blank" rel="noreferrer noopener">
+                  Higgsfield에서 원문 보기
+                </a>
+              </p>
             )}
           </section>
           <section
@@ -310,7 +340,12 @@ export function WatchExperience({
             longItems
               .slice(0, 6)
               .map((item, index) => (
-                <LongCard item={item} index={index} key={item.episodeId} />
+                <LongCard
+                  item={item}
+                  index={index}
+                  caption={longCaption === null ? null : longCaption(item)}
+                  key={item.episodeId}
+                />
               ))
           )}
         </div>

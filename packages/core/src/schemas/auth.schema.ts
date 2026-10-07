@@ -15,6 +15,7 @@ export const RESERVED_HANDLES = [
   'following',
   'health',
   'help',
+  'higgsfield',
   'login',
   'logout',
   'me',

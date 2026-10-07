@@ -130,6 +130,16 @@
   font-size: 12px;
   line-height: 1.75;
 }
+.watch-credit,
+.watch-source {
+  margin: 8px 0 0;
+  color: #8ea0aa;
+  font-size: 11px;
+}
+.watch-source a {
+  color: #d5dee4;
+  text-underline-offset: 3px;
+}
 .watch-side {
   display: grid;
   gap: 16px;

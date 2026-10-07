@@ -25,6 +25,11 @@ export const metadata: Metadata = {
 }
 
 import {
+  HIGGSFIELD_BIO,
+  HIGGSFIELD_CREATOR,
+  HIGGSFIELD_FILMS,
+} from '@/src/content/higgsfield'
+import {
   getFeaturedCreators,
   type CreatorDirectoryItem,
 } from '@/src/services/user/get-featured-creators'
@@ -106,11 +111,28 @@ const developmentCreators: readonly CreatorDirectoryItem[] = [
   },
 ]
 
+function withHiggsfield(
+  creators: readonly CreatorDirectoryItem[],
+): readonly CreatorDirectoryItem[] {
+  return [
+    ...creators.filter(
+      (creator) => creator.handle !== HIGGSFIELD_CREATOR.handle,
+    ),
+    {
+      ...HIGGSFIELD_CREATOR,
+      bio: HIGGSFIELD_BIO,
+      followerCount: 0,
+      seriesCount: HIGGSFIELD_FILMS.length,
+    },
+  ]
+}
+
 async function loadCreators(): Promise<readonly CreatorDirectoryItem[]> {
-  if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
-    return developmentCreators
-  }
-  return getFeaturedCreators(24)
+  const creators =
+    process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
+      ? developmentCreators
+      : await getFeaturedCreators(24)
+  return withHiggsfield(creators)
 }
 
 export default async function CreatorsPage(): Promise<ReactNode> {

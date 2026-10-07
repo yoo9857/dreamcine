@@ -12,6 +12,12 @@ import React, {
   type ReactNode,
 } from 'react'
 
+import {
+  HIGGSFIELD_CREATOR,
+  HIGGSFIELD_FILMS,
+  higgsfieldWatchPath,
+} from '@/src/content/higgsfield'
+
 interface ShelfCard {
   readonly id: string
   readonly href: string
@@ -19,7 +25,7 @@ interface ShelfCard {
   readonly subtitle: string
   readonly imageUrl: string
   readonly viewCount?: string
-  /** 세로(9:16) 영상. 16:9 칸에서 잘리지 않게 전체를 가운데에 보여준다. */
+  /** 숏폼. 16:9 줄이 아니라 9:16 목록에 올린다. */
   readonly vertical?: boolean
 }
 
@@ -124,6 +130,16 @@ function byViews(cards: readonly ShelfCard[]): readonly ShelfCard[] {
     .map(({ card }) => card)
 }
 
+function higgsfieldShelfCards(): readonly ShelfCard[] {
+  return HIGGSFIELD_FILMS.map((film) => ({
+    id: `higgsfield-${film.slug}`,
+    href: higgsfieldWatchPath(film.slug),
+    title: film.title,
+    subtitle: HIGGSFIELD_CREATOR.displayName,
+    imageUrl: film.poster,
+  }))
+}
+
 function cardsFrom(items: readonly FeedItem[]): readonly ShelfCard[] {
   const liveCards = items.flatMap((item): readonly ShelfCard[] =>
     item.thumbUrl === null
@@ -140,17 +156,25 @@ function cardsFrom(items: readonly FeedItem[]): readonly ShelfCard[] {
           },
         ],
   )
-  return [...liveCards, ...curatedCards].slice(0, 8)
+  // 공개 작품이 없을 때만 디자인용 카드를 쓴다. 실제 작품이 있으면 그 뒤에
+  // Higgsfield 출품작으로 칸을 채우고, 미리보기 시리즈는 붙이지 않는다.
+  if (liveCards.length === 0)
+    return process.env.NODE_ENV === 'development'
+      ? curatedCards
+      : higgsfieldShelfCards()
+  return [...liveCards, ...higgsfieldShelfCards()].slice(0, 8)
 }
 
 function ShelfTrack({
   cards,
   rowId,
   ranked,
+  portrait = false,
 }: {
   readonly cards: readonly ShelfCard[]
   readonly rowId: string
   readonly ranked: boolean
+  readonly portrait?: boolean
 }): ReactNode {
   const trackRef = useRef<HTMLDivElement>(null)
   const [canPrevious, setCanPrevious] = useState(false)
@@ -191,7 +215,11 @@ function ShelfTrack({
   return (
     <div className="discovery-shelf-stage">
       <div
-        className="discovery-shelf-track"
+        className={
+          portrait
+            ? 'discovery-shelf-track is-portrait'
+            : 'discovery-shelf-track'
+        }
         ref={trackRef}
         id={`shelf-track-${rowId}`}
       >
@@ -203,28 +231,18 @@ function ShelfTrack({
                   {index + 1}
                 </strong>
               ) : null}
-              <div
-                className={
-                  card.vertical === true
-                    ? 'discovery-shelf-visual is-vertical'
-                    : 'discovery-shelf-visual'
-                }
-              >
-                {card.vertical === true ? (
-                  // 같은 그림을 흐리게 깔아 양옆을 채우고, 원본 9:16 은 가운데에 통째로 둔다.
-                  <span
-                    className="discovery-shelf-backdrop"
-                    aria-hidden="true"
-                    style={{ backgroundImage: `url("${card.imageUrl}")` }}
-                  />
-                ) : null}
+              <div className="discovery-shelf-visual">
                 <Image
                   src={card.imageUrl}
                   alt=""
                   width={card.vertical === true ? 270 : 480}
                   height={card.vertical === true ? 480 : 270}
                   unoptimized={card.imageUrl.startsWith('http')}
-                  sizes="(max-width: 767px) 54vw, (max-width: 1200px) 25vw, 18vw"
+                  sizes={
+                    card.vertical === true
+                      ? '(max-width: 767px) 32vw, (max-width: 1200px) 16vw, 11vw'
+                      : '(max-width: 767px) 54vw, (max-width: 1200px) 25vw, 18vw'
+                  }
                 />
                 <span className="discovery-shelf-play" aria-hidden="true">
                   ▶
@@ -269,6 +287,34 @@ function ShelfTrack({
   )
 }
 
+function ShelfTracks({
+  cards,
+  rowId,
+  ranked,
+}: {
+  readonly cards: readonly ShelfCard[]
+  readonly rowId: string
+  readonly ranked: boolean
+}): ReactNode {
+  const wide = cards.filter((card) => card.vertical !== true)
+  const tall = cards.filter((card) => card.vertical === true)
+  return (
+    <>
+      {wide.length === 0 ? null : (
+        <ShelfTrack cards={wide} rowId={rowId} ranked={ranked} />
+      )}
+      {tall.length === 0 ? null : (
+        <ShelfTrack
+          cards={tall}
+          rowId={`${rowId}-short`}
+          ranked={false}
+          portrait
+        />
+      )}
+    </>
+  )
+}
+
 export function DiscoveryStoryShelves({
   items,
 }: {
@@ -294,7 +340,7 @@ export function DiscoveryStoryShelves({
               </Link>
             </div>
           </header>
-          <ShelfTrack
+          <ShelfTracks
             cards={'ranked' in row ? byViews(cards) : rotate(cards, row.offset)}
             rowId={row.id}
             ranked={'ranked' in row}

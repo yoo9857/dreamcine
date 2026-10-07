@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ILOG · 세 가지 상상</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: clamp(20px, 4vw, 56px);
+        background: #07131a;
+        color: #f2f0e2;
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1440px;
+        margin: auto;
+      }
+      header {
+        margin-bottom: 32px;
+      }
+      header p {
+        color: #ff8585;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 48px);
+        line-height: 1.2;
+        letter-spacing: -0.04em;
+        margin: 12px 0;
+      }
+      header span,
+      article p {
+        color: #aebcc6;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      article {
+        border: 1px solid #273842;
+        border-radius: 20px;
+        overflow: hidden;
+        background: #0d1a22;
+      }
+      video,
+      img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        background: #000;
+      }
+      .copy {
+        padding: 20px;
+      }
+      h2 {
+        margin: 0;
+        font-size: 22px;
+      }
+      article p {
+        margin: 8px 0 18px;
+        font-size: 14px;
+      }
+      a {
+        color: #ff9696;
+        text-underline-offset: 5px;
+      }
+      a:focus-visible {
+        outline: 2px solid #ff4545;
+        outline-offset: 5px;
+      }
+      footer {
+        margin-top: 28px;
+        font-size: 14px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        main {
+          max-width: 720px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p>ILOG · IMAGINE THE NEXT SCENE</p>
+        <h1>다음 장면의 시작.</h1>
+        <span
+          >여행자 · 붉은 실크 · 느와르 · 용 판타지. 각 카드의 재생 버튼을 눌러
+          확인하세요. 각 6초 · 소리 없음</span
+        >
+      </header>
+      <div class="grid">
+        <article>
+          <video
+            controls
+            muted
+            playsinline
+            preload="metadata"
+            poster="cinematic-threshold-poster.jpg"
+            src="cinematic-threshold.mp4"
+            aria-label="문턱을 넘는 여행자 영상"
+          ></video>
+          <div class="copy">
+            <h2>01 · 문턱을 넘는 여행자</h2>
+            <p>
+              문 안으로 이어지는 몇 걸음, 부드럽게 흔들리는 스카프와 빛 속 먼지.
+            </p>
+            <a href="cinematic-threshold.mp4" target="_blank" rel="noopener"
+              >영상 크게 보기</a
+            >
+          </div>
+        </article>
+        <article>
+          <video
+            controls
+            muted
+            playsinline
+            preload="metadata"
+            poster="cinematic-silk-poster.jpg"
+            src="cinematic-silk.mp4"
+            aria-label="붉은 실크 영상"
+          ></video>
+          <div class="copy">
+            <h2>02 · 붉은 실크</h2>
+            <p>바람에 흐르는 천의 주름, 고정된 햇빛과 천천히 바뀌는 시점.</p>
+            <a href="cinematic-silk.mp4" target="_blank" rel="noopener"
+              >영상 크게 보기</a
+            >
+          </div>
+        </article>
+        <article>
+          <video
+            controls
+            muted
+            playsinline
+            preload="metadata"
+            poster="cinematic-noir-poster.jpg"
+            src="cinematic-noir.mp4"
+            aria-label="비 내리는 사무실의 느와르 영상"
+          ></video>
+          <div class="copy">
+            <h2>03 · 느와르</h2>
+            <p>
+              빗속 사무실, 어둠 쪽으로 돌아서는 형사의 시선과 느린 카메라 이동.
+            </p>
+            <a href="cinematic-noir.mp4" target="_blank" rel="noopener"
+              >영상 크게 보기</a
+            >
+          </div>
+        </article>
+        <article>
+          <video
+            controls
+            muted
+            playsinline
+            preload="metadata"
+            poster="cinematic-dragon-poster.jpg"
+            src="cinematic-dragon.mp4"
+            aria-label="고대 성채 위 용이 등장하는 판타지 영상"
+          ></video>
+          <div class="copy">
+            <h2>04 · 고대 성채의 용</h2>
+            <p>
+              여행자를 향해 고개를 낮추는 거대한 용, 차가운 숨과 산맥 사이의
+              안개.
+            </p>
+            <a href="cinematic-dragon.mp4" target="_blank" rel="noopener"
+              >영상 크게 보기</a
+            >
+          </div>
+        </article>
+      </div>
+      <footer>
+        ILOG · 시네마틱 영상 미리보기 · 16:9 · 720p ·
+        <a href="/creator-apply#about">연결된 배경으로 보기</a> ·
+        <a href="ilog-cinematic-loop.mp4">21초 연결 영상 보기</a>
+      </footer>
+    </main>
+  </body>
+</html>

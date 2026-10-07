@@ -960,9 +960,8 @@
 }
 
 .discovery-shelf-track {
-  display: grid;
-  grid-auto-columns: clamp(180px, 18vw, 258px);
-  grid-auto-flow: column;
+  display: flex;
+  align-items: flex-start;
   gap: 11px;
   margin-right: calc(clamp(20px, 2.3vw, 44px) * -1);
   padding: 4px clamp(20px, 2.3vw, 44px) 8px 0;
@@ -1036,8 +1035,17 @@
 
 .discovery-shelf-card {
   position: relative;
+  flex: 0 0 clamp(180px, 18vw, 258px);
   min-width: 0;
   scroll-snap-align: start;
+}
+
+.discovery-shelf-track.is-portrait {
+  margin-top: 12px;
+}
+
+.discovery-shelf-track.is-portrait .discovery-shelf-card {
+  flex-basis: clamp(158px, 14.5vw, 190px);
 }
 
 .discovery-shelf-card > a {
@@ -1067,32 +1075,17 @@
   pointer-events: none;
 }
 
+.discovery-shelf-track.is-portrait .discovery-shelf-visual {
+  aspect-ratio: 9 / 16;
+}
+
 .discovery-shelf-visual img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 380ms ease;
-}
-
-/* 세로 영상: 16:9 칸에 9:16 전체를 가운데 두고, 같은 그림을 흐리게 깔아 양옆을
-   채운다. cover 로 자르면 세로 영상은 가운데 띠만 남는다. */
-.discovery-shelf-visual.is-vertical img {
-  position: relative;
-  z-index: 1;
-  width: auto;
-  height: 100%;
-  margin-inline: auto;
-  display: block;
-  aspect-ratio: 9 / 16;
-  object-fit: cover;
-}
-
-.discovery-shelf-backdrop {
-  position: absolute;
-  inset: -12%;
-  background-position: center;
-  background-size: cover;
-  filter: blur(18px) brightness(0.55) saturate(1.2);
 }
 
 .discovery-shelf-card:hover .discovery-shelf-visual,
@@ -2071,9 +2064,14 @@
     font-size: 17px;
   }
   .discovery-shelf-track {
-    grid-auto-columns: 54vw;
     margin-right: -14px;
     padding-right: 14px;
+  }
+  .discovery-shelf-card {
+    flex-basis: 54vw;
+  }
+  .discovery-shelf-track.is-portrait .discovery-shelf-card {
+    flex-basis: 42vw;
   }
   .discovery-shelf-copy {
     padding-top: 7px;

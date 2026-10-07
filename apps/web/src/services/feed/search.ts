@@ -6,7 +6,10 @@ import type {
   TagFeedQuery,
   TrendingTag,
 } from '@aidream/core'
+import { AppError } from '@aidream/core'
 import {
+  decodeCursor,
+  encodeCursor,
   listBlockedCreatorIds,
   listLikedEpisodeIds,
   listTagFeed,
@@ -17,6 +20,7 @@ import {
 import { avatarUrl, cdnUrl } from '@aidream/storage/cdn'
 
 import type { RouteSession } from '@/src/auth/types'
+import { higgsfieldSearchResults } from '@/src/content/higgsfield'
 import { getLogger } from '@/src/lib/logger'
 import { getRedis } from '@/src/lib/redis'
 import {
@@ -92,11 +96,55 @@ export async function search(
   session: RouteSession | null,
   dependencies: SearchServiceDependencies = productionDependencies(),
 ): Promise<Page<SearchResult>> {
+  const prefix = 'partner-search:'
+  const matches = higgsfieldSearchResults(query.type, query.q)
+  let offset = 0
+  let catalogCursor = query.cursor
+  if (catalogCursor?.startsWith(prefix)) {
+    const cursor = decodeCursor(catalogCursor.slice(prefix.length))
+    if (
+      cursor.id !== `${query.type}:${query.q}` ||
+      typeof cursor.k !== 'number' ||
+      !Number.isInteger(cursor.k) ||
+      cursor.k < 0 ||
+      cursor.k > matches.length
+    )
+      throw new AppError('E_FEED_INVALID_CURSOR')
+    offset = cursor.k
+    catalogCursor = undefined
+  }
+  const partner =
+    catalogCursor === undefined
+      ? matches.slice(offset, offset + query.limit)
+      : []
+  const remaining = query.limit - partner.length
+  const partnerCursor = () =>
+    `${prefix}${encodeCursor({
+      id: `${query.type}:${query.q}`,
+      k: offset + partner.length,
+    })}`
+  if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
+    return {
+      items: [...partner],
+      nextCursor:
+        offset + partner.length < matches.length && remaining === 0
+          ? partnerCursor()
+          : null,
+    }
+  }
   const page = await dependencies.searchCatalog(query.type, query.q, {
-    limit: query.limit,
-    ...(query.cursor === undefined ? {} : { cursor: query.cursor }),
+    limit: Math.max(1, remaining),
+    ...(catalogCursor === undefined ? {} : { cursor: catalogCursor }),
     ...(session === null ? {} : { viewerId: session.userId }),
   })
+  if (remaining === 0)
+    return {
+      items: [...partner],
+      nextCursor:
+        offset + partner.length < matches.length || page.items.length > 0
+          ? partnerCursor()
+          : null,
+    }
   const episodeIds = page.items.flatMap((row) =>
     row.type === 'episode' ? [row.episode.id] : [],
   )
@@ -104,8 +152,9 @@ export async function search(
     session === null
       ? new Set<string>()
       : await dependencies.likedIds(session.userId, episodeIds)
+  const catalog = page.items.map((row) => mapSearchRow(row, liked))
   return {
-    items: page.items.map((row) => mapSearchRow(row, liked)),
+    items: [...partner, ...catalog],
     nextCursor: page.nextCursor,
   }
 }

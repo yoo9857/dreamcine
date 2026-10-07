@@ -22,6 +22,7 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
   tailwindcss: /Tailwind CSS/u,
   '@radix-ui/react-dialog': /Radix UI/u,
   'lucide-react': /lucide-react/u,
+  'framer-motion': /framer-motion@14[.]0[.]0[\s\S]*?상태: APPROVED/u,
   'react-hook-form': /react-hook-form/u,
   zod: /zod 3|\bzod\b/u,
   '@tanstack/react-query': /@tanstack\/react-query/u,

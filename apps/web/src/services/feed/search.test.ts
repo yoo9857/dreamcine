@@ -72,6 +72,7 @@ function dependencies(): SearchServiceDependencies {
 describe('feed search services', () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_CDN_BASE_URL = 'https://cdn.example.com'
+    process.env.AUTH_SECRET = 'search-test-secret-with-at-least-32-characters'
   })
 
   it('maps episode search rows and batches the viewer likes', async () => {
@@ -90,6 +91,95 @@ describe('feed search services', () => {
       ],
     })
     expect(deps.likedIds).toHaveBeenCalledWith(session.userId, [episode.id])
+  })
+
+  it('puts a matching higgsfield film on the first search page only', async () => {
+    const deps = dependencies()
+
+    await expect(
+      search({ q: 'Borrowed', type: 'episode', limit: 20 }, null, deps),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          type: 'episode',
+          episode: { episodeId: 'higgsfield/borrowed-wounds' },
+        },
+      ],
+    })
+    await expect(
+      search(
+        { q: 'Borrowed', type: 'episode', limit: 20, cursor: 'next' },
+        null,
+        deps,
+      ),
+    ).resolves.toEqual({ items: [], nextCursor: null })
+  })
+
+  it('reserves catalog slots before merging festival results', async () => {
+    const deps = dependencies()
+    vi.mocked(deps.searchCatalog).mockResolvedValue({
+      items: [{ type: 'episode', episode }],
+      nextCursor: 'catalog-next',
+    })
+    const result = await search(
+      { q: 'Borrowed', type: 'episode', limit: 2 },
+      null,
+      deps,
+    )
+    expect(deps.searchCatalog).toHaveBeenCalledWith('episode', 'Borrowed', {
+      limit: 1,
+    })
+    expect(result.items).toHaveLength(2)
+    expect(result.items[1]).toMatchObject({
+      episode: { episodeId: episode.id },
+    })
+    expect(result.nextCursor).toBe('catalog-next')
+  })
+
+  it('paginates one festival result at a time before starting the catalog', async () => {
+    const deps = dependencies()
+    vi.mocked(deps.searchCatalog).mockResolvedValue({
+      items: [{ type: 'episode', episode }],
+      nextCursor: null,
+    })
+    const query = { q: 'higgsfield', type: 'episode', limit: 1 } as const
+    const first = await search(query, null, deps)
+    expect(first.items[0]).toMatchObject({
+      episode: { episodeId: 'higgsfield/thread' },
+    })
+    expect(first.nextCursor).not.toBeNull()
+    if (first.nextCursor === null) throw new Error('Missing first continuation')
+    const second = await search(
+      { ...query, cursor: first.nextCursor },
+      null,
+      deps,
+    )
+    expect(second.items[0]).toMatchObject({
+      episode: { episodeId: 'higgsfield/borrowed-wounds' },
+    })
+    expect(second.nextCursor).not.toBeNull()
+    if (second.nextCursor === null)
+      throw new Error('Missing second continuation')
+    const third = await search(
+      { ...query, cursor: second.nextCursor },
+      null,
+      deps,
+    )
+    expect(third.items).toMatchObject([{ episode: { episodeId: episode.id } }])
+    expect(third.nextCursor).toBeNull()
+    expect(deps.searchCatalog).toHaveBeenLastCalledWith(
+      'episode',
+      'higgsfield',
+      {
+        limit: 1,
+      },
+    )
+    await expect(
+      search({ ...query, q: 'another', cursor: first.nextCursor }, null, deps),
+    ).rejects.toMatchObject({ code: 'E_FEED_INVALID_CURSOR' })
+    await expect(
+      search({ ...query, cursor: 'partner-search:invalid' }, null, deps),
+    ).rejects.toMatchObject({ code: 'E_FEED_INVALID_CURSOR' })
   })
 
   it('serves a tag page when Redis is unavailable', async () => {

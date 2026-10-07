@@ -8,7 +8,7 @@ import React, { useMemo, useState, type ReactNode } from 'react'
 
 import { useInfiniteFeed } from '@/src/hooks/use-infinite-feed'
 
-import { HiggsfieldThread } from './HiggsfieldThread'
+import { FESTIVAL_FILM_COUNT, HiggsfieldThread } from './HiggsfieldThread'
 
 type WorkFormat = 'all' | 'long' | 'short'
 
@@ -227,16 +227,14 @@ export function WorksCatalog({
                   <p>한 편의 이야기에 깊이 빠져보세요</p>
                 </div>
               </div>
-              <small>{longForm.length} LOADED</small>
+              <small>{longForm.length + FESTIVAL_FILM_COUNT} LOADED</small>
             </header>
-            <HiggsfieldThread />
-            {longForm.length === 0 ? null : (
-              <div className="works-long-grid">
-                {longForm.map((item) => (
-                  <LongFormCard item={item} key={item.episodeId} />
-                ))}
-              </div>
-            )}
+            <div className="works-long-grid">
+              <HiggsfieldThread />
+              {longForm.map((item) => (
+                <LongFormCard item={item} key={item.episodeId} />
+              ))}
+            </div>
           </section>
         )}
 

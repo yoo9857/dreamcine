@@ -15,6 +15,7 @@ import { useState, type ReactNode, type SyntheticEvent } from 'react'
 import { z } from 'zod'
 
 import { QueryProvider } from '@/src/components/QueryProvider'
+import { higgsfieldWorkCard } from '@/src/content/higgsfield'
 
 const SearchPageSchema = z.object({
   items: z.array(SearchResultSchema),
@@ -138,16 +139,18 @@ function SearchItems({
               {item.episode.title}
             </Link>
           )
-        if (item.type === 'series')
+        if (item.type === 'series') {
+          const partner = higgsfieldWorkCard(item.id)
           return (
             <Link
               key={`series:${item.id}`}
-              href={`/series/${item.id}`}
+              href={partner?.href ?? `/series/${item.id}`}
               className="rounded-lg border border-border p-4"
             >
               {item.title}
             </Link>
           )
+        }
         return (
           <Link
             key={`user:${item.handle}`}

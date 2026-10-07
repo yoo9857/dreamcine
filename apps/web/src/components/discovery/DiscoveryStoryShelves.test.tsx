@@ -30,7 +30,7 @@ const liveItem: FeedItem = {
 }
 
 describe('DiscoveryStoryShelves', () => {
-  it('renders five compact discovery rows with live and curated artwork', () => {
+  it('renders five compact discovery rows with live and festival artwork', () => {
     const view = render(<DiscoveryStoryShelves items={[liveItem]} />)
 
     expect(
@@ -50,13 +50,71 @@ describe('DiscoveryStoryShelves', () => {
     ).toBeTruthy()
     expect(
       view.container.querySelectorAll('.discovery-shelf-card').length,
-    ).toBe(30)
+    ).toBe(15)
     expect(
       screen.getAllByRole('link', { name: '실시간 인기 작품 보기' }).length,
     ).toBe(5)
+    expect(screen.getAllByRole('link', { name: 'THREAD 보기' }).length).toBe(5)
+    expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
+  })
+
+  it('uses playable festival films when nothing is published', () => {
+    render(<DiscoveryStoryShelves items={[]} />)
+
+    expect(screen.getAllByRole('link', { name: 'THREAD 보기' }).length).toBe(5)
+    expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
+  })
+
+  it('fills the ranked row with festival films after published works', () => {
+    const titles = [
+      'ohhanbin_opt',
+      'fly',
+      'in seoul',
+      'Breathe No More',
+      'fight',
+      'lip balm',
+    ]
+    const views = ['6', '1', '1', '1', '0', '0']
+    const items = titles.map((title, index) => ({
+      ...liveItem,
+      episodeId: `episode-${String(index)}`,
+      title,
+      viewCount: views[index] ?? '0',
+    }))
+    const view = render(<DiscoveryStoryShelves items={items} />)
+
+    const trending = view.container.querySelector('#shelf-track-trending')
+    expect(trending).not.toBeNull()
+    if (trending === null) return
+    const labels = [
+      ...trending.querySelectorAll<HTMLAnchorElement>(
+        '.discovery-shelf-card a',
+      ),
+    ].map((anchor) => anchor.getAttribute('aria-label'))
+    expect(labels).toEqual([
+      'ohhanbin_opt 보기',
+      'fly 보기',
+      'in seoul 보기',
+      'Breathe No More 보기',
+      'fight 보기',
+      'lip balm 보기',
+      'THREAD 보기',
+      'Borrowed Wounds 보기',
+    ])
+
+    const thread = trending.querySelector('a[aria-label="THREAD 보기"]')
+    expect(thread?.getAttribute('href')).toBe('/watch/higgsfield/thread')
+    expect(thread?.querySelector('small')).toBeNull()
+    const wounds = trending.querySelector(
+      'a[aria-label="Borrowed Wounds 보기"]',
+    )
+    expect(wounds?.getAttribute('href')).toBe(
+      '/watch/higgsfield/borrowed-wounds',
+    )
+    expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
     expect(
-      screen.getAllByRole('link', { name: '내일의 기억 보기' }).length,
-    ).toBe(5)
+      screen.queryByRole('link', { name: '사라지는 도시의 밤 보기' }),
+    ).toBeNull()
   })
 
   it('ranks the trending row by views, not feed order', () => {
@@ -80,26 +138,43 @@ describe('DiscoveryStoryShelves', () => {
     expect(first?.querySelector('.discovery-shelf-rank')?.textContent).toBe('1')
   })
 
-  it('shows a vertical video whole instead of cropping it to 16:9', () => {
+  it('lists short-form cards on a 9:16 rail', () => {
     const vertical: FeedItem = {
       ...liveItem,
       episodeId: 'vertical',
       title: '세로 영상',
+      viewCount: '3',
       aspectRatio: 9 / 16,
     }
-    const view = render(<DiscoveryStoryShelves items={[vertical, liveItem]} />)
+    const declaredShort: FeedItem = {
+      ...liveItem,
+      episodeId: 'declared-short',
+      title: '선언된 숏폼',
+      viewCount: '9',
+      aspectRatio: 16 / 9,
+      series: { ...liveItem.series, workType: 'SHORT_FORM' },
+    }
+    const view = render(
+      <DiscoveryStoryShelves items={[vertical, declaredShort, liveItem]} />,
+    )
 
-    const verticalCard = screen
-      .getAllByRole('link', { name: '세로 영상 보기' })[0]
-      ?.querySelector('.discovery-shelf-visual')
-    expect(verticalCard?.classList.contains('is-vertical')).toBe(true)
+    const wide = view.container.querySelector('#shelf-track-trending')
+    expect(wide?.classList.contains('is-portrait')).toBe(false)
+    expect(wide?.querySelector('[aria-label="세로 영상 보기"]')).toBeNull()
+    expect(wide?.querySelector('[aria-label="선언된 숏폼 보기"]')).toBeNull()
     expect(
-      verticalCard?.querySelector('.discovery-shelf-backdrop'),
+      wide?.querySelector('[aria-label="실시간 인기 작품 보기"]'),
     ).not.toBeNull()
-    const landscape = screen
-      .getAllByRole('link', { name: '실시간 인기 작품 보기' })[0]
-      ?.querySelector('.discovery-shelf-visual')
-    expect(landscape?.classList.contains('is-vertical')).toBe(false)
-    expect(view.container).toBeTruthy()
+
+    const portrait = view.container.querySelector('#shelf-track-trending-short')
+    expect(portrait).not.toBeNull()
+    if (portrait === null) return
+    expect(portrait.classList.contains('is-portrait')).toBe(true)
+    const labels = [
+      ...portrait.querySelectorAll<HTMLAnchorElement>(
+        '.discovery-shelf-card a',
+      ),
+    ].map((anchor) => anchor.getAttribute('aria-label'))
+    expect(labels).toEqual(['선언된 숏폼 보기', '세로 영상 보기'])
   })
 })

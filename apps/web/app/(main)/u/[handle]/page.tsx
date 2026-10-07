@@ -35,6 +35,12 @@ import { workTypeLabel } from '@/src/components/studio/work-types'
 import { profileJsonLd } from '@/src/lib/seo/json-ld'
 import { absoluteUrlOrNull } from '@/src/lib/site-url'
 import '@/src/styles/profile-showcase.css'
+import {
+  higgsfieldProfile,
+  higgsfieldSeriesList,
+  higgsfieldWorkCard,
+  isHiggsfieldHandle,
+} from '@/src/content/higgsfield'
 import { getProfile } from '@/src/services/user/get-profile'
 import { getProfileSeries } from '@/src/services/user/get-profile-series'
 import {
@@ -237,10 +243,14 @@ function WorkCard({
   series,
   index,
   featured = false,
+  href,
+  meta,
 }: {
   readonly series: SeriesResponse
   readonly index: number
   readonly featured?: boolean
+  readonly href?: string
+  readonly meta?: string
 }): ReactNode {
   const vertical = isShortFormFormat(series)
   const className = [
@@ -252,7 +262,7 @@ function WorkCard({
     .join(' ')
   return (
     <li className={className}>
-      <Link href={`/series/${series.id}`}>
+      <Link href={href ?? `/series/${series.id}`}>
         <span className="cp-card-media">
           <img
             src={posterFor(series, index)}
@@ -275,7 +285,8 @@ function WorkCard({
             <span className="cp-card-synopsis">{series.synopsis}</span>
           ) : null}
           <small>
-            {series.episodeCount}화 · 조회 {compact(series.totalViews)}
+            {meta ??
+              `${String(series.episodeCount)}화 · 조회 ${compact(series.totalViews)}`}
           </small>
         </span>
       </Link>
@@ -428,11 +439,15 @@ export async function generateMetadata({
   const { handle } = await params
   const canonical = absoluteUrlOrNull(`/u/${handle}`)
 
-  let profile: UserProfile | null = null
-  try {
-    profile = await getProfile(handle, null)
-  } catch {
-    profile = null
+  let profile: UserProfile | null = isHiggsfieldHandle(handle)
+    ? higgsfieldProfile()
+    : null
+  if (profile === null) {
+    try {
+      profile = await getProfile(handle, null)
+    } catch {
+      profile = null
+    }
   }
   if (profile === null) {
     return {
@@ -480,23 +495,27 @@ export default async function ProfilePage({
   readonly params: Promise<{ handle: string }>
 }): Promise<ReactNode> {
   const [{ handle }, session] = await Promise.all([params, getServerSession()])
+  const isPartner = isHiggsfieldHandle(handle)
 
   try {
-    const previewProfile =
-      handle === 'hanbin'
+    const previewProfile = isPartner
+      ? undefined
+      : handle === 'hanbin'
         ? PREVIEW_PROFILE
         : process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
           ? PREVIEW_PROFILE_ALIASES[handle]
           : undefined
     const isPortfolioPreview = previewProfile !== undefined
-    const [profile, series, relatedCreators] = isPortfolioPreview
-      ? [previewProfile, PREVIEW_SERIES, PREVIEW_RELATED_CREATORS]
-      : await Promise.all([
-          getProfile(handle, session),
-          getProfileSeries(handle),
-          getRelatedCreators(handle),
-        ])
-    const isSelf = session?.user.handle === profile.handle
+    const [profile, series, relatedCreators] = isPartner
+      ? [higgsfieldProfile(), higgsfieldSeriesList(), []]
+      : isPortfolioPreview
+        ? [previewProfile, PREVIEW_SERIES, PREVIEW_RELATED_CREATORS]
+        : await Promise.all([
+            getProfile(handle, session),
+            getProfileSeries(handle),
+            getRelatedCreators(handle),
+          ])
+    const isSelf = !isPartner && session?.user.handle === profile.handle
     const messageEntry = messageEntryFor(profile, session !== null, isSelf)
 
     // 숫자는 이 화면에 실제로 보이는 공개 작품에서 센다. 프로필 집계는 비공개
@@ -594,7 +613,7 @@ export default async function ProfilePage({
               </div>
 
               <div className="cp-actions">
-                {isSelf ? (
+                {isPartner ? null : isSelf ? (
                   <Link href="/account#profile" className="cp-manage">
                     <PencilLine aria-hidden="true" />
                     프로필 관리
@@ -618,7 +637,9 @@ export default async function ProfilePage({
                     />
                   </div>
                 )}
-                <MessageAction entry={messageEntry} handle={profile.handle} />
+                {isPartner ? null : (
+                  <MessageAction entry={messageEntry} handle={profile.handle} />
+                )}
                 <ProfileShareButton
                   title={`${profile.displayName} (@${profile.handle}) · ilog`}
                 />
@@ -641,10 +662,12 @@ export default async function ProfilePage({
                   <dt>회차</dt>
                   <dd>{compact(episodeTotal)}</dd>
                 </div>
-                <div>
-                  <dt>총 조회</dt>
-                  <dd>{compact(profile.totalViews)}</dd>
-                </div>
+                {isPartner && profile.totalViews === '0' ? null : (
+                  <div>
+                    <dt>총 조회</dt>
+                    <dd>{compact(profile.totalViews)}</dd>
+                  </div>
+                )}
               </dl>
               {links.length === 0 ? null : (
                 <ul className="cp-links" aria-label="외부 링크">
@@ -680,23 +703,35 @@ export default async function ProfilePage({
               <>
                 {longForm.length === 0 ? null : (
                   <ul className="cp-grid">
-                    {longForm.map((item, index) => (
-                      <WorkCard
-                        key={item.id}
-                        series={item}
-                        index={index}
-                        featured={item === featured}
-                      />
-                    ))}
+                    {longForm.map((item, index) => {
+                      const partner = higgsfieldWorkCard(item.id)
+                      return (
+                        <WorkCard
+                          key={item.id}
+                          series={item}
+                          index={index}
+                          featured={item === featured}
+                          {...(partner ?? {})}
+                        />
+                      )
+                    })}
                   </ul>
                 )}
                 {shortForm.length === 0 ? null : (
                   <>
                     <h3 className="cp-subhead">숏폼</h3>
                     <ul className="cp-grid is-vertical">
-                      {shortForm.map((item, index) => (
-                        <WorkCard key={item.id} series={item} index={index} />
-                      ))}
+                      {shortForm.map((item, index) => {
+                        const partner = higgsfieldWorkCard(item.id)
+                        return (
+                          <WorkCard
+                            key={item.id}
+                            series={item}
+                            index={index}
+                            {...(partner ?? {})}
+                          />
+                        )
+                      })}
                     </ul>
                   </>
                 )}
