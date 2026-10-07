@@ -121,7 +121,7 @@ describe('CreatorDirectory', () => {
         monthLabel="2026년 10월"
       />,
     )
-    const monthly = container.querySelectorAll('[data-carousel-id] h3')
+    const monthly = container.querySelectorAll('.creator-monthly-card h3')
     expect(Array.from(monthly).map((node) => node.textContent)).toEqual([
       '첫 작가',
       '두 번째 작가',
@@ -132,7 +132,7 @@ describe('CreatorDirectory', () => {
     expect(
       screen.getByRole('link', { name: '도시의 밤 재생' }).getAttribute('href'),
     ).toBe('/watch/city-episode')
-    expect(container.querySelector('.creator-monthly-track')).toBeNull()
+    expect(container.querySelector('.creator-monthly-track')).toBeTruthy()
   })
 
   it('searches handles with @ and work titles, then clears the search', () => {
@@ -162,7 +162,7 @@ describe('CreatorDirectory', () => {
         }))}
       />,
     )
-    expect(container.querySelectorAll('[data-carousel-id]')).toHaveLength(2)
+    expect(container.querySelectorAll('.creator-monthly-card')).toHaveLength(2)
     expect(container.querySelectorAll('.creator-world')).toHaveLength(2)
     expect(screen.getAllByText('비공개')).toHaveLength(2)
   })
@@ -194,11 +194,35 @@ describe('CreatorDirectory', () => {
       />,
     )
     expect(
-      Array.from(container.querySelectorAll('[data-carousel-id] h3')).map(
+      Array.from(container.querySelectorAll('.creator-monthly-card h3')).map(
         (node) => node.textContent,
       ),
     ).toEqual(['Creator 4', 'Creator 2', 'Creator 0', 'Creator 6', 'Creator 1'])
     expect(container.querySelectorAll('.creator-best-pending')).toHaveLength(0)
     expect(container.querySelectorAll('.creator-world')).toHaveLength(7)
+  })
+
+  it('fills five slots with real creators after the curated selection', () => {
+    const first = creators[0]
+    if (first === undefined) throw new Error('Missing creator fixture')
+    const many = Array.from({ length: 6 }, (_, index) => ({
+      ...first,
+      handle: `creator${String(index)}`,
+      displayName: `Creator ${String(index)}`,
+    }))
+    const { container } = render(
+      <CreatorDirectory
+        initialCreators={many}
+        featuredHandles={['missing', 'creator4', 'creator4', 'creator2']}
+      />,
+    )
+    expect(
+      Array.from(container.querySelectorAll('.creator-monthly-card h3')).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['Creator 4', 'Creator 2', 'Creator 0', 'Creator 1', 'Creator 3'])
+    const monthly = within(screen.getByRole('region', { name: /이달의 작가/u }))
+    expect(monthly.getAllByRole('link')).toHaveLength(5)
+    expect(monthly.queryByRole('button', { name: /자동/u })).toBeNull()
   })
 })
