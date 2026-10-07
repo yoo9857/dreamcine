@@ -9,6 +9,7 @@ import {
   type HelpEntry,
 } from '@/src/content/help-qa'
 import { getLogger } from '@/src/lib/logger'
+import { matchServiceHelpEntry } from '@/src/content/help-intent'
 
 /** 문서의 현재 대화 모델. https://docs.x.ai/developers/models */
 export const HELP_MODEL = 'grok-4.7'
@@ -169,7 +170,8 @@ export async function answerHelpQuestion(
   input: HelpChatInput,
   options: HelpAnswerOptions = {},
 ): Promise<HelpAnswer> {
-  const match = matchHelpEntry(input.message)
+  const match =
+    matchServiceHelpEntry(input.message) ?? matchHelpEntry(input.message)
   if (match.entry !== null && match.score >= HELP_CONFIDENT_SCORE) {
     return fromEntry(match.entry)
   }

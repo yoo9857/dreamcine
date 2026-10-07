@@ -21,6 +21,23 @@ const invoke = POST as unknown as (context: {
 }) => Promise<{ body: unknown }>
 
 describe('help chat integration', () => {
+  it.each([
+    '크리에이터 어디서지원해?',
+    '어디서 지원해?',
+    '작가 신청 어디서 하나요?',
+    '영상 재생 안돼',
+  ])('never sends service question %s to catalog search', async (message) => {
+    dependencies.catalog.mockClear()
+    dependencies.guide.mockResolvedValue({
+      answer: '서비스 안내',
+      href: '/creator-apply',
+      linkLabel: '안내',
+      source: 'guide',
+    })
+    const response = await invoke({ body: { message }, session: null })
+    expect(dependencies.catalog).not.toHaveBeenCalled()
+    expect(response.body).toMatchObject({ source: 'guide' })
+  })
   it('uses verified guide for application questions without querying the catalog', async () => {
     dependencies.catalog.mockClear()
     dependencies.guide.mockResolvedValue({

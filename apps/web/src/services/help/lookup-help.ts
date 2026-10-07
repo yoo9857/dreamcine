@@ -7,6 +7,7 @@ import {
   formatFilmDuration,
 } from '@/src/content/higgsfield'
 import type { HelpAnswer, HelpChatInput } from './answer-help'
+import { matchServiceHelpEntry } from '@/src/content/help-intent'
 
 export function catalogLookupMessage(input: HelpChatInput): string {
   if (!/^(?:그|이|해당)\s?(?:작가|작품|영화|영상|거)/.test(input.message))
@@ -33,6 +34,7 @@ export function answerPartnerQuestion(message: string): HelpAnswer | null {
 }
 
 export function catalogQuestion(message: string): string | null {
+  if (matchServiceHelpEntry(message) !== null) return null
   if (
     !/작품|영상|영화|드라마|작가|감독|크리에이터|["“‘']|^@/.test(message) &&
     /[?]|알려|어떻게|방법|해주세요|시세/.test(message)

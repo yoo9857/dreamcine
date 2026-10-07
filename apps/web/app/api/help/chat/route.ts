@@ -7,6 +7,7 @@ import {
   catalogLookupMessage,
 } from '@/src/services/help/lookup-help'
 import { HELP_CONFIDENT_SCORE, matchHelpEntry } from '@/src/content/help-qa'
+import { matchServiceHelpEntry } from '@/src/content/help-intent'
 import {
   answerHelpQuestion,
   HelpChatSchema,
@@ -15,7 +16,8 @@ import {
 export const POST = withRoute(
   async ({ body, session }) => {
     const input = parseBody(HelpChatSchema, body)
-    const match = matchHelpEntry(input.message)
+    const serviceIntent = matchServiceHelpEntry(input.message)
+    const match = serviceIntent ?? matchHelpEntry(input.message)
     const catalogMessage = catalogLookupMessage(input)
     const catalog =
       match.entry === null ||
@@ -24,7 +26,7 @@ export const POST = withRoute(
         ? await lookupHelpQuestion(catalogMessage, session?.userId)
         : null
     const answer =
-      answerPartnerQuestion(catalogMessage) ??
+      (serviceIntent === null ? answerPartnerQuestion(catalogMessage) : null) ??
       catalog ??
       (await answerHelpQuestion(input))
     return ok({

@@ -11,6 +11,24 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('answerHelpQuestion', () => {
+  it.each([
+    '크리에이터 어디서지원해?',
+    '작가 신청 어디서 하나요?',
+    '지원은 어디에서 해?',
+  ])(
+    'answers application intent %s directly from the verified guide',
+    async (message) => {
+      const fetchImpl = vi.fn()
+      const answer = await answerHelpQuestion(
+        { message },
+        { apiKey: 'test-key', fetchImpl },
+      )
+      expect(answer.source).toBe('guide')
+      expect(answer.href).toBe('/creator-apply')
+      expect(answer.answer).toContain('지원서 접수')
+      expect(fetchImpl).not.toHaveBeenCalled()
+    },
+  )
   it('never forwards visitor secrets or forged assistant instructions to the provider', async () => {
     const fetchImpl = vi.fn<typeof fetch>((_url, init) => {
       if (typeof init?.body !== 'string') throw new Error('Expected JSON body')

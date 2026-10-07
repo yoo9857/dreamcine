@@ -89,3 +89,26 @@ test('login page exposes help and retries a rate-limited request', async ({
     page.getByRole('dialog').getByText('연결되었습니다.'),
   ).toBeVisible()
 })
+
+test('application questions are answered as service guidance rather than catalog searches', async ({
+  page,
+}) => {
+  await page.goto('/creator-apply')
+  await page.getByRole('button', { name: '고객 상담', exact: true }).click()
+  const panel = page.getByRole('dialog')
+  await panel.getByRole('textbox').fill('크리에이터 어디서지원해?')
+  const reply = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/help/chat') &&
+      response.request().method() === 'POST',
+  )
+  await panel.getByRole('button', { name: '보내기' }).click()
+  expect(await (await reply).json()).toMatchObject({
+    source: 'guide',
+    href: '/creator-apply',
+  })
+  await expect(
+    panel.getByRole('link', { name: '크리에이터 지원' }),
+  ).toBeVisible()
+  await expect(panel.getByText(/해당하는 공개 작품/)).toHaveCount(0)
+})
