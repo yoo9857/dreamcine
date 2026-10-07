@@ -94,7 +94,7 @@ const steps = [
     description: '연락처와 작품 링크를 확인한 뒤 제출해 주세요.',
   },
 ] as const
-const process = [
+const applicationProcess = [
   ['01', '지원서 접수', '작품 링크와 만들고 싶은 이야기를 보내주세요.'],
   ['02', '작품 검토', '작품에 담긴 관점과 성장 가능성을 살펴봅니다.'],
   ['03', '온라인 미팅', '다음 단계 대상자와 협업 방향을 이야기합니다.'],
@@ -1057,7 +1057,7 @@ export function CreatorApplicationExperience() {
                 </p>
               </div>
               <ol className={styles.processList}>
-                {process.map(([number, title, description]) => (
+                {applicationProcess.map(([number, title, description]) => (
                   <li key={number}>
                     <span>{number}</span>
                     <div>

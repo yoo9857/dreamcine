@@ -49,7 +49,10 @@ test('지원서 검증, 이전 단계 유지, 실패 재시도와 접수현황�
       ),
     })
   })
-  await page.goto('/creator-apply', { waitUntil: 'domcontentloaded' })
+  const response = await page.goto('/creator-apply', {
+    waitUntil: 'domcontentloaded',
+  })
+  expect(response?.status()).toBe(200)
   await page.getByRole('link', { name: '지금 지원서 작성하기' }).click()
   await page.getByRole('button', { name: /^다음 단계/ }).click()
   await expect(
@@ -126,7 +129,10 @@ for (const [width, height] of sizes) {
     page,
   }) => {
     await page.setViewportSize({ width, height })
-    await page.goto('/creator-apply', { waitUntil: 'domcontentloaded' })
+    const response = await page.goto('/creator-apply', {
+      waitUntil: 'domcontentloaded',
+    })
+    expect(response?.status()).toBe(200)
     const nav = page.getByRole('navigation', { name: '크리에이터 모집 페이지' })
     await expect(nav.getByRole('link')).toHaveText([
       '우리들은?',
@@ -204,7 +210,10 @@ test('소개 화면 로딩 완료와 메뉴 전환 뒤에도 배경 영상이 �
         state.creatorWrongScreen = true
     }).observe(document, { childList: true, subtree: true, attributes: true })
   })
-  await page.goto('/creator-apply#about', { waitUntil: 'domcontentloaded' })
+  const response = await page.goto('/creator-apply#about', {
+    waitUntil: 'domcontentloaded',
+  })
+  expect(response?.status()).toBe(200)
   expect(
     await page.evaluate(
       () =>
