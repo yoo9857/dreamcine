@@ -637,6 +637,13 @@
   grid-template-columns: 1fr 1fr;
   gap: 9px;
 }
+.referralOptions .optionGrid {
+  gap: 6px;
+}
+.referralOptions .optionGrid label > span {
+  min-height: 46px;
+  padding: 10px 12px;
+}
 .optionGrid label {
   cursor: pointer;
   position: relative;
@@ -1838,6 +1845,13 @@
   }
 }
 @media (max-height: 450px) and (min-width: 761px) {
+  .referralOptions .optionGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .referralOptions .optionGrid label > span {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
   .form:has(.stage:not([hidden]) .review) .formHeading p,
   .form:has(.stage:not([hidden]) .review) .progress {
     display: none;
@@ -1952,11 +1966,13 @@
     font-size: 10px;
   }
   .form:has(.portfolioStage:not([hidden])) .formHeading,
-  .form:has(.writingStage:not([hidden])) .formHeading {
+  .form:has(.writingStage:not([hidden])) .formHeading,
+  .form:has(.referralOptions:not([hidden])) .formHeading {
     margin-bottom: 12px;
   }
   .form:has(.portfolioStage:not([hidden])) .formHeading p,
-  .form:has(.writingStage:not([hidden])) .formHeading p {
+  .form:has(.writingStage:not([hidden])) .formHeading p,
+  .form:has(.referralOptions:not([hidden])) .formHeading p {
     display: none;
   }
   .stage.writingStage {

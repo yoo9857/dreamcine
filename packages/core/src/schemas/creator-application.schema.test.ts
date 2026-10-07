@@ -15,6 +15,26 @@ const validApplication = {
 } as const
 
 describe('CreateCreatorApplicationSchema', () => {
+  it('지원 분야 없이 유입 경로만으로 접수한다', () => {
+    const input = { ...validApplication, track: undefined }
+    const parsed = CreateCreatorApplicationSchema.parse({
+      ...input,
+      referralSource: 'INSTAGRAM',
+    })
+    expect(parsed.track).toBeUndefined()
+    expect(parsed.referralSource).toBe('INSTAGRAM')
+  })
+
+  it('유입 경로 누락과 알 수 없는 값은 거부한다', () => {
+    const input = { ...validApplication, track: undefined }
+    expect(CreateCreatorApplicationSchema.safeParse(input).success).toBe(false)
+    expect(
+      CreateCreatorApplicationSchema.safeParse({
+        ...input,
+        referralSource: 'FAKE_SOCIAL',
+      }).success,
+    ).toBe(false)
+  })
   it('지원 내용을 정규화하고 빈 선택 항목을 제거한다', () => {
     expect(CreateCreatorApplicationSchema.parse(validApplication)).toEqual({
       ...validApplication,

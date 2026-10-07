@@ -27,6 +27,10 @@ import {
 } from '@/components/ui/prisma-hero'
 
 import styles from './creator-application.module.css'
+import {
+  CREATOR_REFERRALS,
+  referralSourceLabel,
+} from '@/src/content/creator-referrals'
 
 const tracks = [
   {
@@ -67,9 +71,9 @@ const steps = [
     description: '이름과 연락받을 이메일을 알려주세요.',
   },
   {
-    title: '어떤 역할로 함께할까요?',
-    label: '지원 분야',
-    description: '가장 가까운 분야를 하나 선택해 주세요.',
+    title: '어디를 보고 오셨나요?',
+    label: '알게 된 경로',
+    description: '이번 지원을 결정하게 된 경로 하나를 선택해 주세요.',
   },
   {
     title: '당신의 작품을 보여주세요.',
@@ -151,7 +155,7 @@ type SubmitState =
 interface Application {
   displayName: string
   email: string
-  track: string
+  referralSource: string
   portfolioUrl: string
   additionalPortfolioUrls: string[]
   experience: string
@@ -164,7 +168,7 @@ export function CreatorApplicationExperience() {
   const [screen, setScreen] = useState<Screen>('top')
   const [ready, setReady] = useState(false)
   const [step, setStep] = useState(0)
-  const [selectedTrack, setSelectedTrack] = useState('')
+  const [selectedReferral, setSelectedReferral] = useState('')
   const [pitchLength, setPitchLength] = useState(0)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitState, setSubmitState] = useState<SubmitState>({
@@ -262,7 +266,7 @@ export function CreatorApplicationExperience() {
     return {
       displayName: field('displayName'),
       email: field('email'),
-      track: field('track'),
+      referralSource: field('referralSource'),
       portfolioUrl: field('portfolioUrl'),
       additionalPortfolioUrls: [
         field('portfolioUrl2'),
@@ -302,8 +306,8 @@ export function CreatorApplicationExperience() {
       )
         errors.email = '이메일 주소를 정확히 입력해 주세요.'
     }
-    if ((all || step === 1) && !body.track)
-      errors.track = '지원할 분야를 하나 선택해 주세요.'
+    if ((all || step === 1) && !body.referralSource)
+      errors.referralSource = '알게 된 경로를 하나 선택해 주세요.'
     if (all || step === 2) {
       if (
         !body.portfolioUrl ||
@@ -332,7 +336,7 @@ export function CreatorApplicationExperience() {
     if (!first) return true
     const errorStep = ['displayName', 'email'].includes(first)
       ? 0
-      : first === 'track'
+      : first === 'referralSource'
         ? 1
         : first.startsWith('portfolioUrl')
           ? 2
@@ -387,7 +391,7 @@ export function CreatorApplicationExperience() {
   }
   function reset() {
     setStep(0)
-    setSelectedTrack('')
+    setSelectedReferral('')
     setPitchLength(0)
     setReview(null)
     setFieldErrors({})
@@ -577,37 +581,35 @@ export function CreatorApplicationExperience() {
                   </label>
                 </div>
                 <fieldset
-                  className={styles.trackOptions}
+                  className={`${styles.trackOptions ?? ''} ${styles.referralOptions ?? ''}`}
                   hidden={step !== 1}
-                  {...invalidProps('track')}
+                  {...invalidProps('referralSource')}
                 >
-                  <legend className={styles.srOnly}>지원 분야 *</legend>
+                  <legend className={styles.srOnly}>알게 된 경로 *</legend>
                   <div className={styles.optionGrid}>
-                    {tracks.map(({ value, title, description, icon: Icon }) => (
+                    {CREATOR_REFERRALS.map(({ value, label }) => (
                       <label key={value}>
                         <input
                           type="radio"
-                          name="track"
+                          name="referralSource"
                           value={value}
                           required
-                          checked={selectedTrack === value}
+                          checked={selectedReferral === value}
                           onChange={() => {
-                            setSelectedTrack(value)
+                            setSelectedReferral(value)
                           }}
-                          {...invalidProps('track')}
+                          {...invalidProps('referralSource')}
                         />
                         <span>
-                          <Icon size={21} />
                           <span>
-                            <strong>{title}</strong>
-                            <small>{description}</small>
+                            <strong>{label}</strong>
                           </span>
                           <Check className={styles.optionCheck} size={16} />
                         </span>
                       </label>
                     ))}
                   </div>
-                  {errorFor('track')}
+                  {errorFor('referralSource')}
                 </fieldset>
                 <div
                   className={`${styles.stage ?? ''} ${styles.portfolioStage ?? ''}`}
@@ -716,20 +718,17 @@ export function CreatorApplicationExperience() {
                         <dd title={review.email}>{review.email}</dd>
                       </div>
                       <div>
-                        <dt>지원 분야</dt>
+                        <dt>유입 경로</dt>
                         <dd>
                           <span>
-                            {
-                              tracks.find(({ value }) => value === review.track)
-                                ?.title
-                            }
+                            {referralSourceLabel(review.referralSource)}
                           </span>
                           <button
                             type="button"
                             onClick={() => {
                               setStep(1)
                             }}
-                            aria-label="지원 분야 수정"
+                            aria-label="알게 된 경로 수정"
                           >
                             수정
                           </button>
@@ -790,9 +789,8 @@ export function CreatorApplicationExperience() {
                     <span>개인정보 수집·이용에 동의합니다. (필수)</span>
                   </label>
                   <p className={styles.privacyNote} id="consent-hint">
-                    이름, 이메일, 작품과 작성 내용을 지원 검토에 사용합니다.
-                    삭제 요청:{' '}
-                    <a href="mailto:privacy@ilog.kr">privacy@ilog.kr</a>
+                    입력 정보는 지원 검토와 유입 경로 통계에 사용합니다. 삭제
+                    요청: <a href="mailto:privacy@ilog.kr">privacy@ilog.kr</a>
                   </p>
                   {errorFor('privacyConsent')}
                   {submitState.status === 'error' ? (
@@ -1024,7 +1022,6 @@ export function CreatorApplicationExperience() {
                     key={value}
                     href="#apply"
                     onClick={(event) => {
-                      setSelectedTrack(value)
                       setStep(0)
                       navigate(event, 'apply')
                     }}

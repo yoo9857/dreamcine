@@ -461,6 +461,30 @@
   box-shadow: 0 6px 14px rgb(101 57 217 / 20%);
 }
 
+.admin-referral-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+.admin-referral-grid > div {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--admin-border, #2b3642);
+  border-radius: 12px;
+}
+.admin-referral-grid strong {
+  font-size: 20px;
+}
+.admin-referral-grid small {
+  font-size: 12px;
+  font-weight: 400;
+}
+.admin-referral-grid meter {
+  width: 100%;
+  accent-color: #ff4545;
+}
 .admin-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

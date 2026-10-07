@@ -3,7 +3,14 @@ import { ClipboardCheck, ExternalLink, Search } from 'lucide-react'
 import { requireCapability } from '@/src/auth/server-session'
 import { ApplicationStatusAction } from '@/src/components/admin/AdminMutationActions'
 import { AdminPagination } from '@/src/components/admin/AdminPagination'
-import { listAdminCreatorApplications } from '@/src/services/moderation/admin-operations'
+import {
+  listAdminCreatorApplications,
+  getAdminCreatorReferralCounts,
+} from '@/src/services/moderation/admin-operations'
+import {
+  CREATOR_REFERRALS,
+  referralSourceLabel,
+} from '@/src/content/creator-referrals'
 
 const statuses = [
   'SUBMITTED',
@@ -28,6 +35,14 @@ export default async function ApplicationsPage({
     ...(status === undefined ? {} : { status }),
     ...(params.cursor === undefined ? {} : { cursor: params.cursor }),
   })
+  const referralCounts = await getAdminCreatorReferralCounts(session)
+  const total = referralCounts.reduce((sum, item) => sum + item.count, 0)
+  const collected = referralCounts
+    .filter((item) =>
+      CREATOR_REFERRALS.some((source) => source.value === item.referralSource),
+    )
+    .reduce((sum, item) => sum + item.count, 0)
+  const unattributed = total - collected
   return (
     <div className="admin-dashboard admin-management-page">
       <section className="admin-page-heading">
@@ -47,6 +62,46 @@ export default async function ApplicationsPage({
           />
           <button type="submit">검색</button>
         </form>
+      </section>
+      <section
+        className="admin-panel admin-management-panel"
+        aria-label="지원 유입 경로 KPI"
+      >
+        <header className="admin-management-header">
+          <div>
+            <strong>지원 유입 경로</strong>
+            <span>
+              현재 모집 · 전체 {total}건 / 경로 수집 {collected}건 / 미수집{' '}
+              {unattributed}건
+            </span>
+          </div>
+        </header>
+        <p>
+          경로를 선택한 지원서 기준 비율입니다. 같은 이메일의 재제출은 1건으로
+          집계합니다. 검색·상태 필터와 관계없이 현재 모집 전체를 표시합니다.
+        </p>
+        <div className="admin-referral-grid">
+          {CREATOR_REFERRALS.map(({ value, label }) => {
+            const count =
+              referralCounts.find((item) => item.referralSource === value)
+                ?.count ?? 0
+            const percent = collected === 0 ? 0 : (count / collected) * 100
+            return (
+              <div key={value}>
+                <span>{label}</span>
+                <strong>
+                  {count}건 <small>{percent.toFixed(1)}%</small>
+                </strong>
+                <meter
+                  min={0}
+                  max={100}
+                  value={percent}
+                  aria-label={`${label} 유입 비율`}
+                />
+              </div>
+            )
+          })}
+        </div>
       </section>
       <nav className="admin-filter-tabs" aria-label="지원 상태 필터">
         <a
@@ -88,7 +143,11 @@ export default async function ApplicationsPage({
                   <div>
                     <strong>{item.displayName}</strong>
                     <span>
-                      {item.email} · {item.track}
+                      {item.email} · 유입:{' '}
+                      {referralSourceLabel(item.referralSource)}
+                      {item.track === null
+                        ? ''
+                        : ` · 이전 지원 분야: ${item.track}`}
                     </span>
                   </div>
                   <em>{item.status}</em>

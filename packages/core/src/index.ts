@@ -331,6 +331,7 @@ export {
 export { PublicUserSchema, type PublicUser } from './schemas/user.schema.js'
 export {
   CREATOR_TRACKS,
+  CREATOR_REFERRAL_SOURCES,
   CreateCreatorApplicationSchema,
   type CreatorTrack,
   type CreateCreatorApplicationInput,

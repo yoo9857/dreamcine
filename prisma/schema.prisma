@@ -788,7 +788,8 @@ model CreatorApplication {
   id                      String                   @id @default(cuid())
   displayName             String                   @map("display_name") @db.VarChar(80)
   email                   String                   @db.VarChar(254)
-  track                   CreatorTrack
+  track                   CreatorTrack?
+  referralSource          String?                  @map("referral_source") @db.VarChar(24)
   portfolioUrl            String                   @map("portfolio_url") @db.VarChar(500)
   additionalPortfolioUrls String[]                 @default([]) @map("additional_portfolio_urls") @db.VarChar(500)
   socialUrl               String?                  @map("social_url") @db.VarChar(500)

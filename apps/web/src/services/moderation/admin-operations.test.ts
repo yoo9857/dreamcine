@@ -10,6 +10,7 @@ const repositories = vi.hoisted(() => ({
   listAssetsForAdmin: vi.fn(),
   listContentForAdmin: vi.fn(),
   listCreatorApplicationsForAdmin: vi.fn(),
+  getCreatorReferralCounts: vi.fn(),
   listRecentRoleGrants: vi.fn(),
   setUserRoleForAdmin: vi.fn().mockResolvedValue(undefined),
   updateAssetStatus: vi.fn(),
@@ -22,7 +23,11 @@ vi.mock('@aidream/queue', () => ({
   retryJob: vi.fn(),
 }))
 
-import { changeUserRole, getAdminUserDetail } from './admin-operations'
+import {
+  changeUserRole,
+  getAdminUserDetail,
+  getAdminCreatorReferralCounts,
+} from './admin-operations'
 
 function session(role: 'MODERATOR' | 'ADMIN' = 'ADMIN'): RouteSession {
   return {
@@ -73,6 +78,24 @@ describe('changeUserRole', () => {
       changeUserRole(session(), 'operator', 'VIEWER', '자기 강등'),
     ).rejects.toMatchObject({ code: 'E_PERM_DENIED' })
     expect(repositories.setUserRoleForAdmin).not.toHaveBeenCalled()
+  })
+})
+
+describe('creator referral KPI', () => {
+  it('관리자에게 집계 결과를 반환하고 비관리자 조회를 차단한다', async () => {
+    const counts = [
+      { referralSource: 'INSTAGRAM', count: 2 },
+      { referralSource: null, count: 3 },
+    ]
+    repositories.getCreatorReferralCounts.mockResolvedValue(counts)
+    await expect(getAdminCreatorReferralCounts(session())).resolves.toEqual(
+      counts,
+    )
+    repositories.getCreatorReferralCounts.mockClear()
+    expect(() =>
+      getAdminCreatorReferralCounts(session('MODERATOR')),
+    ).toThrowError(AppError)
+    expect(repositories.getCreatorReferralCounts).not.toHaveBeenCalled()
   })
 })
 

@@ -13,7 +13,7 @@ async function advance(page: Page, step: number) {
       .getByRole('textbox', { name: '연락받을 이메일' })
       .fill('creator@example.com')
   } else if (step === 1)
-    await page.getByRole('radio', { name: /작가 · 스토리/ }).check()
+    await page.getByRole('radio', { name: '인스타그램' }).check()
   else if (step === 2)
     await page
       .getByRole('textbox', { name: '대표 작품·포트폴리오 링크' })
@@ -32,7 +32,7 @@ test('지원서 검증, 이전 단계 유지, 실패 재시도와 접수현황�
     expect(route.request().postDataJSON()).toMatchObject({
       displayName: '테스트 작가',
       email: 'creator@example.com',
-      track: 'WRITER',
+      referralSource: 'INSTAGRAM',
       portfolioUrl: 'https://example.com/film',
       pitch,
       privacyConsent: true,
@@ -59,7 +59,7 @@ test('지원서 검증, 이전 단계 유지, 실패 재시도와 접수현황�
   await advance(page, 0)
   await page.getByRole('button', { name: /^다음 단계/ }).click()
   await expect(
-    page.getByText('지원할 분야를 하나 선택해 주세요.'),
+    page.getByText('알게 된 경로를 하나 선택해 주세요.'),
   ).toBeVisible()
   await advance(page, 1)
   await advance(page, 2)
@@ -98,7 +98,7 @@ test('지원서 검증, 이전 단계 유지, 실패 재시도와 접수현황�
   ).toBeVisible()
 })
 
-test('모집 분야에서 선택한 역할을 유지하며 기본 정보부터 작성한다', async ({
+test('모집 분야에서 지원해도 유입 경로를 임의로 선택하지 않는다', async ({
   page,
 }) => {
   await page.goto('/creator-apply#tracks', { waitUntil: 'domcontentloaded' })
@@ -107,7 +107,13 @@ test('모집 분야에서 선택한 역할을 유지하며 기본 정보부터 �
     page.getByRole('textbox', { name: '이름 또는 활동명' }),
   ).toBeVisible()
   await advance(page, 0)
-  await expect(page.getByRole('radio', { name: /연출 · 감독/ })).toBeChecked()
+  await expect(
+    page.getByRole('heading', { name: '어디를 보고 오셨나요?' }),
+  ).toBeVisible()
+  await expect(
+    page.locator('input[name="referralSource"]:checked'),
+  ).toHaveCount(0)
+  await expect(page.getByRole('radio')).toHaveCount(8)
 })
 
 test('작품 링크 3개와 창작 방향·경험을 같은 지원서로 제출한다', async ({
@@ -169,6 +175,8 @@ test('작품 링크 3개와 창작 방향·경험을 같은 지원서로 제출�
     experience: '단편 시나리오 집필 / Premiere Pro',
   })
   expect(submitted).not.toHaveProperty('socialUrl')
+  expect(submitted).not.toHaveProperty('track')
+  expect(submitted).toHaveProperty('referralSource', 'INSTAGRAM')
 })
 
 const sizes = [

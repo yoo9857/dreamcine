@@ -10,6 +10,17 @@ export const CREATOR_TRACKS = [
   'OTHER',
 ] as const
 
+export const CREATOR_REFERRAL_SOURCES = [
+  'INSTAGRAM',
+  'NAVER',
+  'FACEBOOK',
+  'X',
+  'YOUTUBE',
+  'OTHER_SOCIAL',
+  'FRIEND',
+  'OTHER',
+] as const
+
 const PublicUrlSchema = z
   .string()
   .trim()
@@ -32,21 +43,33 @@ const OptionalTextSchema = z
   .pipe(z.string().max(1200))
   .transform((value) => (value === '' ? undefined : value))
 
-export const CreateCreatorApplicationSchema = z.object({
-  displayName: z
-    .string()
-    .transform(sanitizeText)
-    .pipe(z.string().min(2).max(80)),
-  email: EmailSchema.pipe(z.string().max(254)),
-  track: z.enum(CREATOR_TRACKS),
-  portfolioUrl: PublicUrlSchema,
-  additionalPortfolioUrls: z.array(PublicUrlSchema).max(2).optional(),
-  socialUrl: OptionalPublicUrlSchema.optional(),
-  experience: OptionalTextSchema.optional(),
-  pitch: z.string().transform(sanitizeText).pipe(z.string().min(40).max(2000)),
-  privacyConsent: z.literal(true),
-  companyWebsite: z.literal('').optional(),
-})
+export const CreateCreatorApplicationSchema = z
+  .object({
+    displayName: z
+      .string()
+      .transform(sanitizeText)
+      .pipe(z.string().min(2).max(80)),
+    email: EmailSchema.pipe(z.string().max(254)),
+    track: z.enum(CREATOR_TRACKS).optional(),
+    referralSource: z.enum(CREATOR_REFERRAL_SOURCES).optional(),
+    portfolioUrl: PublicUrlSchema,
+    additionalPortfolioUrls: z.array(PublicUrlSchema).max(2).optional(),
+    socialUrl: OptionalPublicUrlSchema.optional(),
+    experience: OptionalTextSchema.optional(),
+    pitch: z
+      .string()
+      .transform(sanitizeText)
+      .pipe(z.string().min(40).max(2000)),
+    privacyConsent: z.literal(true),
+    companyWebsite: z.literal('').optional(),
+  })
+  .refine(
+    (input) => input.referralSource !== undefined || input.track !== undefined,
+    {
+      path: ['referralSource'],
+      message: 'Select a referral source',
+    },
+  )
 
 export type CreatorTrack = (typeof CREATOR_TRACKS)[number]
 export type CreateCreatorApplicationInput = z.infer<

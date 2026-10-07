@@ -9,6 +9,7 @@ import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
 import { executeDb } from '../errors.js'
 import { mapUser } from '../mappers/user.mapper.js'
+import { CREATOR_APPLICATION_ROUND } from './creator-application.repo.js'
 
 export interface AdminPage<T> {
   readonly items: readonly T[]
@@ -53,7 +54,8 @@ export interface AdminCreatorApplication {
   readonly id: string
   readonly displayName: string
   readonly email: string
-  readonly track: string
+  readonly track: string | null
+  readonly referralSource: string | null
   readonly portfolioUrl: string
   readonly additionalPortfolioUrls: readonly string[]
   readonly socialUrl: string | null
@@ -101,6 +103,22 @@ export function listCreatorApplicationsForAdmin(options: {
       take: options.limit + 1,
     })
     return pageResult(rows, options.limit)
+  })
+}
+
+export function getCreatorReferralCounts(): Promise<
+  readonly { referralSource: string | null; count: number }[]
+> {
+  return executeDb(async () => {
+    const rows = await db.creatorApplication.groupBy({
+      by: ['referralSource'],
+      where: { round: CREATOR_APPLICATION_ROUND },
+      _count: { _all: true },
+    })
+    return rows.map((row) => ({
+      referralSource: row.referralSource,
+      count: row._count._all,
+    }))
   })
 }
 

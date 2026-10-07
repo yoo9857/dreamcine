@@ -12,6 +12,7 @@ import {
   listAssetsForAdmin,
   listContentForAdmin,
   listCreatorApplicationsForAdmin,
+  getCreatorReferralCounts,
   listRecentRoleGrants,
   setUserRoleForAdmin,
   updateAssetStatus,
@@ -55,6 +56,11 @@ export function listAdminCreatorApplications(
 ) {
   assertAdmin(session)
   return listCreatorApplicationsForAdmin(options)
+}
+
+export function getAdminCreatorReferralCounts(session: RouteSession) {
+  assertAdmin(session)
+  return getCreatorReferralCounts()
 }
 
 export function changeCreatorApplicationStatus(

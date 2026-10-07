@@ -8,7 +8,7 @@ export const CREATOR_APPLICATION_ROUND = '2026-FOUNDING'
 export interface CreatorApplicationRecord {
   id: string
   email: string
-  track: CreatorTrack
+  track: CreatorTrack | null
   status: 'SUBMITTED' | 'REVIEWING' | 'SHORTLISTED' | 'ACCEPTED' | 'REJECTED'
   createdAt: Date
   updatedAt: Date
@@ -21,7 +21,6 @@ export function saveCreatorApplication(
   const data = {
     displayName: input.displayName,
     email: input.email,
-    track: input.track,
     portfolioUrl: input.portfolioUrl,
     additionalPortfolioUrls: input.additionalPortfolioUrls ?? [],
     socialUrl: input.socialUrl ?? null,
@@ -38,8 +37,20 @@ export function saveCreatorApplication(
           round: CREATOR_APPLICATION_ROUND,
         },
       },
-      create: { ...data, round: CREATOR_APPLICATION_ROUND },
-      update: { ...data, status: 'SUBMITTED' },
+      create: {
+        ...data,
+        track: input.track ?? null,
+        referralSource: input.referralSource ?? null,
+        round: CREATOR_APPLICATION_ROUND,
+      },
+      update: {
+        ...data,
+        ...(input.track === undefined ? {} : { track: input.track }),
+        ...(input.referralSource === undefined
+          ? {}
+          : { referralSource: input.referralSource }),
+        status: 'SUBMITTED',
+      },
       select: {
         id: true,
         email: true,
