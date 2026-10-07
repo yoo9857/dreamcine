@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {
   ArrowLeft,
   ArrowRight,
@@ -20,7 +19,6 @@ import {
   type SyntheticEvent,
 } from 'react'
 
-import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 import {
   PrismaHero,
   PrismaNavigation,
@@ -437,9 +435,6 @@ export function CreatorApplicationExperience() {
         }}
       />
       <header className={styles.header}>
-        <Link href="/" aria-label="ilog 홈" className={styles.logo}>
-          <LeftBrandLogo priority />
-        </Link>
         <PrismaNavigation items={navigation} />
       </header>
       <div className={styles.workspace} data-screen={screen}>
@@ -1115,7 +1110,9 @@ export function CreatorApplicationExperience() {
         </section>
       </div>
       <footer className={styles.footer}>
-        <span>ILOG · NEW VOICES, NEW WORLDS.</span>
+        <a href="/" aria-label="ilog 홈">
+          ILOG · NEW VOICES, NEW WORLDS.
+        </a>
         <a href="mailto:support@ilog.kr">
           모집 문의 <ArrowUpRight size={12} />
         </a>
