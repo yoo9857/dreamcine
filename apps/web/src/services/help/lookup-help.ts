@@ -57,6 +57,10 @@ export function catalogQuestion(message: string): string | null {
         ' ',
       )
       .replace(/[?!.,@]/g, ' ')
+      .replace(
+        /(?:^|\s)(?:야|요|줘|나요|주세요|목록|다른|의|은|는)(?=\s|$)/g,
+        ' ',
+      )
   )
     .trim()
     .replace(/(?:은|는|을|를|의)$/, '')
@@ -82,7 +86,7 @@ export async function lookupHelpQuestion(
   if (query === null) return null
   try {
     const catalog = await lookup(query, viewerId)
-    const links = [
+    const candidates = [
       ...catalog.works.map((work) => ({
         href: `/series/${encodeURIComponent(work.id)}`,
         label: work.title,
@@ -91,7 +95,18 @@ export async function lookupHelpQuestion(
         href: `/u/${encodeURIComponent(creator.handle)}`,
         label: `${creator.displayName} 작가`,
       })),
+      ...catalog.works.map((work) => ({
+        href: `/u/${encodeURIComponent(work.owner.handle)}`,
+        label: `${work.owner.displayName} 작가`,
+      })),
     ]
+    const links = candidates
+      .filter(
+        (link, index) =>
+          candidates.findIndex((candidate) => candidate.href === link.href) ===
+          index,
+      )
+      .slice(0, 6)
     if (links.length === 0)
       return {
         answer: `“${query}”에 해당하는 공개 작품·작가를 찾지 못했어요. 정확한 작품 제목이나 작가 이름을 알려 주세요. 비공개 정보는 안내하지 않습니다.`,
@@ -103,7 +118,7 @@ export async function lookupHelpQuestion(
       `“${query}”로 찾은 공개 정보입니다. 여러 결과가 있으면 아래에서 선택해 주세요.`,
       ...catalog.works.map(
         (work) =>
-          `작품: ${work.title}\n작가: ${work.owner.displayName} (@${work.owner.handle})${work.synopsis === null ? '' : `\n소개: ${work.synopsis.slice(0, 180)}`}`,
+          `작품: ${work.title}\n등록 작가: ${work.owner.displayName} (@${work.owner.handle})${work.synopsis === null ? '' : `\n소개: ${work.synopsis.slice(0, 180)}`}`,
       ),
       ...catalog.creators.map(
         (creator) =>

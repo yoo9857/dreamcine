@@ -32,6 +32,7 @@ describe('public catalog help', () => {
   })
   it.each([
     ['홍길동 작가 작품 알려줘', '홍길동'],
+    ['Horror 작가 누구야?', 'Horror'],
     ['“오래 남을 이야기” 영화 소개', '오래 남을 이야기'],
     ['@ilogartist 작가 알려줘', 'ilogartist'],
     ['비밀번호 abc123', null],

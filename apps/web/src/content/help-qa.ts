@@ -31,6 +31,39 @@ function filmList(): string {
 
 const entries: readonly HelpEntry[] = [
   {
+    id: 'creator-tracks',
+    title: '어떤 분야를 모집하나요?',
+    prompts: [
+      '모집 분야',
+      '지원 분야',
+      '감독 지원',
+      '작가 지원',
+      '프로듀서 지원',
+      '비주얼 아티스트 지원',
+    ],
+    keywords: [],
+    answer:
+      '연출·감독, 작가·스토리, AI 비주얼 아티스트, 프로듀서·사운드, 그 외·복합 분야를 모집합니다. 지원서에서는 가장 가까운 분야 하나를 선택해 주세요. 국적·경력·학력 제한은 없습니다.',
+    href: '/creator-apply#tracks',
+    linkLabel: '모집 분야 확인',
+  },
+  {
+    id: 'creator-form',
+    title: '지원서에는 무엇을 적나요?',
+    prompts: [
+      '지원서 항목',
+      '지원서 작성',
+      '지원서에는',
+      '필수 항목',
+      '추가 소개',
+    ],
+    keywords: [],
+    answer:
+      '이름 또는 활동명, 연락받을 이메일, 지원 분야, 대표 작품 링크, 만들고 싶은 이야기를 작성합니다. 추가 소개는 선택 항목이라 건너뛸 수 있어요. 마지막 단계에서 내용을 확인하고 개인정보 수집·이용에 동의한 뒤 제출합니다. 로그인이나 별도 파일 첨부는 필요하지 않습니다.',
+    href: '/creator-apply#apply',
+    linkLabel: '지원서 작성',
+  },
+  {
     id: 'password-reset',
     title: '비밀번호를 잊었어요',
     prompts: [
