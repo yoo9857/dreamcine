@@ -11,6 +11,7 @@
     }
   ],
   "tags": [
+    { "name": "help", "description": "Public guide and catalog" },
     { "name": "messages", "description": "1:1 메시지 (T18)" },
     {
       "name": "auth",
@@ -956,6 +957,116 @@
     }
   },
   "paths": {
+    "/help/chat": {
+      "post": {
+        "tags": ["help"],
+        "summary": "Answer site questions using verified guide or public catalog",
+        "description": "30 requests per IP per 600 seconds. Catalog excludes private/deleted/unpublished records and blocked creators. Personal applications and account/billing data are never queried. Optional model receives public guide text only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "history": {
+                    "type": "array",
+                    "maxItems": 6,
+                    "items": {
+                      "type": "object",
+                      "required": ["role", "content"],
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["user", "assistant"]
+                        },
+                        "content": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 800
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Answer with permitted navigation links",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "answer",
+                    "href",
+                    "linkLabel",
+                    "source",
+                    "links"
+                  ],
+                  "properties": {
+                    "answer": {
+                      "type": "string"
+                    },
+                    "href": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "linkLabel": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": ["guide", "model", "catalog"]
+                    },
+                    "links": {
+                      "type": "array",
+                      "maxItems": 6,
+                      "items": {
+                        "type": "object",
+                        "required": ["href", "label"],
+                        "properties": {
+                          "href": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid request origin"
+          },
+          "422": {
+            "description": "Invalid message or history"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            }
+          }
+        }
+      }
+    },
     "/conversations": {
       "get": {
         "tags": ["messages"],

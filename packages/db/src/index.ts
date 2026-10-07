@@ -1,4 +1,5 @@
 export * from './health.js'
+export * from './repositories/help-catalog.repo.js'
 export * from './repositories/admin-dashboard.repo.js'
 export * from './repositories/admin-operations.repo.js'
 export * from './repositories/account-deletion.repo.js'

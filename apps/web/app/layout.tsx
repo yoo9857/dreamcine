@@ -4,6 +4,7 @@ import { cookies, headers } from 'next/headers'
 import type { ReactNode } from 'react'
 
 import { ThemeToggle } from '@/src/components/ThemeToggle'
+import { HelpWidget } from '@/src/components/help/HelpWidget'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import { siteOrigin } from '@/src/lib/site-url'
 
@@ -120,6 +121,7 @@ export default async function RootLayout({
           <ThemeToggle current={theme ?? 'dark'} />
         </div>
         {children}
+        <HelpWidget />
       </body>
     </html>
   )
