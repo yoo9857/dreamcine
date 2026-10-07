@@ -3,6 +3,24 @@
 이어받는 사람이 **먼저 읽어야 할 한 장**이다.
 전체 규칙은 `HARNESS.md`, 미해결 항목은 `_ISSUES.md`, 순서는 `INDEX.md`.
 
+## 2026-10-07 크리에이터 등급 안내·내 등급 화면·상담 답변 배포 완료
+
+- 운영 웹 SHA `28868dc4b1a1f9e03864dae80bfc0efa7383434f`. 이미지 run `37578124974` 성공
+  (gate 잡은 건너뜀, Fast lane). `deploy.yml` run `37579255472`, `deploy_worker=false`.
+  같은 배포에 상담 라우팅 커밋 `af82b88`(별도 작업)이 함께 나갔다.
+- 마이그레이션 `20261007010000_comment_user_index` 적용 — `comment(user_id)` 인덱스 추가만.
+- 계정 메뉴 `ILOG MEMBERSHIP` 의 `?` 안내, `내 등급` 메뉴, `/account/tier`, 상담
+  `creator-tier` 항목. 화면은 **읽기 전용**이다. 적용 등급과 실시간 산정 점수를 나눠
+  보여준다. 상세는 `10_TASKS/T16_ROLE_TIERS.md` §7.
+- **선행 과제:** `tier.reevaluate` 배치가 없어 모든 회원 등급이 백필 값에 머문다. 화면은
+  "다음 정기 평가에서 반영" 으로 안내한다. T16 §8 의 배치가 다음 작업이다.
+- 운영 확인: `/api/ready` 전부 ok. `/account/tier` 비로그인 → 로그인 307,
+  `/tier-preview` 404(운영 차단). 상담 "내 등급은 어떻게 올려요?"·"브론즈가 뭐예요?" →
+  등급 안내 + `/account/tier`, "관람 등급" 은 등급 안내로 가지 않음.
+  로그인 상태의 팝업·등급 화면은 운영 브라우저로 확인하지 않았다.
+- 로컬 검사: 관련 Vitest 136개, gate:s2(lint·typecheck·depcruise·format),
+  gate:contract 9종(마이그레이션 drift 0). 전체 게이트·E2E는 돌리지 않았다.
+
 ## 2026-10-06 Higgsfield 페스티벌 영상·스튜디오 색 배포 완료
 
 - 운영 웹 SHA `62c8aaba7bf26a0cb54ead193c3118d7936f69af`. 이미지 run `37456736513` 성공.
