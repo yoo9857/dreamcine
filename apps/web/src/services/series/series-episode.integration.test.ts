@@ -5,6 +5,7 @@ import {
   type VideoAsset,
 } from '@aidream/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import sharp from 'sharp'
 
 import type { RouteSession } from '@/src/auth/types'
 import {
@@ -23,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   findEpisodeForTransition: vi.fn(),
   transitionEpisode: vi.fn(),
   updateSeriesRow: vi.fn(),
+  attachSeriesPoster: vi.fn(),
   softDeleteSeriesCascade: vi.fn(),
   updateEpisodeWithTags: vi.fn(),
   listPublicSeries: vi.fn(),
@@ -45,6 +47,7 @@ vi.mock('@aidream/db', () => ({
   findEpisodeForTransition: mocks.findEpisodeForTransition,
   transitionEpisode: mocks.transitionEpisode,
   updateSeries: mocks.updateSeriesRow,
+  attachSeriesPoster: mocks.attachSeriesPoster,
   softDeleteSeriesCascade: mocks.softDeleteSeriesCascade,
   updateEpisodeWithTags: mocks.updateEpisodeWithTags,
   listPublicSeries: mocks.listPublicSeries,
@@ -454,10 +457,18 @@ describe('series and episode management', () => {
   })
 
   it('stores a versioned work thumbnail and removes the replaced object', async () => {
+    const image = await sharp({
+      create: { width: 32, height: 48, channels: 3, background: '#aabbcc' },
+    })
+      .webp()
+      .toBuffer()
+    mocks.attachSeriesPoster.mockResolvedValue({
+      previousKey: SERIES.posterKey,
+    })
     const result = await uploadSeriesPoster(
       SERIES.id,
       SESSION,
-      `data:image/webp;base64,${Buffer.from('RIFF0000WEBP').toString('base64')}`,
+      `data:image/webp;base64,${image.toString('base64')}`,
     )
     expect(mocks.putObject).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -465,9 +476,29 @@ describe('series and episode management', () => {
         contentType: 'image/webp',
       }),
     )
-    expect(mocks.updateSeriesRow).toHaveBeenCalledOnce()
+    expect(mocks.attachSeriesPoster).toHaveBeenCalledWith(
+      SERIES.id,
+      expect.objectContaining({
+        ownerId: SERIES.ownerId,
+        width: 32,
+        height: 48,
+        sha256: expect.stringMatching(/^[a-f0-9]{64}$/u) as string,
+      }),
+    )
     expect(mocks.deleteObject).toHaveBeenCalledWith('thumbs', SERIES.posterKey)
     expect(result.posterUrl).toMatch(/^https:\/\/cdn\.example\//u)
+  })
+  it('rejects corrupt image headers before writing storage or database', async () => {
+    mocks.attachSeriesPoster.mockClear()
+    await expect(
+      uploadSeriesPoster(
+        SERIES.id,
+        SESSION,
+        `data:image/webp;base64,${Buffer.from('RIFF0000WEBP').toString('base64')}`,
+      ),
+    ).rejects.toMatchObject({ code: 'E_VALIDATION' })
+    expect(mocks.putObject).not.toHaveBeenCalled()
+    expect(mocks.attachSeriesPoster).not.toHaveBeenCalled()
   })
 
   it('rejects foreign management and reused replacement assets', async () => {

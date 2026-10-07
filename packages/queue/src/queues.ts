@@ -12,6 +12,7 @@ export const QUEUE = {
   FEED_RANK: 'feed.rankRecompute',
   COUNTER_FLUSH: 'counter.flush',
   COUNTER_RECONCILE: 'counter.reconcile',
+  MODERATION_MAINTENANCE: 'moderation.maintenance',
   NOTIFY_FANOUT: 'notification.fanout',
   STORAGE_CLEANUP: 'storage.cleanup',
   DB_PURGE: 'db.purge',

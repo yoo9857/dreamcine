@@ -13,6 +13,7 @@ export const POST = withRoute(
       params.id ?? '',
       input.status,
       input.reason,
+      input.durationDays,
     )
     return ok({ id: params.id ?? '', status: input.status })
   },

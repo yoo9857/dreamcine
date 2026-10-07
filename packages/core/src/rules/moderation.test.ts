@@ -4,10 +4,10 @@ import { decideAutoAction } from './moderation.js'
 
 describe('decideAutoAction', () => {
   it.each([
-    ['MINOR_SAFETY', 1, 'AUTO_HIDE'],
-    ['SEXUAL', 3, 'AUTO_HIDE'],
-    ['COPYRIGHT', 3, 'AUTO_HIDE'],
-    ['VIOLENCE', 5, 'AUTO_HIDE'],
+    ['MINOR_SAFETY', 1, 'PRIORITIZE'],
+    ['SEXUAL', 3, 'PRIORITIZE'],
+    ['COPYRIGHT', 3, 'PRIORITIZE'],
+    ['VIOLENCE', 5, 'PRIORITIZE'],
     ['HATE', 2, 'PRIORITIZE'],
     ['SPAM', 1, 'NONE'],
   ] as const)('%s 신고자 %i명은 %s', (reason, distinctReporters, expected) => {

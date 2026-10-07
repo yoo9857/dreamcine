@@ -96,7 +96,11 @@ export async function getSessionByToken(
 
   // 이메일 링크를 열기 전의 계정은 가입 대기 상태다. 과거 버전에서 만들어진
   // 세션도 여기서 즉시 폐기해 미인증 사용자가 로그인 상태로 남지 않게 한다.
-  if (found.user.emailVerified === null) {
+  if (
+    found.user.emailVerified === null ||
+    found.user.status !== 'ACTIVE' ||
+    found.user.deletedAt !== null
+  ) {
     await deleteAuthSession(token)
     return null
   }

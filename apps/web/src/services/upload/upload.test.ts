@@ -9,11 +9,12 @@ const mocks = vi.hoisted(() => ({
   updateUploadStatus: vi.fn(),
   updateCompletedParts: vi.fn(),
   sumUploadBytesSince: vi.fn(),
-  createAsset: vi.fn(),
+  finalizeUploadAsset: vi.fn(),
   findAssetByUploadId: vi.fn(),
   createMultipart: vi.fn(),
   signParts: vi.fn(),
   completeMultipart: vi.fn(),
+  headObject: vi.fn(),
   abortMultipart: vi.fn(),
   listUploadedParts: vi.fn(),
   enqueue: vi.fn(),
@@ -25,7 +26,7 @@ vi.mock('@aidream/db', () => ({
   updateUploadStatus: mocks.updateUploadStatus,
   updateCompletedParts: mocks.updateCompletedParts,
   sumUploadBytesSince: mocks.sumUploadBytesSince,
-  createAsset: mocks.createAsset,
+  finalizeUploadAsset: mocks.finalizeUploadAsset,
   findAssetByUploadId: mocks.findAssetByUploadId,
 }))
 
@@ -37,6 +38,7 @@ vi.mock('@aidream/storage', async () => {
     createMultipart: mocks.createMultipart,
     signParts: mocks.signParts,
     completeMultipart: mocks.completeMultipart,
+    headObject: mocks.headObject,
     abortMultipart: mocks.abortMultipart,
     listUploadedParts: mocks.listUploadedParts,
   }
@@ -256,7 +258,10 @@ describe('completeUpload — 멱등성', () => {
       etag: '"x"',
       sizeBytes: 104_857_600,
     })
-    mocks.createAsset.mockResolvedValue({ id: 'ast_1', status: 'PENDING' })
+    mocks.finalizeUploadAsset.mockResolvedValue({
+      id: 'ast_1',
+      status: 'PENDING',
+    })
   })
 
   it('정상 완료는 자산을 만들고 잡을 발행한다', async () => {
@@ -333,7 +338,7 @@ describe('completeUpload — 멱등성', () => {
       replayed: true,
     })
     expect(mocks.completeMultipart).not.toHaveBeenCalled()
-    expect(mocks.createAsset).not.toHaveBeenCalled()
+    expect(mocks.finalizeUploadAsset).not.toHaveBeenCalled()
     expect(mocks.enqueue).not.toHaveBeenCalled()
   })
 
@@ -347,7 +352,7 @@ describe('completeUpload — 멱등성', () => {
     await expect(
       completeUpload(routeSession(), 'upl_1', { parts }),
     ).rejects.toMatchObject({ code: 'E_INTERNAL' })
-    expect(mocks.createAsset).not.toHaveBeenCalled()
+    expect(mocks.finalizeUploadAsset).not.toHaveBeenCalled()
   })
 
   it('S3 가 410 을 줘도 자산이 있으면 멱등 처리한다', async () => {
@@ -379,6 +384,22 @@ describe('completeUpload — 멱등성', () => {
     await expect(
       completeUpload(routeSession(), 'upl_1', { parts }),
     ).rejects.toMatchObject({ code: 'E_UPLOAD_SESSION_EXPIRED' })
+  })
+  it('recovers completed storage objects when the database link was not committed', async () => {
+    mocks.completeMultipart.mockRejectedValue(
+      new AppError('E_UPLOAD_SESSION_EXPIRED'),
+    )
+    mocks.findAssetByUploadId.mockResolvedValue(null)
+    mocks.headObject.mockResolvedValue({
+      sizeBytes: 12345,
+      contentType: 'video/mp4',
+    })
+    await expect(
+      completeUpload(routeSession(), 'upl_1', { parts }),
+    ).resolves.toMatchObject({ result: { assetId: 'ast_1' }, replayed: false })
+    expect(mocks.finalizeUploadAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ sizeBytes: 12345n }),
+    )
   })
 
   it('잡 발행이 실패해도 완료는 성공이다', async () => {

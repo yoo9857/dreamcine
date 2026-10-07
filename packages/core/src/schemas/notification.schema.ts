@@ -41,6 +41,8 @@ export const NotificationPayloadSchema = z.discriminatedUnion('type', [
     targetType: z.string().min(1),
     targetId: z.string().min(1),
     action: z.string().min(1),
+    reason: z.string().max(1000).optional(),
+    expiresAt: z.string().datetime().nullable().optional(),
   }),
 ])
 

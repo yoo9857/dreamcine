@@ -4,10 +4,12 @@ import type {
   Rendition,
   VideoAsset,
 } from '@aidream/core'
+import { AppError } from '@aidream/core'
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 import { mapRendition, mapVideoAsset } from '../mappers/asset.mapper.js'
 import { createNotificationInTransaction } from './notification.repo.js'
+import { withTransaction } from '../tx.js'
 
 export interface CreateAssetData {
   uploadId?: string | null
@@ -103,6 +105,45 @@ export function createAsset(input: CreateAssetData): Promise<VideoAsset> {
   return executeDb(async () =>
     mapVideoAsset(await db.videoAsset.create({ data: input })),
   )
+}
+
+/** Upload completion and its asset must commit together, including retries. */
+export function finalizeUploadAsset(input: {
+  uploadId: string
+  originalKey: string
+  sizeBytes: bigint
+}): Promise<VideoAsset> {
+  return withTransaction(async (tx) => {
+    const candidate = await tx.uploadSession.findUnique({
+      where: { id: input.uploadId },
+      select: { userId: true },
+    })
+    if (candidate === null) throw new AppError('E_UPLOAD_SESSION_NOT_FOUND')
+    await tx.$queryRaw`SELECT id FROM "user" WHERE id = ${candidate.userId} FOR UPDATE`
+    const owner = await tx.user.findUnique({ where: { id: candidate.userId } })
+    if (owner === null || owner.status !== 'ACTIVE' || owner.deletedAt !== null)
+      throw new AppError('E_PERM_DENIED')
+    await tx.$queryRaw`SELECT id FROM upload_session WHERE id = ${input.uploadId} FOR UPDATE`
+    const upload = await tx.uploadSession.findUnique({
+      where: { id: input.uploadId },
+    })
+    if (upload === null) throw new AppError('E_UPLOAD_SESSION_NOT_FOUND')
+    if (upload.status === 'ABORTED') throw new AppError('E_UPLOAD_ABORTED')
+    if (upload.status === 'FAILED')
+      throw new AppError('E_UPLOAD_ALREADY_COMPLETED')
+    if (upload.objectKey !== input.originalKey || input.sizeBytes <= 0n)
+      throw new AppError('E_VALIDATION', { field: 'originalKey' })
+    const asset = await tx.videoAsset.upsert({
+      where: { uploadId: input.uploadId },
+      create: { ...input },
+      update: {},
+    })
+    await tx.uploadSession.update({
+      where: { id: input.uploadId },
+      data: { status: 'UPLOADED', errorCode: null, fileSize: input.sizeBytes },
+    })
+    return mapVideoAsset(asset)
+  })
 }
 
 export function updateAssetStatus(

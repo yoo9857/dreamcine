@@ -4,9 +4,9 @@ import {
   type AdminUserQuery,
   type Page,
   type User,
-  type UserStatus,
+  type UpdateUserStatusInput,
 } from '@aidream/core'
-import { listUsersForAdmin } from '@aidream/db'
+import { listUsersForAdmin, type SuspensionDays } from '@aidream/db'
 
 import type { RouteSession } from '@/src/auth/types'
 
@@ -17,8 +17,9 @@ export interface ManageUsersService {
   updateStatus(
     session: RouteSession,
     userId: string,
-    status: UserStatus,
+    status: UpdateUserStatusInput['status'],
     reason: string,
+    durationDays?: SuspensionDays,
   ): Promise<void>
 }
 
@@ -53,9 +54,10 @@ export function listAdminUsers(
 export function updateAdminUserStatus(
   session: RouteSession,
   userId: string,
-  status: UserStatus,
+  status: UpdateUserStatusInput['status'],
   reason: string,
+  durationDays?: SuspensionDays,
 ): Promise<void> {
   assertAdmin(session)
-  return suspendUser(session, userId, status, reason)
+  return suspendUser(session, userId, status, reason, durationDays)
 }

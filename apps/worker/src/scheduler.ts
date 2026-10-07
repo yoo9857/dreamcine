@@ -160,6 +160,15 @@ function productionDependencies(): SchedulerDependencies {
       return result === 1
     },
     register: async () => {
+      await getQueue(QUEUE.MODERATION_MAINTENANCE).upsertJobScheduler(
+        'moderation-every-minute',
+        { every: 60 * 1000 },
+        {
+          name: QUEUE.MODERATION_MAINTENANCE,
+          data: {},
+          opts: SCHEDULED_JOB_OPTS,
+        },
+      )
       const cleanup = getQueue(QUEUE.STORAGE_CLEANUP)
       await cleanup.upsertJobScheduler(
         'storage-stale-hourly',

@@ -8,6 +8,7 @@ import {
   CircleCheck,
   Clapperboard,
   Film,
+  House,
   PenTool,
   Sparkles,
 } from 'lucide-react'
@@ -71,7 +72,7 @@ const steps = [
     description: '이름과 연락받을 이메일을 알려주세요.',
   },
   {
-    title: '어디를 보고 오셨나요?',
+    title: '아이로그를 알게된 경로는 어디인가요?',
     label: '알게 된 경로',
     description: '이번 지원을 결정하게 된 경로 하나를 선택해 주세요.',
   },
@@ -434,7 +435,9 @@ export function CreatorApplicationExperience() {
         }}
       />
       <header className={styles.header}>
-        <PrismaNavigation items={navigation} />
+        <PrismaNavigation
+          items={[{ label: '홈으로', href: '/' }, ...navigation]}
+        />
       </header>
       <div className={styles.workspace} data-screen={screen}>
         <section
@@ -1091,8 +1094,8 @@ export function CreatorApplicationExperience() {
             </section>
           </div>
           <div className={styles.guideActions}>
-            <a href="mailto:support@ilog.kr" className={styles.textButton}>
-              모집 문의 <ArrowUpRight size={15} />
+            <a href="/" className={styles.textButton}>
+              <House size={15} /> 홈으로
             </a>
             <a
               href="#apply"
@@ -1110,8 +1113,8 @@ export function CreatorApplicationExperience() {
         <a href="/" aria-label="ilog 홈">
           ILOG · NEW VOICES, NEW WORLDS.
         </a>
-        <a href="mailto:support@ilog.kr">
-          모집 문의 <ArrowUpRight size={12} />
+        <a href="/">
+          <House size={12} /> 홈으로
         </a>
       </footer>
     </main>

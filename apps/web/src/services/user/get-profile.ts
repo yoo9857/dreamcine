@@ -45,7 +45,8 @@ async function runGetProfile(
   dependencies: GetProfileDependencies,
 ): Promise<UserProfile> {
   const user = await dependencies.find(handle)
-  if (user === null) throw new AppError('E_USER_NOT_FOUND')
+  if (user === null || user.status !== 'ACTIVE' || user.deletedAt !== null)
+    throw new AppError('E_USER_NOT_FOUND')
 
   /*
     비공개 프로필은 본인에게만 보인다. `PRIVATE` 을 404 로 돌리는 이유:

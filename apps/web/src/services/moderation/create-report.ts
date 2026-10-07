@@ -10,13 +10,11 @@ import {
   createReport as insertReport,
   findReportByReporterAndTarget,
   findReportTargetContext,
-  setModerationTargetHidden,
   setReportAutomaticState,
 } from '@aidream/db'
 
 import type { RouteSession } from '@/src/auth/types'
 import { getLogger } from '@/src/lib/logger'
-import { notify } from '@/src/services/notification/notify'
 
 export interface CreateReportDependencies {
   findTarget: typeof findReportTargetContext
@@ -24,8 +22,6 @@ export interface CreateReportDependencies {
   insert: typeof insertReport
   stats: typeof countOpenReports
   setAutomaticState: typeof setReportAutomaticState
-  setHidden: typeof setModerationTargetHidden
-  notify: typeof notify
 }
 
 export function createReport(
@@ -88,66 +84,17 @@ async function runCreateReport(
     ),
   })
   if (action === 'NONE') return report
-  if (action === 'PRIORITIZE') {
-    return dependencies.setAutomaticState(report.id, { priorityFlag: true })
-  }
-
-  let hiddenApplied = false
   try {
-    await dependencies.setHidden(input.target, input.targetId, true)
-    hiddenApplied = true
-    report = await dependencies.setAutomaticState(report.id, {
+    return await dependencies.setAutomaticState(report.id, {
       priorityFlag: true,
-      autoHidden: true,
     })
   } catch (error: unknown) {
-    if (hiddenApplied) {
-      try {
-        await dependencies.setHidden(input.target, input.targetId, false)
-      } catch (rollbackError: unknown) {
-        getLogger().error(
-          {
-            err: rollbackError,
-            reportId: report.id,
-            target: input.target,
-            targetId: input.targetId,
-          },
-          'automatic moderation hide rollback failed',
-        )
-      }
-    }
     getLogger().error(
-      {
-        err: error,
-        reportId: report.id,
-        target: input.target,
-        targetId: input.targetId,
-      },
-      'automatic moderation hide failed',
+      { err: error, reportId: report.id },
+      'report prioritization deferred',
     )
     return report
   }
-
-  try {
-    await dependencies.notify({
-      type: 'MODERATION',
-      to: target.ownerId,
-      targetType: input.target,
-      targetId: input.targetId,
-      action: 'AUTO_HIDE',
-    })
-  } catch (error: unknown) {
-    getLogger().error(
-      {
-        err: error,
-        reportId: report.id,
-        target: input.target,
-        targetId: input.targetId,
-      },
-      'automatic moderation notification failed',
-    )
-  }
-  return report
 }
 
 function productionDependencies(): CreateReportDependencies {
@@ -157,7 +104,5 @@ function productionDependencies(): CreateReportDependencies {
     insert: insertReport,
     stats: countOpenReports,
     setAutomaticState: setReportAutomaticState,
-    setHidden: setModerationTargetHidden,
-    notify,
   }
 }

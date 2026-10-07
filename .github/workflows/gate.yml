@@ -25,6 +25,7 @@ env:
   POSTGRES_USER: aidream
   POSTGRES_PASSWORD: aidream-local-only
   DATABASE_URL: postgresql://aidream:aidream-local-only@127.0.0.1:5432/aidream?schema=public
+  DATA_INTEGRITY_TEST_DATABASE_URL: postgresql://aidream:aidream-local-only@127.0.0.1:5432/ilog_moderation_qa
   REDIS_URL: redis://127.0.0.1:6379
   AUTH_SECRET: gate-only-secret-value-32-characters-min
   MINIO_ROOT_USER: aidream-local
@@ -97,6 +98,11 @@ jobs:
 
       - name: Apply database migrations
         run: pnpm prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Prepare isolated moderation integration database
+        run: |
+          docker compose -f infra/compose/docker-compose.dev.yml exec -T postgres createdb -U aidream ilog_moderation_qa
+          DATABASE_URL="$DATA_INTEGRITY_TEST_DATABASE_URL" pnpm prisma migrate deploy --schema prisma/schema.prisma
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium

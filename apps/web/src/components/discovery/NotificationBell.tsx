@@ -14,6 +14,7 @@ import { z } from 'zod'
 import { listTime } from '@/src/components/messages/format-time'
 import { usePolling } from '@/src/components/messages/use-polling'
 import { koMessages } from '@/src/lib/messages/ko'
+import { moderationNotificationLabel } from '../moderation/notification-label'
 
 /**
  * 상단 바의 알림 버튼과 팝업.
@@ -230,7 +231,11 @@ export function NotificationBell(): ReactNode {
                       }
                     />
                     <span className="notification-copy">
-                      <span>{labelFor(item.type)}</span>
+                      <span>
+                        {item.type === 'MODERATION'
+                          ? moderationNotificationLabel(item.payload)
+                          : labelFor(item.type)}
+                      </span>
                       <time dateTime={item.createdAt}>
                         {listTime(item.createdAt)}
                       </time>

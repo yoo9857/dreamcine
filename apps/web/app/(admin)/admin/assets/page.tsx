@@ -1,4 +1,5 @@
 import { HardDrive } from 'lucide-react'
+import { getDataIntegritySnapshot } from '@aidream/db'
 
 import { requireCapability } from '@/src/auth/server-session'
 import { RetryAssetAction } from '@/src/components/admin/AdminMutationActions'
@@ -23,6 +24,7 @@ export default async function AdminAssetsPage({
   const session = await requireCapability('user.setRole', '/admin/assets')
   const params = await searchParams
   const status = statuses.find((value) => value === params.status)
+  const integrity = await getDataIntegritySnapshot()
   const page = await listAdminAssets(session, {
     limit: 20,
     ...(status ? { status } : {}),
@@ -30,6 +32,35 @@ export default async function AdminAssetsPage({
   })
   return (
     <div className="admin-dashboard admin-management-page">
+      <section className="admin-panel">
+        <h2>PostgreSQL 데이터 연결 점검</h2>
+        <p>
+          공개 영상의 준비된 에셋 누락 {integrity.publishedWithoutReadyAssets}건
+          · 등록 이미지 {integrity.readyImages}건 · 유실 표시 이미지{' '}
+          {integrity.missingImages}건 · 삭제 큐 전달 대기{' '}
+          {integrity.pendingMedia}건
+        </p>
+        <p>
+          정지 계정 {integrity.suspended}개 · 누적 경고 {integrity.warnings}건
+        </p>
+        <h3>업로드 완료 후 에셋 연결이 없는 기록 (최대 50건)</h3>
+        {integrity.uploadedWithoutAssets.length === 0 ? (
+          <p>누락 기록이 없습니다.</p>
+        ) : (
+          <ul>
+            {integrity.uploadedWithoutAssets.map((upload) => (
+              <li key={upload.id}>
+                {upload.id} · 소유자 {upload.userId} ·{' '}
+                {upload.updatedAt.toISOString()}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p>
+          이 점검은 DB 연결을 확인합니다. 실제 저장소 파일 존재 여부는 별도
+          저장소 점검으로 확인합니다.
+        </p>
+      </section>
       <section className="admin-page-heading">
         <div>
           <p className="admin-eyebrow">

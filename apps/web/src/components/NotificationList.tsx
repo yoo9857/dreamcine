@@ -5,6 +5,7 @@ import { Button } from '@aidream/ui'
 import React, { type ReactNode, useState } from 'react'
 
 import { koMessages } from '@/src/lib/messages/ko'
+import { moderationNotificationLabel } from './moderation/notification-label'
 
 const MESSAGES = koMessages().social
 
@@ -78,7 +79,9 @@ export function NotificationList({
                   : 'text-fg-secondary'
               }
             >
-              {LABELS[item.type]}
+              {item.type === 'MODERATION'
+                ? moderationNotificationLabel(item.payload)
+                : LABELS[item.type]}
             </p>
             <time
               className="text-xs text-fg-muted"

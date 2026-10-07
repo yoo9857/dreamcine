@@ -54,3 +54,4 @@ export {
   type PresignedUrl,
 } from './presign.js'
 export { putObject, type PutObjectInput } from './put-object.js'
+export { headObject } from './head-object.js'

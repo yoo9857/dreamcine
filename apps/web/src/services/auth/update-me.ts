@@ -1,5 +1,10 @@
 import { AppError, type UpdateProfileInput } from '@aidream/core'
-import { findUserById, updateUser, type UpdateUserData } from '@aidream/db'
+import {
+  findUserById,
+  findOwnedAvatar,
+  updateUser,
+  type UpdateUserData,
+} from '@aidream/db'
 
 import { toMeResult, type MeResult } from './get-me'
 
@@ -24,6 +29,12 @@ export async function updateMe(
     data.bio = input.bio
   }
   if (input.avatarKey !== undefined) {
+    if (
+      input.avatarKey !== null &&
+      input.avatarKey !== current.avatarKey &&
+      (await findOwnedAvatar(userId, input.avatarKey)) === null
+    )
+      throw new AppError('E_VALIDATION', { field: 'avatarKey' })
     data.avatarKey = input.avatarKey
   }
 

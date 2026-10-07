@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { listUserModerationHistory } from '@aidream/db'
 
 import { requireCapability } from '@/src/auth/server-session'
 import { UserRoleAction } from '@/src/components/admin/AdminMutationActions'
@@ -47,6 +48,7 @@ export default async function AdminUserDetailPage({
   const detail = await getAdminUserDetail(session, id)
   if (detail === null) notFound()
   const { user } = detail
+  const moderationHistory = await listUserModerationHistory(id)
   const isSelf = user.id === session.userId
 
   const metrics = [
@@ -58,6 +60,34 @@ export default async function AdminUserDetailPage({
 
   return (
     <div className="admin-dashboard admin-user-detail-page">
+      <section className="admin-panel">
+        <h2>신고·경고·정지 이력</h2>
+        {user.status === 'SUSPENDED' && (
+          <p>
+            정지 기간:{' '}
+            {user.suspendedUntil === null
+              ? '영구'
+              : formatDate(user.suspendedUntil, true)}{' '}
+            · 사유: {user.suspendReason}
+          </p>
+        )}
+        {moderationHistory.length === 0 ? (
+          <p>조치 이력이 없습니다.</p>
+        ) : (
+          <ul>
+            {moderationHistory.map((action) => (
+              <li key={action.id}>
+                {formatDate(action.createdAt, true)} · {action.action} ·{' '}
+                {action.reason} · 담당: {action.actorHandle ?? '자동 만료 처리'}
+                {action.expiresAt === null
+                  ? ''
+                  : ` · 만료: ${formatDate(action.expiresAt, true)}`}{' '}
+                · 연결 신고 {action.reportIds.length}건
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <nav className="admin-breadcrumb" aria-label="현재 위치">
         <Link href="/admin/users">
           <ArrowLeft /> 회원 관리

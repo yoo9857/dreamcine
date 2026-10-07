@@ -190,7 +190,10 @@ export function listScheduledEpisodesDue(
         status: 'SCHEDULED',
         publishAt: { lte: now },
         deletedAt: null,
-        series: { deletedAt: null },
+        series: {
+          deletedAt: null,
+          owner: { status: 'ACTIVE', deletedAt: null },
+        },
       },
       include: {
         series: { select: { ownerId: true } },

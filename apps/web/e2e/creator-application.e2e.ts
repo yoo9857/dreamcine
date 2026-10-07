@@ -108,7 +108,7 @@ test('모집 분야에서 지원해도 유입 경로를 임의로 선택하지 �
   ).toBeVisible()
   await advance(page, 0)
   await expect(
-    page.getByRole('heading', { name: '어디를 보고 오셨나요?' }),
+    page.getByRole('heading', { name: '아이로그를 알게된 경로는 어디인가요?' }),
   ).toBeVisible()
   await expect(
     page.locator('input[name="referralSource"]:checked'),
@@ -201,6 +201,7 @@ for (const [width, height] of sizes) {
     expect(response?.status()).toBe(200)
     const nav = page.getByRole('navigation', { name: '크리에이터 모집 페이지' })
     await expect(nav.getByRole('link')).toHaveText([
+      '홈으로',
       '우리들은?',
       '지원서 신청',
       '접수현황',

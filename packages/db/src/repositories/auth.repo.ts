@@ -1,4 +1,4 @@
-import type { User } from '@aidream/core'
+import { AppError, type User } from '@aidream/core'
 import type {
   Account as PrismaAccount,
   Session as PrismaSession,
@@ -137,9 +137,22 @@ function mapVerificationToken(
 export function createAuthSession(
   input: AuthSessionRow,
 ): Promise<AuthSessionRow> {
-  return executeDb(async () =>
-    mapSession(await db.session.create({ data: input })),
-  )
+  return withTransaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "user" WHERE id = ${input.userId} FOR UPDATE`
+    const user = await tx.user.findUnique({ where: { id: input.userId } })
+    if (user === null || user.deletedAt !== null || user.status !== 'ACTIVE')
+      throw new AppError('E_PERM_DENIED')
+    const session = await tx.session.create({ data: input })
+    const now = new Date()
+    await tx.user.update({
+      where: { id: input.userId },
+      data: { lastLoginAt: now, lastSeenAt: now, loginCount: { increment: 1 } },
+    })
+    await tx.authAuditLog.create({
+      data: { userId: input.userId, kind: 'LOGIN_SUCCESS', createdAt: now },
+    })
+    return mapSession(session)
+  })
 }
 
 /** 삭제된 사용자의 세션은 존재하지 않는 것으로 취급한다. */

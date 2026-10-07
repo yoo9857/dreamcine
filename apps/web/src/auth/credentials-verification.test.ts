@@ -4,12 +4,14 @@ const mocks = vi.hoisted(() => ({
   findEmail: vi.fn(),
   findHandle: vi.fn(),
   verifyPassword: vi.fn(),
+  releaseExpired: vi.fn(),
 }))
 
 vi.mock('@aidream/db', () => ({
   createAuthSession: vi.fn(),
   findUserByEmail: mocks.findEmail,
   findUserByHandle: mocks.findHandle,
+  releaseExpiredSuspensions: mocks.releaseExpired,
 }))
 
 vi.mock('./adapter', () => ({ createAuthAdapter: () => ({}) }))
@@ -35,9 +37,39 @@ beforeEach(() => {
   mocks.findEmail.mockReset().mockResolvedValue(USER)
   mocks.findHandle.mockReset().mockResolvedValue(USER)
   mocks.verifyPassword.mockReset().mockResolvedValue(true)
+  mocks.releaseExpired.mockReset().mockResolvedValue(1)
 })
 
 describe('authorizeCredentials email verification', () => {
+  it('releases an expired suspension only after password verification, then reloads state', async () => {
+    mocks.findEmail.mockResolvedValueOnce({
+      ...USER,
+      status: 'SUSPENDED',
+      suspendedUntil: new Date('2020-01-01'),
+    })
+    await expect(
+      authorizeCredentials({
+        email: USER.email,
+        password: 'safe-password-123',
+      }),
+    ).resolves.toMatchObject({ id: USER.id })
+    expect(mocks.releaseExpired).toHaveBeenCalledWith(expect.any(Date), USER.id)
+    expect(mocks.findEmail).toHaveBeenCalledTimes(2)
+  })
+  it('never releases permanent suspensions', async () => {
+    mocks.findEmail.mockResolvedValueOnce({
+      ...USER,
+      status: 'SUSPENDED',
+      suspendedUntil: null,
+    })
+    await expect(
+      authorizeCredentials({
+        email: USER.email,
+        password: 'safe-password-123',
+      }),
+    ).resolves.toBeNull()
+    expect(mocks.releaseExpired).not.toHaveBeenCalled()
+  })
   it('allows a verified active account', async () => {
     await expect(
       authorizeCredentials({

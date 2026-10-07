@@ -4,13 +4,9 @@ import {
   type CompleteUploadInput,
   type CompleteUploadResult,
 } from '@aidream/core'
-import {
-  createAsset,
-  findAssetByUploadId,
-  updateUploadStatus,
-} from '@aidream/db'
+import { finalizeUploadAsset, findAssetByUploadId } from '@aidream/db'
 import { QUEUE } from '@aidream/queue'
-import { BUCKET, completeMultipart } from '@aidream/storage'
+import { BUCKET, completeMultipart, headObject } from '@aidream/storage'
 
 import { getLogger } from '@/src/lib/logger'
 import type { RouteSession } from '@/src/auth/types'
@@ -80,8 +76,7 @@ export async function completeUpload(
   }
 
   // 7. 세션 상태 + 자산 생성
-  await updateUploadStatus(uploadId, 'UPLOADED')
-  const asset = await createAsset({
+  const asset = await finalizeUploadAsset({
     uploadId,
     originalKey: upload.objectKey,
     sizeBytes: BigInt(completed.sizeBytes),
@@ -198,6 +193,20 @@ async function completeMultipartIdempotently(
       error instanceof AppError && error.code === 'E_UPLOAD_SESSION_EXPIRED'
     if (expired && (await findAssetByUploadId(uploadId)) !== null) {
       return 'already-completed'
+    }
+    if (expired) {
+      // S3 completion may have succeeded before a database/network failure. Only
+      // recover if the original object actually exists; never fabricate a link.
+      try {
+        const head = await headObject(BUCKET.ORIGINALS, objectKey)
+        if (head.sizeBytes > 0) return { sizeBytes: head.sizeBytes }
+      } catch (verificationError: unknown) {
+        getLogger().warn(
+          { err: verificationError, uploadId },
+          'completed upload object verification failed',
+        )
+        // Preserve the original upload error if the object cannot be verified.
+      }
     }
     throw error
   }

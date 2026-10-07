@@ -78,6 +78,7 @@ export const NotificationFanoutJobSchema = z.discriminatedUnion('type', [
 ])
 
 export const CounterFlushJobSchema = z.object({ ...TRACE_FIELDS })
+export const ModerationMaintenanceJobSchema = z.object({ ...TRACE_FIELDS })
 export const CounterReconcileJobSchema = z.object({
   ...TRACE_FIELDS,
   changedSinceDays: z.number().int().positive().default(7),
@@ -102,6 +103,7 @@ export const JOB_SCHEMAS = {
   [QUEUE.NOTIFY_FANOUT]: NotificationFanoutJobSchema,
   [QUEUE.COUNTER_FLUSH]: CounterFlushJobSchema,
   [QUEUE.COUNTER_RECONCILE]: CounterReconcileJobSchema,
+  [QUEUE.MODERATION_MAINTENANCE]: ModerationMaintenanceJobSchema,
 } as const
 
 export type DefinedQueue = keyof typeof JOB_SCHEMAS

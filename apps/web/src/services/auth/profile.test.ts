@@ -5,11 +5,13 @@ import { userFixture } from '@/src/test-support/entity-fixtures'
 const mocks = vi.hoisted(() => ({
   findUser: vi.fn(),
   updateUser: vi.fn(),
+  findOwnedAvatar: vi.fn(),
 }))
 
 vi.mock('@aidream/db', () => ({
   findUserById: mocks.findUser,
   updateUser: mocks.updateUser,
+  findOwnedAvatar: mocks.findOwnedAvatar,
 }))
 vi.mock('@aidream/storage', () => ({
   avatarUrl: (key: string | null) =>
@@ -41,6 +43,7 @@ const USER: User = {
 
 beforeEach(() => {
   mocks.findUser.mockReset().mockResolvedValue(USER)
+  mocks.findOwnedAvatar.mockReset().mockResolvedValue(null)
   mocks.updateUser
     .mockReset()
     .mockImplementation((_id: string, patch: Partial<User>) =>

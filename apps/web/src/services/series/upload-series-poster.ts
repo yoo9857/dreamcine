@@ -1,5 +1,5 @@
 import { AppError, can } from '@aidream/core'
-import { findSeriesById, updateSeries } from '@aidream/db'
+import { findSeriesById, attachSeriesPoster } from '@aidream/db'
 import {
   BUCKET,
   IMMUTABLE_1Y,
@@ -8,7 +8,8 @@ import {
   putObject,
   seriesPosterKey,
 } from '@aidream/storage'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
+import sharp from 'sharp'
 
 import type { RouteSession } from '@/src/auth/types'
 
@@ -47,7 +48,29 @@ export async function uploadSeriesPoster(
     throw new AppError('E_PERM_NOT_OWNER')
   }
 
-  const image = decodeWebp(dataUrl)
+  let image: Buffer
+  let width: number
+  let height: number
+  try {
+    const optimized = await sharp(decodeWebp(dataUrl), {
+      limitInputPixels: 40_000_000,
+      animated: false,
+    })
+      .rotate()
+      .resize({
+        width: 2048,
+        height: 2048,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer({ resolveWithObject: true })
+    image = optimized.data
+    width = optimized.info.width
+    height = optimized.info.height
+  } catch (error: unknown) {
+    throw new AppError('E_VALIDATION', { field: 'image' }, error)
+  }
   const key = seriesPosterKey(series.id, randomUUID())
   await putObject({
     bucket: BUCKET.THUMBS,
@@ -56,14 +79,24 @@ export async function uploadSeriesPoster(
     contentType: 'image/webp',
     cacheControl: IMMUTABLE_1Y,
   })
+  let previousKey: string | null
   try {
-    await updateSeries(series.id, { posterKey: key })
+    const attached = await attachSeriesPoster(series.id, {
+      ownerId: series.ownerId,
+      objectKey: key,
+      contentType: 'image/webp',
+      sizeBytes: BigInt(image.length),
+      width,
+      height,
+      sha256: createHash('sha256').update(image).digest('hex'),
+    })
+    previousKey = attached.previousKey
   } catch (error: unknown) {
     await deleteObject(BUCKET.THUMBS, key).catch(() => undefined)
     throw error
   }
-  if (series.posterKey !== null && series.posterKey !== key) {
-    await deleteObject(BUCKET.THUMBS, series.posterKey).catch(() => undefined)
+  if (previousKey !== null && previousKey !== key) {
+    await deleteObject(BUCKET.THUMBS, previousKey).catch(() => undefined)
   }
   return { posterUrl: cdnUrl(key) }
 }

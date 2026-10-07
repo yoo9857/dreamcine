@@ -351,28 +351,6 @@ export function updateUser(id: string, input: UpdateUserData): Promise<User> {
   )
 }
 
-export function setUserModerationStatus(
-  userId: string,
-  status: UserStatus,
-): Promise<void> {
-  return executeDb(async () => {
-    await db.$transaction(async (transaction) => {
-      await transaction.user.update({ where: { id: userId }, data: { status } })
-      if (status !== 'SUSPENDED') return
-
-      await transaction.session.deleteMany({ where: { userId } })
-      await transaction.episode.updateMany({
-        where: { series: { ownerId: userId }, status: { not: 'REMOVED' } },
-        data: { status: 'HIDDEN' },
-      })
-      await transaction.uploadSession.updateMany({
-        where: { userId, status: { in: ['CREATED', 'UPLOADING'] } },
-        data: { status: 'ABORTED' },
-      })
-    })
-  })
-}
-
 export function incrementUserFollowerCount(
   id: string,
   by: 1 | -1,

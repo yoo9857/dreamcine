@@ -105,7 +105,10 @@ export default async function AdminReportsPage({
                   >
                     {report.priorityFlag ? '우선 검토' : report.status}
                   </span>
-                  <ReportActions reportId={report.id} admin={admin} />
+                  {(report.status === 'OPEN' ||
+                    report.status === 'REVIEWING') && (
+                    <ReportActions reportId={report.id} admin={admin} />
+                  )}
                 </div>
               </li>
             ))}

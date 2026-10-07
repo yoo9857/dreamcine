@@ -41,77 +41,80 @@ function report(autoHidden = false): Report {
   }
 }
 
-function dependencies(autoHidden = false) {
-  const selected = report(autoHidden)
+function dependencies(assetIds: string[] = []) {
   return {
-    claim: vi.fn().mockResolvedValue(selected),
-    findTarget: vi
-      .fn()
-      .mockResolvedValue({ ownerId: 'owner', createdAt: new Date() }),
-    setHidden: vi.fn().mockResolvedValue(undefined),
-    remove: vi.fn().mockResolvedValue(['asset_1']),
-    resolve: vi.fn().mockResolvedValue({
-      ...selected,
-      status: 'ACTIONED',
-      handledBy: 'operator',
-      handledAt: new Date(),
+    applyDecision: vi.fn().mockResolvedValue({
+      report: { ...report(), status: 'ACTIONED' },
+      actionId: 'action1',
+      assetIds,
     }),
-    suspend: vi.fn().mockResolvedValue(undefined),
-    notify: vi.fn().mockResolvedValue(undefined),
+    markQueued: vi.fn().mockResolvedValue({}),
     enqueueDelete: vi.fn().mockResolvedValue(undefined),
   } as unknown as ReviewReportDependencies
 }
-
 describe('reviewReport', () => {
-  it('MODERATOR는 콘텐츠를 숨기고 신고 묶음을 처리한다', async () => {
+  it('commits a reasoned warning through the atomic repository', async () => {
     const deps = dependencies()
     await expect(
       reviewReport(
         session('MODERATOR'),
         'report_1',
-        { action: 'HIDE_CONTENT' },
+        { action: 'WARN_USER', note: 'verified violation' },
         deps,
       ),
     ).resolves.toMatchObject({ status: 'ACTIONED' })
-    expect(deps.setHidden).toHaveBeenCalledWith('EPISODE', 'episode_1', true)
-    expect(deps.resolve).toHaveBeenCalledOnce()
+    expect(deps.applyDecision).toHaveBeenCalledWith({
+      actorId: 'moderator',
+      reportId: 'report_1',
+      decision: { action: 'WARN_USER', note: 'verified violation' },
+    })
   })
-
-  it('MODERATOR의 영구 삭제와 계정 정지를 거부한다', async () => {
+  it('rejects unauthorized removals before any write', async () => {
     const deps = dependencies()
     await expect(
       reviewReport(
         session('MODERATOR'),
         'report_1',
-        { action: 'REMOVE_CONTENT' },
+        { action: 'REMOVE_CONTENT', note: 'violation' },
         deps,
       ),
     ).rejects.toMatchObject({ code: 'E_PERM_DENIED' })
-    expect(deps.claim).not.toHaveBeenCalled()
+    expect(deps.applyDecision).not.toHaveBeenCalled()
   })
-
-  it('REJECT는 자동 숨김만 되돌린다', async () => {
-    const deps = dependencies(true)
-    await reviewReport(
-      session('MODERATOR'),
-      'report_1',
-      { action: 'REJECT' },
-      deps,
-    )
-    expect(deps.setHidden).toHaveBeenCalledWith('EPISODE', 'episode_1', false)
-    expect(deps.resolve).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'REJECTED' }),
-    )
-  })
-
-  it('ADMIN 영구 삭제는 미디어 삭제 잡을 발행한다', async () => {
+  it('requires an explicit suspension duration', async () => {
     const deps = dependencies()
+    await expect(
+      reviewReport(
+        session('ADMIN'),
+        'report_1',
+        { action: 'SUSPEND_USER', note: 'violation' },
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: 'E_VALIDATION' })
+    expect(deps.applyDecision).not.toHaveBeenCalled()
+  })
+  it('leaves durable cleanup pending on queue failure without undoing the decision', async () => {
+    const deps = dependencies(['asset1'])
+    vi.mocked(deps.enqueueDelete).mockRejectedValue(new Error('queue offline'))
+    await expect(
+      reviewReport(
+        session('ADMIN'),
+        'report_1',
+        { action: 'REMOVE_CONTENT', note: 'violation' },
+        deps,
+      ),
+    ).resolves.toMatchObject({ status: 'ACTIONED' })
+    expect(deps.markQueued).not.toHaveBeenCalled()
+  })
+  it('acknowledges cleanup only after all jobs are queued', async () => {
+    const deps = dependencies(['asset1', 'asset2'])
     await reviewReport(
       session('ADMIN'),
       'report_1',
-      { action: 'REMOVE_CONTENT' },
+      { action: 'REMOVE_CONTENT', note: 'violation' },
       deps,
     )
-    expect(deps.enqueueDelete).toHaveBeenCalledWith('asset_1')
+    expect(deps.enqueueDelete).toHaveBeenCalledTimes(2)
+    expect(deps.markQueued).toHaveBeenCalledWith('action1')
   })
 })

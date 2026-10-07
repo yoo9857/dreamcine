@@ -5,6 +5,7 @@ import {
   createAuthSession,
   findUserByEmail,
   findUserByHandle,
+  releaseExpiredSuspensions,
 } from '@aidream/db'
 import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
@@ -20,10 +21,21 @@ export async function authorizeCredentials(
   if (!parsed.success) return null
 
   const { email: identifier, password } = parsed.data
-  const user = identifier.includes('@')
+  let user = identifier.includes('@')
     ? await findUserByEmail(identifier)
     : await findUserByHandle(identifier)
   const valid = await verifyPassword(user?.passwordHash ?? null, password)
+  if (
+    valid &&
+    user?.status === 'SUSPENDED' &&
+    user.suspendedUntil !== null &&
+    user.suspendedUntil <= new Date()
+  ) {
+    await releaseExpiredSuspensions(new Date(), user.id)
+    user = identifier.includes('@')
+      ? await findUserByEmail(identifier)
+      : await findUserByHandle(identifier)
+  }
   if (
     user === null ||
     !valid ||

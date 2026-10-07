@@ -166,7 +166,22 @@ describe('moderation repository', () => {
         expiresAt: new Date('2030-01-01T00:00:00Z'),
       },
     })
-    await repo.setUserModerationStatus(item.owner.id, 'SUSPENDED')
+    const admin = await database.user.create({
+      data: {
+        handle: 'admin',
+        email: 'admin@example.test',
+        displayName: 'Admin',
+        role: 'ADMIN',
+        emailVerified: new Date(),
+      },
+    })
+    await repo.applyUserSanction({
+      actorId: admin.id,
+      userId: item.owner.id,
+      status: 'SUSPENDED',
+      reason: 'confirmed violation',
+      durationDays: 3,
+    })
     const [user, sessionCount, episode, upload] = await Promise.all([
       database.user.findUniqueOrThrow({ where: { id: item.owner.id } }),
       database.session.count({ where: { userId: item.owner.id } }),
@@ -177,7 +192,8 @@ describe('moderation repository', () => {
     ])
     expect(user.status).toBe('SUSPENDED')
     expect(sessionCount).toBe(0)
-    expect(episode.status).toBe('HIDDEN')
+    expect(episode.status).toBe('PUBLISHED')
+    expect(await repo.findPlaybackEpisode(item.episode.id)).toBeNull()
     expect(upload.status).toBe('ABORTED')
   })
 

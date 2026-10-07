@@ -47,7 +47,14 @@ export function findPlaybackEpisode(
 ): Promise<PlaybackEpisodeRecord | null> {
   return executeDb(async () => {
     const row = await db.episode.findFirst({
-      where: { id: episodeId, deletedAt: null },
+      where: {
+        id: episodeId,
+        deletedAt: null,
+        series: {
+          deletedAt: null,
+          owner: { status: 'ACTIVE', deletedAt: null },
+        },
+      },
       select: {
         id: true,
         status: true,

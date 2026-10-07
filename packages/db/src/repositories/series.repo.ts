@@ -70,6 +70,7 @@ export function listPublicSeries(
       where: {
         deletedAt: null,
         episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+        owner: { status: 'ACTIVE', deletedAt: null },
         ...(cursor === null
           ? {}
           : {
@@ -104,6 +105,7 @@ export function listPublicSeriesByOwner(
         ownerId: options.ownerId,
         deletedAt: null,
         episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+        owner: { status: 'ACTIVE', deletedAt: null },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: options.limit,
@@ -152,7 +154,11 @@ export function findPublicSeriesDetail(
 ): Promise<SeriesDetailRecord | null> {
   return executeDb(async () => {
     const row = await db.series.findFirst({
-      where: { id, deletedAt: null },
+      where: {
+        id,
+        deletedAt: null,
+        owner: { status: 'ACTIVE', deletedAt: null },
+      },
       include: {
         episodes: {
           where: { status: 'PUBLISHED', deletedAt: null },

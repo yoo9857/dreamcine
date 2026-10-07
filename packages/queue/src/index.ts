@@ -11,6 +11,7 @@ export {
   AccountPurgeJobSchema,
   CounterFlushJobSchema,
   CounterReconcileJobSchema,
+  ModerationMaintenanceJobSchema,
   DbPurgeJobSchema,
   EpisodeMediaDeleteJobSchema,
   NotificationFanoutJobSchema,

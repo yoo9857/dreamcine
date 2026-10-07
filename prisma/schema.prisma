@@ -301,16 +301,19 @@ model User {
   accounts              Account[]
   sessions              Session[]
 
-  trailerEpisode  Episode?                 @relation("channelTrailer", fields: [trailerEpisodeId], references: [id], onDelete: SetNull)
-  links           UserLink[]
-  consents        UserConsent[]
-  notifPrefs      NotificationPreference[]
-  authEvents      AuthAuditLog[]
-  roleGrants      RoleGrant[]              @relation("roleSubject")
-  roleGrantsMade  RoleGrant[]              @relation("roleGranter")
-  deletionRequest UserDeletionRequest?
-  playlists       Playlist[]
-  credits         Credit[]
+  trailerEpisode     Episode?                 @relation("channelTrailer", fields: [trailerEpisodeId], references: [id], onDelete: SetNull)
+  links              UserLink[]
+  consents           UserConsent[]
+  notifPrefs         NotificationPreference[]
+  authEvents         AuthAuditLog[]
+  roleGrants         RoleGrant[]              @relation("roleSubject")
+  roleGrantsMade     RoleGrant[]              @relation("roleGranter")
+  deletionRequest    UserDeletionRequest?
+  playlists          Playlist[]
+  credits            Credit[]
+  storedImages       StoredImage[]
+  moderationMade     ModerationAction[]       @relation("moderationActor")
+  moderationReceived ModerationAction[]       @relation("moderationSubject")
 
   @@index([status, createdAt])
   @@index([role, status])
@@ -782,6 +785,56 @@ model Report {
   @@index([status, priorityFlag, createdAt])
   @@index([target, targetId])
   @@map("report")
+}
+
+/// Image ownership and metadata are persisted alongside the storage key.
+model StoredImage {
+  id          String    @id @default(cuid())
+  ownerId     String    @map("owner_id")
+  objectKey   String    @unique @map("object_key")
+  purpose     String    @db.VarChar(40)
+  contentType String    @map("content_type") @db.VarChar(80)
+  sizeBytes   BigInt    @map("size_bytes")
+  width       Int?
+  height      Int?
+  sha256      String?   @db.VarChar(64)
+  status      String    @default("READY") @db.VarChar(20)
+  verifiedAt  DateTime? @map("verified_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, purpose, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
+  @@map("stored_image")
+}
+
+/// Durable staff decisions. Logs survive deletion of the actor/subject account.
+model ModerationAction {
+  id              String       @id @default(cuid())
+  actorId         String?      @map("actor_id")
+  subjectId       String?      @map("subject_id")
+  actorHandle     String?      @map("actor_handle") @db.VarChar(80)
+  subjectHandle   String?      @map("subject_handle") @db.VarChar(80)
+  target          ReportTarget
+  targetId        String       @map("target_id")
+  action          String       @db.VarChar(40)
+  reason          String       @db.VarChar(1000)
+  reportIds       String[]     @default([]) @map("report_ids")
+  pendingMediaIds String[]     @default([]) @map("pending_media_ids")
+  mediaQueuedAt   DateTime?    @map("media_queued_at")
+  evidence        Json         @default("{}")
+  beforeState     Json         @default("{}") @map("before_state")
+  afterState      Json         @default("{}") @map("after_state")
+  expiresAt       DateTime?    @map("expires_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  actor           User?        @relation("moderationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  subject         User?        @relation("moderationSubject", fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([subjectId, createdAt(sort: Desc)])
+  @@index([target, targetId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@map("moderation_action")
 }
 
 model CreatorApplication {

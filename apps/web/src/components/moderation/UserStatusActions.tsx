@@ -3,10 +3,12 @@
 import { Button, Select, Textarea } from '@aidream/ui'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
+import { SuspensionDurationSelect } from './SuspensionDurationSelect'
 
 export function UserStatusActions({ userId }: { userId: string }) {
   const router = useRouter()
-  const [status, setStatus] = useState('SUSPENDED')
+  const [status, setStatus] = useState('WARNING')
+  const [duration, setDuration] = useState('3')
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | undefined>()
   const [busy, setBusy] = useState(false)
@@ -21,7 +23,16 @@ export function UserStatusActions({ userId }: { userId: string }) {
       const response = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, reason: reason.trim() }),
+        body: JSON.stringify({
+          status,
+          reason: reason.trim(),
+          ...(status === 'SUSPENDED'
+            ? {
+                durationDays:
+                  duration === 'permanent' ? null : Number(duration),
+              }
+            : {}),
+        }),
       })
       if (!response.ok) throw new Error('회원 상태를 변경하지 못했습니다.')
       router.refresh()
@@ -44,10 +55,14 @@ export function UserStatusActions({ userId }: { userId: string }) {
           setStatus(value)
         }}
         options={[
+          { value: 'WARNING', label: '경고' },
           { value: 'SUSPENDED', label: '계정 정지' },
           { value: 'ACTIVE', label: '정지 해제' },
         ]}
       />
+      {status === 'SUSPENDED' && (
+        <SuspensionDurationSelect value={duration} onChange={setDuration} />
+      )}
       <Textarea
         label="변경 사유"
         value={reason}

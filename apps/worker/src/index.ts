@@ -3,6 +3,7 @@ import {
   connectionFromUrl,
   CounterFlushJobSchema,
   CounterReconcileJobSchema,
+  ModerationMaintenanceJobSchema,
   DbPurgeJobSchema,
   EpisodeMediaDeleteJobSchema,
   NotificationFanoutJobSchema,
@@ -22,6 +23,7 @@ import { loadWorkerConfig } from './config.js'
 import { cleanupOrphans } from './jobs/cleanup-orphans.js'
 import { counterFlushJob } from './jobs/counter-flush.js'
 import { counterReconcileJob } from './jobs/counter-reconcile.js'
+import { moderationMaintenance } from './jobs/moderation-maintenance.js'
 import { purgeDatabase } from './jobs/db-purge.js'
 import { deleteEpisodeMedia } from './jobs/delete-episode-media.js'
 import {
@@ -56,6 +58,14 @@ function startWorkers(): Promise<WorkerRuntime> {
   const logger = pino({ level: config.env.LOG_LEVEL })
   const abortController = new AbortController()
   const workers = [
+    new Worker(
+      QUEUE.MODERATION_MAINTENANCE,
+      withJob(QUEUE.MODERATION_MAINTENANCE, async (input: unknown) => {
+        ModerationMaintenanceJobSchema.parse(input)
+        return moderationMaintenance()
+      }),
+      { connection, concurrency: 1 },
+    ),
     new Worker(
       QUEUE.VIDEO_TRANSCODE,
       withJob(QUEUE.VIDEO_TRANSCODE, async (data: unknown) =>
