@@ -98,9 +98,18 @@ export default async function ApplicationsPage({
                   <small>{item.experience}</small>
                 )}
                 <div className="admin-application-foot">
-                  <a href={item.portfolioUrl} target="_blank" rel="noreferrer">
-                    포트폴리오 <ExternalLink />
-                  </a>
+                  {[item.portfolioUrl, ...item.additionalPortfolioUrls].map(
+                    (url, index) => (
+                      <a
+                        key={`${String(index)}-${url}`}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        포트폴리오 {index + 1} <ExternalLink />
+                      </a>
+                    ),
+                  )}
                   {item.socialUrl === null ? null : (
                     <a href={item.socialUrl} target="_blank" rel="noreferrer">
                       소셜 채널 <ExternalLink />

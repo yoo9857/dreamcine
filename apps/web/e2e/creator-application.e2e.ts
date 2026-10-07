@@ -19,9 +19,7 @@ async function advance(page: Page, step: number) {
       .getByRole('textbox', { name: '대표 작품·포트폴리오 링크' })
       .fill('https://example.com/film')
   else if (step === 3)
-    await page
-      .getByRole('textbox', { name: 'ilog에서 만들고 싶은 이야기' })
-      .fill(pitch)
+    await page.getByRole('textbox', { name: '추구하는 창작 방향' }).fill(pitch)
   await page.getByRole('button', { name: /^다음 단계/ }).click()
 }
 
@@ -66,17 +64,16 @@ test('지원서 검증, 이전 단계 유지, 실패 재시도와 접수현황�
   await advance(page, 1)
   await advance(page, 2)
   await page
-    .getByRole('textbox', { name: 'ilog에서 만들고 싶은 이야기' })
+    .getByRole('textbox', { name: '추구하는 창작 방향' })
     .fill('짧은 이야기')
   await page.getByRole('button', { name: /^다음 단계/ }).click()
   await expect(page.getByText(/앞뒤 공백을 제외하고 40자 이상/)).toBeVisible()
   await advance(page, 3)
   await page.getByRole('button', { name: '이전', exact: true }).click()
   await expect(
-    page.getByRole('textbox', { name: 'ilog에서 만들고 싶은 이야기' }),
+    page.getByRole('textbox', { name: '추구하는 창작 방향' }),
   ).toHaveValue(pitch)
   await page.getByRole('button', { name: /^다음 단계/ }).click()
-  await advance(page, 4)
   await page.getByRole('button', { name: '지원서 제출하기' }).click()
   expect(attempts).toBe(0)
   await page.getByRole('checkbox').check()
@@ -113,6 +110,67 @@ test('모집 분야에서 선택한 역할을 유지하며 기본 정보부터 �
   await expect(page.getByRole('radio', { name: /연출 · 감독/ })).toBeChecked()
 })
 
+test('작품 링크 3개와 창작 방향·경험을 같은 지원서로 제출한다', async ({
+  page,
+}) => {
+  let submitted: unknown
+  await page.route('**/api/creator-applications', async (route) => {
+    submitted = route.request().postDataJSON()
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'THREE-PORTFOLIOS' }),
+    })
+  })
+  await page.goto('/creator-apply#apply')
+  await advance(page, 0)
+  await advance(page, 1)
+  await page
+    .getByRole('textbox', { name: '대표 작품·포트폴리오 링크' })
+    .fill('https://example.com/film')
+  const second = page.getByRole('textbox', { name: '작품 링크 2' })
+  await second.fill('javascript:alert(1)')
+  await page.getByRole('button', { name: /^다음 단계/ }).click()
+  await expect(second).toBeFocused()
+  await expect(second).toHaveAttribute('aria-invalid', 'true')
+  await second.fill('https://vimeo.com/123')
+  await page
+    .getByRole('textbox', { name: '작품 링크 3' })
+    .fill('https://example.com/portfolio')
+  await page.getByRole('button', { name: /^다음 단계/ }).click()
+  await expect(
+    page.getByRole('textbox', { name: '주요 경험과 사용 도구' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('textbox', { name: '추가 채널 링크' }),
+  ).toHaveCount(0)
+  await page
+    .getByRole('textbox', { name: '주요 경험과 사용 도구' })
+    .fill('단편 시나리오 집필 / Premiere Pro')
+  await advance(page, 3)
+  await expect(page.getByText('5 / 5', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('단편 시나리오 집필 / Premiere Pro', { exact: true }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '작품 링크 수정' }).click()
+  await expect(second).toHaveValue('https://vimeo.com/123')
+  await page.getByRole('button', { name: /^다음 단계/ }).click()
+  await page.getByRole('button', { name: /^다음 단계/ }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: '지원서 제출하기' }).click()
+  await expect(page.getByRole('status')).toBeVisible()
+  expect(submitted).toMatchObject({
+    portfolioUrl: 'https://example.com/film',
+    additionalPortfolioUrls: [
+      'https://vimeo.com/123',
+      'https://example.com/portfolio',
+    ],
+    pitch,
+    experience: '단편 시나리오 집필 / Premiere Pro',
+  })
+  expect(submitted).not.toHaveProperty('socialUrl')
+})
+
 const sizes = [
   [1920, 1080],
   [1366, 768],
@@ -125,7 +183,7 @@ const sizes = [
   [844, 390],
 ] as const
 for (const [width, height] of sizes) {
-  test(`${String(width)}×${String(height)}에서 모든 화면과 6단계 지원서가 스크롤 없이 보인다`, async ({
+  test(`${String(width)}×${String(height)}에서 모든 화면과 5단계 지원서가 스크롤 없이 보인다`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height })
@@ -167,7 +225,7 @@ for (const [width, height] of sizes) {
       expect(layout.actionsBottom).toBeLessThanOrEqual(layout.height)
     }
     await nav.getByRole('link', { name: '지원서 신청' }).click()
-    for (let step = 0; step < 6; step++) {
+    for (let step = 0; step < 5; step++) {
       const layout = await page.locator('#apply').evaluate((form) => {
         const fields = form.querySelector('fieldset')
         const button = form
@@ -189,7 +247,7 @@ for (const [width, height] of sizes) {
       ).toBeLessThanOrEqual(layout.fieldsHeight + 2)
       expect(layout.buttonBottom).toBeLessThanOrEqual(layout.viewport)
       expect(layout.documentOverflow).toBe(false)
-      if (step < 5) await advance(page, step)
+      if (step < 4) await advance(page, step)
     }
   })
 }

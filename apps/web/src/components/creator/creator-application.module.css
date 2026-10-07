@@ -580,26 +580,36 @@
 .form textarea[aria-invalid='true'] {
   border-color: #ff7373;
 }
+.writingStage {
+  display: grid;
+  grid-template-rows: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 14px;
+}
 .writingStage > label {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
 }
 .writingStage textarea {
-  min-height: 60px;
-  flex: 1;
-}
-.stage[data-stage='optional'] > label:last-child {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.stage[data-stage='optional'] textarea {
-  flex: 1;
   min-height: 48px;
   height: 0;
+  flex: 1;
+}
+.stage.portfolioStage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 12px;
+}
+.portfolioStage > label:first-child,
+.portfolioStage .linkGuide {
+  grid-column: 1 / -1;
+}
+.portfolioStage .linkGuide {
+  padding: 10px 12px;
+}
+.portfolioStage .linkGuide p {
+  margin-top: 3px;
 }
 .pitchHelp {
   display: flex;
@@ -1884,6 +1894,73 @@
   }
   to {
     opacity: 1;
+  }
+}
+@media (max-height: 600px) and (min-width: 761px) {
+  .stage.writingStage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .stage.portfolioStage {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .portfolioStage > label:first-child {
+    grid-column: auto;
+  }
+  .portfolioStage .linkGuide {
+    display: none;
+  }
+  .form:has(.portfolioStage:not([hidden])) .formHeading p,
+  .form:has(.writingStage:not([hidden])) .formHeading p {
+    display: none;
+  }
+  .form:has(.portfolioStage:not([hidden])) .progress,
+  .form:has(.writingStage:not([hidden])) .progress {
+    display: none;
+  }
+}
+@media (max-height: 450px) and (min-width: 761px) {
+  .review > div {
+    min-height: 19px;
+    line-height: 18px;
+  }
+  .review button {
+    padding-block: 0;
+    line-height: 18px;
+  }
+}
+@media (max-width: 760px) {
+  .stage.portfolioStage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-height: 650px) and (max-width: 760px) {
+  .stage.portfolioStage {
+    gap: 8px;
+  }
+  .portfolioStage input:not([type='radio']):not([type='checkbox']) {
+    height: 40px;
+    padding-block: 8px;
+  }
+  .portfolioStage .linkGuide {
+    display: none;
+  }
+  .portfolioStage .linkGuide strong {
+    font-size: 10px;
+  }
+  .portfolioStage .linkGuide p {
+    font-size: 10px;
+  }
+  .form:has(.portfolioStage:not([hidden])) .formHeading,
+  .form:has(.writingStage:not([hidden])) .formHeading {
+    margin-bottom: 12px;
+  }
+  .form:has(.portfolioStage:not([hidden])) .formHeading p,
+  .form:has(.writingStage:not([hidden])) .formHeading p {
+    display: none;
+  }
+  .stage.writingStage {
+    gap: 10px;
   }
 }
 @keyframes creator-stage-enter {

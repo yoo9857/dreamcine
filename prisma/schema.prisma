@@ -785,19 +785,20 @@ model Report {
 }
 
 model CreatorApplication {
-  id               String                   @id @default(cuid())
-  displayName      String                   @map("display_name") @db.VarChar(80)
-  email            String                   @db.VarChar(254)
-  track            CreatorTrack
-  portfolioUrl     String                   @map("portfolio_url") @db.VarChar(500)
-  socialUrl        String?                  @map("social_url") @db.VarChar(500)
-  experience       String?                  @db.VarChar(1200)
-  pitch            String                   @db.VarChar(2000)
-  round            String                   @default("2026-FOUNDING") @db.VarChar(32)
-  privacyConsentAt DateTime                 @map("privacy_consent_at")
-  status           CreatorApplicationStatus @default(SUBMITTED)
-  createdAt        DateTime                 @default(now()) @map("created_at")
-  updatedAt        DateTime                 @updatedAt @map("updated_at")
+  id                      String                   @id @default(cuid())
+  displayName             String                   @map("display_name") @db.VarChar(80)
+  email                   String                   @db.VarChar(254)
+  track                   CreatorTrack
+  portfolioUrl            String                   @map("portfolio_url") @db.VarChar(500)
+  additionalPortfolioUrls String[]                 @default([]) @map("additional_portfolio_urls") @db.VarChar(500)
+  socialUrl               String?                  @map("social_url") @db.VarChar(500)
+  experience              String?                  @db.VarChar(1200)
+  pitch                   String                   @db.VarChar(2000)
+  round                   String                   @default("2026-FOUNDING") @db.VarChar(32)
+  privacyConsentAt        DateTime                 @map("privacy_consent_at")
+  status                  CreatorApplicationStatus @default(SUBMITTED)
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
 
   @@unique([email, round])
   @@index([status, createdAt])

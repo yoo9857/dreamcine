@@ -40,6 +40,7 @@ export const CreateCreatorApplicationSchema = z.object({
   email: EmailSchema.pipe(z.string().max(254)),
   track: z.enum(CREATOR_TRACKS),
   portfolioUrl: PublicUrlSchema,
+  additionalPortfolioUrls: z.array(PublicUrlSchema).max(2).optional(),
   socialUrl: OptionalPublicUrlSchema.optional(),
   experience: OptionalTextSchema.optional(),
   pitch: z.string().transform(sanitizeText).pipe(z.string().min(40).max(2000)),

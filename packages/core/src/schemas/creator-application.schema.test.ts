@@ -35,6 +35,35 @@ describe('CreateCreatorApplicationSchema', () => {
     ).toBe(false)
   })
 
+  it('대표 링크와 추가 작품 링크 2개를 함께 검증하고 보존한다', () => {
+    const additionalPortfolioUrls = [
+      'https://vimeo.com/123',
+      'https://example.com/film',
+    ]
+    expect(
+      CreateCreatorApplicationSchema.parse({
+        ...validApplication,
+        additionalPortfolioUrls,
+      }).additionalPortfolioUrls,
+    ).toEqual(additionalPortfolioUrls)
+  })
+
+  it.each([
+    ['https://example.com/1', 'https://example.com/2', 'https://example.com/3'],
+    ['javascript:alert(1)'],
+    ['https://example.com/' + 'a'.repeat(500)],
+  ])(
+    '추가 작품 링크의 개수·프로토콜·길이를 제한한다: %s',
+    (...additionalPortfolioUrls) => {
+      expect(
+        CreateCreatorApplicationSchema.safeParse({
+          ...validApplication,
+          additionalPortfolioUrls,
+        }).success,
+      ).toBe(false)
+    },
+  )
+
   it('개인정보 동의가 없으면 거부한다', () => {
     expect(
       CreateCreatorApplicationSchema.safeParse({

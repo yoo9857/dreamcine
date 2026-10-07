@@ -55,6 +55,7 @@ export interface AdminCreatorApplication {
   readonly email: string
   readonly track: string
   readonly portfolioUrl: string
+  readonly additionalPortfolioUrls: readonly string[]
   readonly socialUrl: string | null
   readonly experience: string | null
   readonly pitch: string

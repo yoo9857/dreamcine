@@ -23,6 +23,7 @@ export function saveCreatorApplication(
     email: input.email,
     track: input.track,
     portfolioUrl: input.portfolioUrl,
+    additionalPortfolioUrls: input.additionalPortfolioUrls ?? [],
     socialUrl: input.socialUrl ?? null,
     experience: input.experience ?? null,
     pitch: input.pitch,

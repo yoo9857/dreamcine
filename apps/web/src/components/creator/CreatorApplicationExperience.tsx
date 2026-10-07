@@ -74,17 +74,12 @@ const steps = [
   {
     title: '당신의 작품을 보여주세요.',
     label: '작품 링크',
-    description: '대표 작품을 볼 수 있는 링크 하나면 충분해요.',
+    description: '대표 작품부터 최대 3개까지. 링크 하나로도 지원할 수 있어요.',
   },
   {
-    title: '다음 이야기가 궁금해요.',
-    label: '만들고 싶은 이야기',
-    description: '주인공, 배경, 만들고 싶은 장면을 편하게 적어주세요.',
-  },
-  {
-    title: '조금 더 소개하고 싶다면.',
-    label: '추가 소개',
-    description: '선택 항목이에요. 작성하지 않아도 지원할 수 있어요.',
+    title: '당신이 추구하는 장면은?',
+    label: '창작 방향·경험',
+    description: '추구하는 분위기와 스타일, 만들고 싶은 작품을 알려주세요.',
   },
   {
     title: '마지막으로 확인해 주세요.',
@@ -105,7 +100,7 @@ const faqs = [
   ],
   [
     '포트폴리오는 어떻게 제출하나요?',
-    'YouTube, Vimeo, 개인 웹사이트 등 작품을 볼 수 있는 링크 하나를 넣어주세요. 파일 첨부는 필요하지 않습니다. 비공개 링크는 열람 권한을 확인해 주세요.',
+    'YouTube, Vimeo, 개인 웹사이트 등 작품을 볼 수 있는 링크를 최대 3개까지 넣어주세요. 대표 링크 하나는 필수이고 나머지는 선택입니다. 비공개 링크는 열람 권한을 확인해 주세요.',
   ],
   [
     '지원 내용을 수정할 수 있나요?',
@@ -158,7 +153,7 @@ interface Application {
   email: string
   track: string
   portfolioUrl: string
-  socialUrl: string
+  additionalPortfolioUrls: string[]
   experience: string
   pitch: string
   privacyConsent: boolean
@@ -269,7 +264,10 @@ export function CreatorApplicationExperience() {
       email: field('email'),
       track: field('track'),
       portfolioUrl: field('portfolioUrl'),
-      socialUrl: field('socialUrl'),
+      additionalPortfolioUrls: [
+        field('portfolioUrl2'),
+        field('portfolioUrl3'),
+      ].filter(Boolean),
       experience: field('experience'),
       pitch: field('pitch'),
       privacyConsent: data.get('privacyConsent') === 'on',
@@ -315,20 +313,19 @@ export function CreatorApplicationExperience() {
       )
         errors.portfolioUrl =
           'https:// 또는 http://로 시작하는 작품 링크를 입력해 주세요.'
+      for (const name of ['portfolioUrl2', 'portfolioUrl3']) {
+        const input = form.elements.namedItem(name) as HTMLInputElement
+        if (
+          input.value.trim() &&
+          (!input.validity.valid || !/^https?:\/\//iu.test(input.value.trim()))
+        )
+          errors[name] =
+            'https:// 또는 http://로 시작하는 작품 링크를 입력해 주세요.'
+      }
     }
     if ((all || step === 3) && body.pitch.length < 40)
       errors.pitch = `앞뒤 공백을 제외하고 40자 이상 적어주세요. 현재 ${String(body.pitch.length)}자예요.`
-    if (all || step === 4) {
-      if (
-        body.socialUrl &&
-        (!(form.elements.namedItem('socialUrl') as HTMLInputElement).validity
-          .valid ||
-          !/^https?:\/\//iu.test(body.socialUrl))
-      )
-        errors.socialUrl =
-          'https:// 또는 http://로 시작하는 채널 링크를 입력해 주세요.'
-    }
-    if ((all || step === 5) && !body.privacyConsent)
+    if ((all || step === 4) && !body.privacyConsent)
       errors.privacyConsent = '개인정보 수집·이용에 동의해 주세요.'
     setFieldErrors(errors)
     const first = Object.keys(errors)[0]
@@ -337,13 +334,11 @@ export function CreatorApplicationExperience() {
       ? 0
       : first === 'track'
         ? 1
-        : first === 'portfolioUrl'
+        : first.startsWith('portfolioUrl')
           ? 2
           : first === 'pitch'
             ? 3
-            : first === 'socialUrl'
-              ? 4
-              : 5
+            : 4
     if (errorStep === step) focusField(first)
     else {
       pendingFocus.current = first
@@ -614,7 +609,10 @@ export function CreatorApplicationExperience() {
                   </div>
                   {errorFor('track')}
                 </fieldset>
-                <div className={styles.stage} hidden={step !== 2}>
+                <div
+                  className={`${styles.stage ?? ''} ${styles.portfolioStage ?? ''}`}
+                  hidden={step !== 2}
+                >
                   <label>
                     <span>
                       대표 작품·포트폴리오 링크 <b>*</b>
@@ -630,15 +628,30 @@ export function CreatorApplicationExperience() {
                     />
                     {errorFor('portfolioUrl')}
                   </label>
+                  {[2, 3].map((number) => {
+                    const name = `portfolioUrl${String(number)}`
+                    return (
+                      <label key={name}>
+                        <span>
+                          작품 링크 {number} <em>선택</em>
+                        </span>
+                        <input
+                          name={name}
+                          type="url"
+                          inputMode="url"
+                          placeholder="https://"
+                          maxLength={500}
+                          {...invalidProps(name, 'portfolio-hint')}
+                        />
+                        {errorFor(name)}
+                      </label>
+                    )
+                  })}
                   <div className={styles.linkGuide} id="portfolio-hint">
                     <CircleCheck size={18} />
                     <div>
                       <strong>YouTube · Vimeo · 개인 웹사이트 등</strong>
-                      <p>
-                        작품을 볼 수 있는 링크를 넣어주세요.
-                        <br />
-                        비공개 링크는 열람 권한을 확인해 주세요.
-                      </p>
+                      <p>비공개 링크는 열람 권한을 확인해 주세요.</p>
                     </div>
                   </div>
                 </div>
@@ -648,15 +661,15 @@ export function CreatorApplicationExperience() {
                 >
                   <label>
                     <span>
-                      ilog에서 만들고 싶은 이야기 <b>*</b>
+                      추구하는 창작 방향 <b>*</b>
                     </span>
                     <textarea
                       name="pitch"
-                      rows={5}
+                      rows={3}
                       required
                       minLength={40}
                       maxLength={2000}
-                      placeholder="예: 기억을 사고파는 도시를 배경으로, 잃어버린 과거를 찾는 주인공의 이야기를 만들고 싶어요."
+                      placeholder="예: 몽환적인 판타지 · 인물 중심의 서사"
                       onChange={(event) => {
                         setPitchLength(event.currentTarget.value.trim().length)
                       }}
@@ -668,39 +681,19 @@ export function CreatorApplicationExperience() {
                     </div>
                     {errorFor('pitch')}
                   </label>
-                </div>
-                <div
-                  className={styles.stage}
-                  data-stage="optional"
-                  hidden={step !== 4}
-                >
-                  <label>
-                    <span>
-                      추가 채널 링크 <em>선택</em>
-                    </span>
-                    <input
-                      name="socialUrl"
-                      type="url"
-                      inputMode="url"
-                      placeholder="https://www.instagram.com/…"
-                      maxLength={500}
-                      {...invalidProps('socialUrl')}
-                    />
-                    {errorFor('socialUrl')}
-                  </label>
                   <label>
                     <span>
                       주요 경험과 사용 도구 <em>선택</em>
                     </span>
                     <textarea
                       name="experience"
-                      rows={3}
+                      rows={2}
                       maxLength={1200}
-                      placeholder="작업 경험, 협업 방식, 익숙한 도구를 간단히 적어주세요."
+                      placeholder="예: 단편 집필 / Runway, Kling"
                     />
                   </label>
                 </div>
-                <div className={styles.stage} hidden={step !== 5}>
+                <div className={styles.stage} hidden={step !== 4}>
                   {review ? (
                     <dl className={styles.review}>
                       <div>
@@ -746,6 +739,7 @@ export function CreatorApplicationExperience() {
                         <dt>작품 링크</dt>
                         <dd>
                           <span title={review.portfolioUrl}>
+                            {1 + review.additionalPortfolioUrls.length}개 ·{' '}
                             {review.portfolioUrl}
                           </span>
                           <button
@@ -760,7 +754,7 @@ export function CreatorApplicationExperience() {
                         </dd>
                       </div>
                       <div>
-                        <dt>이야기</dt>
+                        <dt>창작 방향</dt>
                         <dd>
                           <span>
                             {review.pitch.length.toLocaleString()}자 작성
@@ -770,10 +764,18 @@ export function CreatorApplicationExperience() {
                             onClick={() => {
                               setStep(3)
                             }}
-                            aria-label="작성한 이야기 확인 및 수정"
+                            aria-label="창작 방향과 경험 확인 및 수정"
                           >
                             확인
                           </button>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>경험·도구</dt>
+                        <dd>
+                          <span title={review.experience}>
+                            {review.experience || '작성하지 않음'}
+                          </span>
                         </dd>
                       </div>
                     </dl>
@@ -830,16 +832,14 @@ export function CreatorApplicationExperience() {
                 >
                   {submitState.status === 'submitting'
                     ? '접수 중…'
-                    : step === 4
-                      ? '다음 단계 · 선택 항목'
-                      : step < 5
-                        ? '다음 단계'
-                        : '지원서 제출하기'}
+                    : step < steps.length - 1
+                      ? '다음 단계'
+                      : '지원서 제출하기'}
                   <ArrowRight size={17} />
                 </button>
               </div>
               <p className={styles.submitNote}>
-                {step < 5
+                {step < steps.length - 1
                   ? '단계를 이동해도 작성한 내용은 유지됩니다.'
                   : '제출 후 접수 완료와 접수 번호를 확인할 수 있어요.'}
               </p>
