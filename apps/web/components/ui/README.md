@@ -54,3 +54,5 @@ Published selections live in `src/content/creator-season-editions.ts`.
 Append a new month without deleting past selections: the profile header and
 existing user badge components read the same history. This is an editorial
 selection registry; generating artwork does not grant an award to a user.
+The interface uses SVG images for crisp small badges and a smaller transfer;
+the CLI also retains transparent PNG exports.

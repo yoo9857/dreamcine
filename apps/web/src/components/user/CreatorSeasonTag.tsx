@@ -23,11 +23,12 @@ export function CreatorSeasonTag({
       title={`${monthLabel} 이달의 크리에이터 시즌 태그`}
     >
       <img
-        src={seasonArtwork[season] ?? '/brand/tags/creator-season.png'}
+        src={seasonArtwork[season] ?? '/brand/tags/creator-season.svg'}
         alt={`${monthLabel} 크리에이터 시즌 태그`}
         width={240}
         height={280}
         decoding="async"
+        loading="lazy"
         draggable={false}
       />
     </span>

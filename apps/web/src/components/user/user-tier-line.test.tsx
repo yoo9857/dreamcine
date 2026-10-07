@@ -22,7 +22,7 @@ describe('UserBadges', () => {
       screen
         .getByRole('img', { name: '2026.10 크리에이터 시즌 태그' })
         .getAttribute('src'),
-    ).toBe('/brand/tags/creator-season-2026-10.png')
+    ).toBe('/brand/tags/creator-season-2026-10.svg')
   })
 
   it('does not grant a published award to an unselected creator', () => {

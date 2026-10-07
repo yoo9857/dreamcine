@@ -132,7 +132,7 @@ for (const monthValue of [...months, 0]) {
 }
 const entries = (await readdir(output))
   .flatMap((file) => {
-    const match = /^creator-season-(\d{4})-(\d{2})\.png$/u.exec(file)
+    const match = /^creator-season-(\d{4})-(\d{2})\.svg$/u.exec(file)
     return match === null
       ? []
       : [[`${match[1]}.${match[2]}`, `/brand/tags/${file}`]]
