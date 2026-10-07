@@ -52,6 +52,8 @@ The moon and city concepts were also rejected and are excluded from the preview.
 Prompts and provenance for the current candidates are kept under
 `tmp/creator-video/v3` and `tmp/creator-video/v4`.
 
-Motion features are loaded asynchronously through `LazyMotion` and the minimal
-`framer-motion/m` components so the full animation runtime is excluded from
-the initial page bundle.
+Word animation starts with a native CSS fallback. The small
+`framer-motion/dom/mini` enhancement loads asynchronously only when the words
+enter the viewport, and continues from their current visual state. Text stays
+readable when loading that enhancement fails. Reduced-motion visitors skip it.
+The React animation runtime is excluded from the initial page bundle.

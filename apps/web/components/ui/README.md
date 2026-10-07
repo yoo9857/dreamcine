@@ -13,6 +13,8 @@ No new context provider is required. `PrismaHero` accepts the brand slot,
 navigation items, title, description, video/poster URLs and application action.
 Its word animation helpers are exported separately. Reduced motion shows the
 poster, and the background video can be paused.
+The hero fills its parent; give standalone previews a `h-dvh` wrapper as in
+`demo.tsx`. The application page supplies its own responsive viewport frame.
 
 For an additional shadcn component, run from `apps/web`:
 
