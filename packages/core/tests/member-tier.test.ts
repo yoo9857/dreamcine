@@ -16,6 +16,7 @@ import {
   computeTierPoints,
   evaluateTier,
   tierForPoints,
+  tierPointBreakdown,
   type TierActivity,
 } from '../src/rules/member-tier.js'
 import { ROLE_LADDER } from '../src/rules/roles.js'
@@ -290,5 +291,49 @@ describe('resolveEntitlements()', () => {
     })
     expect(result.uploadDailyBytes).toBe(capacity.uploadDailyBytes)
     expect(result.videoMaxDurationSec).toBe(capacity.videoMaxDurationSec)
+  })
+})
+
+describe('tierPointBreakdown', () => {
+  it('sums to computeTierPoints and reports each category in units', () => {
+    const activity: TierActivity = {
+      ...ZERO,
+      followerCount: 120,
+      episodesPublished: 3,
+      totalViews: 4_250,
+      accountAgeDays: 30,
+      watchSeconds: 7_300,
+      commentsPosted: 9,
+      likesGiven: 15,
+    }
+    const breakdown = tierPointBreakdown(activity)
+    expect(breakdown.map((entry) => entry.category)).toEqual(
+      Object.keys(TIER_WEIGHTS),
+    )
+    expect(breakdown.reduce((sum, entry) => sum + entry.points, 0)).toBe(
+      computeTierPoints(activity),
+    )
+    const views = breakdown.find(
+      (entry) => entry.category === 'viewsPerHundred',
+    )
+    expect(views).toMatchObject({ units: 42, points: 42, maxPoints: 60_000 })
+    const watch = breakdown.find((entry) => entry.category === 'watchHours')
+    expect(watch).toMatchObject({ units: 2, points: 10 })
+  })
+
+  it('caps points per category and never reports negative units', () => {
+    const breakdown = tierPointBreakdown({
+      ...ZERO,
+      followerCount: 9_000_000,
+      commentsPosted: -5,
+    })
+    const followers = breakdown.find(
+      (entry) => entry.category === 'followerCount',
+    )
+    expect(followers?.points).toBe(TIER_CATEGORY_MAX.followerCount)
+    const comments = breakdown.find(
+      (entry) => entry.category === 'commentsPosted',
+    )
+    expect(comments).toMatchObject({ units: 0, points: 0 })
   })
 })

@@ -41,6 +41,27 @@ describe('help qa', () => {
     expect(higgsfield.entry?.answer).not.toContain('조회')
   })
 
+  it.each([
+    '내 등급은 어떻게 올려요?',
+    '브론즈가 뭐예요?',
+    'BRONZE 등급 기준 알려줘',
+    '멤버십 등급은 어떻게 정해져요?',
+    '활동 점수는 뭘로 계산해요?',
+  ])('answers %s with the creator tier guide', (question) => {
+    const match = matchHelpEntry(question)
+    expect(match.entry?.id).toBe('creator-tier')
+    expect(match.entry?.href).toBe('/account/tier')
+    expect(match.entry?.answer).toContain('BRONZE 0점')
+    expect(match.entry?.answer).toContain('DIAMOND 100,000점')
+  })
+
+  it.each(['관람 등급은 어떻게 돼요?', '연령 등급 기준이 뭐예요?'])(
+    'does not answer %s with the creator tier guide',
+    (question) => {
+      expect(matchHelpEntry(question).entry?.id).not.toBe('creator-tier')
+    },
+  )
+
   it('sends an uncovered question to support', () => {
     const match = matchHelpEntry('비트코인 시세 알려줘')
     expect(match.entry).toBeNull()

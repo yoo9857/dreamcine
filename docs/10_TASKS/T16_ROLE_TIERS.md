@@ -215,6 +215,30 @@ base(테두리·점)는 모든 표면과 3:1 이상이다. 두 테마 × 4등급
   코드가 픽스처를 import 하는 경로를 없앤다.
 - `apps/web/src/test-support/session-fixtures.ts` — `SessionUser`·`RouteSession`
 
+### 내 등급 화면 · ? 안내 · 상담 (2026-10-07)
+
+| 자리 | 내용 |
+|---|---|
+| 계정 메뉴 `ILOG MEMBERSHIP` | `?` 버튼 → 등급 사다리·필요 점수 안내, 내 등급 강조, `/account/tier` 링크. 메뉴에 `내 등급` 항목 |
+| `/account/tier` | 현재 등급·점수·다음 등급까지 진행률, 항목별 점수(상한 포함), 등급별 기준·혜택 표 |
+| 상담 챗봇 | `creator-tier` 안내 항목 — 등급·브론즈·활동 점수 질문을 `/account/tier` 로 안내 |
+
+- **화면은 읽기만 한다.** 등급의 진실은 `tier.reevaluate` 배치다
+  (04_DOMAIN_MODEL 카운터 표). 화면을 열었다는 이유로 등급이 오르내리면 같은 실적의
+  두 회원이 "페이지를 열었는가" 로 다른 혜택을 받는다. 그래서 `getMyTier` 는
+  **적용 등급**(저장값)과 **산정 등급·점수**(지금 실적)를 나눠 내려주고, 둘이
+  다르면 "다음 정기 평가에서 반영" 이라고 표시한다. → 배치가 없으면 등급은 백필
+  값에 머문다. §8 의 `tier.reevaluate` 가 이 화면의 선행 조건이다.
+- 혜택 표는 `TIER_ALLOWANCE` 비율이 아니라 `resolveEntitlements()` 결과다 — 용량
+  티어 상한과 PARTNER 하한이 반영된 실제 값. 제작 역할이 아니면 크리에이터 기준
+  표와 안내 문구를 보여준다.
+- 공개 회차는 `PUBLISHED` + `PUBLIC` 만, 시청은 **남의 작품**만 센다(다 본 회차는
+  회차 길이, 보던 회차는 마지막 위치). 회원별 댓글 수 집계용 `comment(user_id)`
+  인덱스를 추가했다(`20261007010000_comment_user_index`).
+- 항목별 점수는 `tierPointBreakdown()` 이 내고 `computeTierPoints()` 는 그 합이다.
+- 안내 문구·숫자는 `apps/web/src/content/member-tier-guide.ts` 한 곳에서 core 표를
+  읽어 만든다 — 팝업·화면·챗봇이 같은 값을 쓴다.
+
 ---
 
 ## 8. 남은 일

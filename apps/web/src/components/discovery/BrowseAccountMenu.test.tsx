@@ -43,6 +43,50 @@ afterEach(() => {
 })
 
 describe('BrowseAccountMenu', () => {
+  it('explains creator tiers from the ? button and links to the tier page', () => {
+    render(<BrowseAccountMenu user={user} />)
+    fireEvent.click(screen.getByRole('button', { name: '한빈 계정 메뉴' }))
+
+    const help = screen.getByRole('menuitem', { name: '크리에이터 등급 설명' })
+    expect(help.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('note')).toBeNull()
+
+    fireEvent.click(help)
+    expect(help.getAttribute('aria-expanded')).toBe('true')
+    const guide = screen.getByRole('note', { name: '크리에이터 등급 안내' })
+    expect(guide.textContent).toContain('5,000점~')
+    expect(
+      guide.querySelector('[aria-current="true"]')?.getAttribute('data-tier'),
+    ).toBe('GOLD')
+    expect(
+      screen
+        .getByRole('menuitem', { name: /자세히 보기/u })
+        .getAttribute('href'),
+    ).toBe('/account/tier')
+    expect(
+      screen.getByRole('menuitem', { name: /내 등급/u }).getAttribute('href'),
+    ).toBe('/account/tier')
+
+    fireEvent.click(help)
+    expect(screen.queryByRole('note')).toBeNull()
+  })
+
+  it('closes only the tier guide on Escape and keeps the ? in the menu', () => {
+    render(<BrowseAccountMenu user={user} />)
+    fireEvent.click(screen.getByRole('button', { name: '한빈 계정 메뉴' }))
+    const help = screen.getByRole('menuitem', { name: '크리에이터 등급 설명' })
+    fireEvent.click(help)
+    expect(screen.getByRole('note')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('note')).toBeNull()
+    expect(screen.getByRole('menu')).toBeTruthy()
+    expect(document.activeElement).toBe(help)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
   it('exposes working profile, account, and support destinations', () => {
     render(<BrowseAccountMenu user={user} />)
     fireEvent.click(screen.getByRole('button', { name: '한빈 계정 메뉴' }))

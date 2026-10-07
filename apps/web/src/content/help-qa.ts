@@ -1,4 +1,5 @@
 import { HIGGSFIELD_FILMS, higgsfieldWatchPath } from './higgsfield'
+import { TIER_PAGE_HREF, tierHelpAnswer } from './member-tier-guide'
 
 /** 준비된 안내에 없을 때 항상 같은 문장으로 고객센터를 안내한다. */
 export const HELP_FALLBACK_ANSWER =
@@ -134,6 +135,27 @@ const entries: readonly HelpEntry[] = [
     answer: `Higgsfield Global Film Festival 출품작은 /u/higgsfield 에서 소개합니다. 지금 볼 수 있는 작품은 ${filmList()}입니다. 이 프로필은 ilog 계정이 아니라 팔로우와 메시지를 받지 않습니다. 재생 화면에는 원작 이름과 Higgsfield 원문 링크가 있습니다.`,
     href: '/u/higgsfield',
     linkLabel: 'Higgsfield 프로필',
+  },
+  {
+    id: 'creator-tier',
+    title: '크리에이터 등급은 어떻게 정해지나요?',
+    prompts: [
+      '크리에이터 등급',
+      '회원 등급',
+      '내 등급',
+      '등급 올리',
+      '멤버십 등급',
+      '활동 점수',
+      '브론즈',
+      '실버',
+      '골드',
+      '플래티넘',
+      '다이아',
+    ],
+    keywords: ['bronze', 'silver', 'gold', 'platinum', 'diamond', '점수'],
+    answer: tierHelpAnswer(),
+    href: TIER_PAGE_HREF,
+    linkLabel: '내 등급 보기',
   },
   {
     id: 'membership',

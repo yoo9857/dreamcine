@@ -55,6 +55,7 @@ export default async function AccountPage(): Promise<ReactNode> {
         <span>SETTINGS</span>
         <a href="#profile">프로필</a>
         <a href="#account">계정 정보</a>
+        <Link href="/account/tier">내 등급</Link>
         {messaging === null ? null : <a href="#messaging">메시지</a>}
         <a href="#consents">동의 관리</a>
         <a href="#delete-account">회원탈퇴</a>

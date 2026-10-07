@@ -102,22 +102,45 @@ function contribute(
   return bounded * spec.weight
 }
 
+export type TierCategory = keyof typeof TIER_WEIGHTS
+
+export interface TierCategoryScore {
+  readonly category: TierCategory
+  /** 가중치를 곱하기 전, 단위로 환산한 값 (조회는 100회, 시청은 시간 단위) */
+  readonly units: number
+  readonly points: number
+  readonly maxPoints: number
+}
+
+/**
+ * 활동 → 항목별 점수. 등급 화면이 "어디서 몇 점" 을 보여주는 근거이고,
+ * `computeTierPoints` 는 이 합이다 — 화면과 판정이 다른 계산을 하지 않는다.
+ */
+export function tierPointBreakdown(
+  activity: TierActivity,
+): readonly TierCategoryScore[] {
+  const units: Readonly<Record<TierCategory, number>> = {
+    followerCount: activity.followerCount,
+    episodesPublished: activity.episodesPublished,
+    viewsPerHundred: Math.floor(activity.totalViews / 100),
+    accountAgeDays: activity.accountAgeDays,
+    watchHours: Math.floor(activity.watchSeconds / 3600),
+    commentsPosted: activity.commentsPosted,
+    likesGiven: activity.likesGiven,
+  }
+  return (Object.keys(TIER_WEIGHTS) as TierCategory[]).map((category) => ({
+    category,
+    units: Math.max(0, Math.trunc(units[category])),
+    points: contribute(units[category], TIER_WEIGHTS[category]),
+    maxPoints: TIER_CATEGORY_MAX[category],
+  }))
+}
+
 /** 활동 → 점수. 순수 함수이므로 전조합 테스트가 가능하다. */
 export function computeTierPoints(activity: TierActivity): number {
-  return (
-    contribute(activity.followerCount, TIER_WEIGHTS.followerCount) +
-    contribute(activity.episodesPublished, TIER_WEIGHTS.episodesPublished) +
-    contribute(
-      Math.floor(activity.totalViews / 100),
-      TIER_WEIGHTS.viewsPerHundred,
-    ) +
-    contribute(activity.accountAgeDays, TIER_WEIGHTS.accountAgeDays) +
-    contribute(
-      Math.floor(activity.watchSeconds / 3600),
-      TIER_WEIGHTS.watchHours,
-    ) +
-    contribute(activity.commentsPosted, TIER_WEIGHTS.commentsPosted) +
-    contribute(activity.likesGiven, TIER_WEIGHTS.likesGiven)
+  return tierPointBreakdown(activity).reduce(
+    (sum, entry) => sum + entry.points,
+    0,
   )
 }
 

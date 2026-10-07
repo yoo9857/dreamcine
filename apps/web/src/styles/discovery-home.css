@@ -595,6 +595,117 @@
   background: currentColor;
 }
 
+.browse-account-membership strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.browse-account-tier-help {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 50%;
+  color: #a8b3bb;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+/* 눈에 보이는 원은 작아도 누르는 영역은 24px 를 확보한다 */
+.browse-account-tier-help::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+.browse-account-tier-help:hover,
+.browse-account-tier-help[aria-expanded='true'] {
+  border-color: #ff7580;
+  color: #fff;
+  background: rgb(255 117 128 / 16%);
+}
+.browse-account-tier-help:focus-visible {
+  outline: 2px solid #ff7580;
+  outline-offset: 2px;
+}
+.browse-account-tier-guide {
+  display: grid;
+  gap: 8px;
+  margin: 0 10px 6px;
+  padding: 10px 12px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 3%);
+}
+.browse-account-tier-guide p {
+  margin: 0;
+  color: #b6c0c6;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.browse-account-tier-guide ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.browse-account-tier-guide li {
+  --tier-dot: #d49a6a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 6px;
+  color: #dce3e6;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.browse-account-tier-guide li[data-tier='SILVER'] {
+  --tier-dot: #c8c8d4;
+}
+.browse-account-tier-guide li[data-tier='GOLD'] {
+  --tier-dot: #e8b93f;
+}
+.browse-account-tier-guide li[data-tier='PLATINUM'] {
+  --tier-dot: #7fd4e8;
+}
+.browse-account-tier-guide li[data-tier='DIAMOND'] {
+  --tier-dot: #a78bfa;
+}
+.browse-account-tier-guide li[aria-current='true'] {
+  background: rgb(255 255 255 / 7%);
+}
+.browse-account-tier-guide li span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.browse-account-tier-guide li i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tier-dot);
+}
+.browse-account-tier-guide li small {
+  color: #82909a;
+  font-weight: 600;
+}
+.browse-account-tier-guide a {
+  color: #ff8a93;
+  font-size: 10px;
+  font-weight: 800;
+}
+.browse-account-tier-guide a:hover,
+.browse-account-tier-guide a:focus-visible {
+  color: #fff;
+}
+
 .browse-account-links {
   display: grid;
   gap: 1px;

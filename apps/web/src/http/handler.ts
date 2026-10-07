@@ -130,7 +130,7 @@ function normalizeParams(
 let capacityCache: Capacity | undefined
 
 /** 티어는 env 를 통해서만 들어온다. 문구·한도 리터럴을 코드에 박지 않는다. */
-function currentCapacity(): Capacity {
+export function currentCapacity(): Capacity {
   capacityCache ??= loadCapacity(
     ServerEnvSchema.shape.CAPACITY_TIER.parse(process.env.CAPACITY_TIER),
   )

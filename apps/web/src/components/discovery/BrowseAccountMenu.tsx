@@ -8,6 +8,7 @@ import {
 } from '@aidream/core'
 import { TierBadge } from '@aidream/ui'
 import {
+  Award,
   BadgeCheck,
   CircleHelp,
   LogOut,
@@ -19,7 +20,19 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import React, { useEffect, useRef, useState, type ReactNode } from 'react'
+import React, {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+
+import {
+  TIER_LADDER_ROWS,
+  TIER_PAGE_HREF,
+  formatPoints,
+} from '@/src/content/member-tier-guide'
 
 interface BrowseAccountMenuProps {
   readonly user: {
@@ -37,12 +50,19 @@ interface BrowseAccountMenuProps {
 
 export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
   const [open, setOpen] = useState(false)
+  const [tierHelpOpen, setTierHelpOpen] = useState(false)
+  const tierHelpId = useId()
+  const tierHelpRef = useRef<HTMLButtonElement>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
   const router = useRouter()
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) setTierHelpOpen(false)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -52,6 +72,12 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
     }
     const closeFromKeyboard = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
+      // 등급 안내가 펼쳐져 있으면 안내만 닫는다. 메뉴는 한 번 더 누를 때 닫힌다.
+      if (tierHelpOpen) {
+        setTierHelpOpen(false)
+        tierHelpRef.current?.focus()
+        return
+      }
       setOpen(false)
       triggerRef.current?.focus()
     }
@@ -62,7 +88,7 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
       document.removeEventListener('pointerdown', closeFromOutside)
       document.removeEventListener('keydown', closeFromKeyboard)
     }
-  }, [open])
+  }, [open, tierHelpOpen])
 
   async function logout(): Promise<void> {
     if (signingOut) return
@@ -198,7 +224,23 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
           <div className="browse-account-membership">
             <div>
               <small>ILOG MEMBERSHIP</small>
-              <strong>나의 크리에이터 등급</strong>
+              <strong>
+                나의 크리에이터 등급
+                <button
+                  ref={tierHelpRef}
+                  type="button"
+                  role="menuitem"
+                  className="browse-account-tier-help"
+                  aria-label="크리에이터 등급 설명"
+                  aria-expanded={tierHelpOpen}
+                  aria-controls={tierHelpId}
+                  onClick={() => {
+                    setTierHelpOpen((current) => !current)
+                  }}
+                >
+                  ?
+                </button>
+              </strong>
             </div>
             {user.tier === 'BRONZE' ? (
               <span className="browse-account-base-tier">
@@ -208,6 +250,45 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
               <TierBadge tier={user.tier} size="sm" />
             )}
           </div>
+
+          {tierHelpOpen ? (
+            <div
+              id={tierHelpId}
+              className="browse-account-tier-guide"
+              role="note"
+              aria-label="크리에이터 등급 안내"
+            >
+              <p>
+                팔로워·공개 회차·조회·시청·댓글·좋아요·가입 기간을 합산한 활동
+                점수로 등급이 정해져요. 크리에이터는 등급이 높을수록 업로드
+                한도가 늘어나고, 등급은 정기 평가로 바뀝니다.
+              </p>
+              <ol>
+                {TIER_LADDER_ROWS.map((row) => (
+                  <li
+                    key={row.tier}
+                    data-tier={row.tier}
+                    aria-current={row.tier === user.tier ? 'true' : undefined}
+                  >
+                    <span>
+                      <i aria-hidden="true" />
+                      {row.tier}
+                    </span>
+                    <small>{formatPoints(row.minPoints)}점~</small>
+                  </li>
+                ))}
+              </ol>
+              <Link
+                href={TIER_PAGE_HREF}
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
+                내 점수와 등급 자세히 보기 →
+              </Link>
+            </div>
+          ) : null}
 
           <div className="browse-account-links">
             <p className="browse-account-section-label">
@@ -226,6 +307,20 @@ export function BrowseAccountMenu({ user }: BrowseAccountMenuProps): ReactNode {
                 <small>공개 프로필 확인</small>
               </span>
               <b aria-hidden="true">↗</b>
+            </Link>
+            <Link
+              href={TIER_PAGE_HREF}
+              role="menuitem"
+              onClick={() => {
+                setOpen(false)
+              }}
+            >
+              <Award aria-hidden="true" />
+              <span>
+                <strong>내 등급</strong>
+                <small>활동 점수와 등급 혜택</small>
+              </span>
+              <b aria-hidden="true">→</b>
             </Link>
             <Link
               href="/account#profile"

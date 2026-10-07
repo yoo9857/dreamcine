@@ -184,7 +184,10 @@ export {
   computeTierPoints,
   evaluateTier,
   tierForPoints,
+  tierPointBreakdown,
   type TierActivity,
+  type TierCategory,
+  type TierCategoryScore,
   type TierEvaluation,
 } from './rules/member-tier.js'
 export {
