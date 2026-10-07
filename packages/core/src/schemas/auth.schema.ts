@@ -76,6 +76,7 @@ export const LoginIdentifierSchema = z
   .refine(
     (value) =>
       value === 'admin@admin' ||
+      value === 'guest@guest' ||
       EmailSchema.safeParse(value).success ||
       HandleSchema.safeParse(value).success,
     { message: 'Invalid email or username' },

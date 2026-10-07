@@ -313,7 +313,7 @@ export function CalendlyCarousel({
                 width: isActive ? activeDimensions.width : sideWidth,
                 height: isActive ? activeDimensions.height : sideHeight,
                 opacity: visible ? 1 : 0,
-                zIndex: isActive ? 1 : 2,
+                zIndex: isActive ? 2 : 1,
               }}
               transition={reducedMotion ? { duration: 0 } : TRANSITION_SPRING}
               style={{

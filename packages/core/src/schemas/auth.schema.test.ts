@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { SignupSchema } from './auth.schema.js'
+import { LoginSchema, SignupSchema } from './auth.schema.js'
 
 const validSignup = {
   email: 'viewer@mail.ilog.info',
@@ -16,6 +16,23 @@ const validSignup = {
 }
 
 describe('SignupSchema', () => {
+  it('accepts the provisioned guest identifier for login, but not public signup', () => {
+    expect(
+      LoginSchema.safeParse({
+        email: 'guest@guest',
+        password: 'guest-password',
+      }).success,
+    ).toBe(true)
+    expect(
+      SignupSchema.safeParse({ ...validSignup, email: 'guest@guest' }).success,
+    ).toBe(false)
+    expect(
+      LoginSchema.safeParse({
+        email: 'other@other',
+        password: 'guest-password',
+      }).success,
+    ).toBe(false)
+  })
   it('accepts the profile survey fields', () => {
     expect(SignupSchema.safeParse(validSignup).success).toBe(true)
   })
