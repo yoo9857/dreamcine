@@ -1,16 +1,10 @@
 'use client'
 
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  Film,
-  Play,
-  Search,
-  Sparkles,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Film, Play, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import React, { useMemo, useState, type ReactNode } from 'react'
+
+import { CalendlyCarousel } from '@/components/ui/connected-carousel'
 
 import { UserBadges } from '@/src/components/user/UserTierLine'
 import type {
@@ -162,60 +156,14 @@ function CreatorWorld({
   )
 }
 
-function MonthlyCreatorCard({
-  creator,
-}: {
-  readonly creator: CreatorDirectoryItem
-}): ReactNode {
-  return (
-    <article className="creator-monthly-card">
-      <Link
-        href={`/u/${encodeURIComponent(creator.handle)}`}
-        className="creator-monthly-portrait"
-        aria-label={`${creator.displayName} 프로필`}
-      >
-        <CreatorPortrait creator={creator} />
-      </Link>
-      <div className="creator-monthly-copy">
-        <span className="creator-monthly-tag">
-          <Sparkles aria-hidden="true" /> 이달의 새로운 이야기
-        </span>
-        <h3>{creator.displayName}</h3>
-        <UserBadges user={creator} />
-        <strong>@{creator.handle}</strong>
-        <p>
-          {creatorBio(
-            creator,
-            '새로 공개한 작품에서 이 작가의 시선을 발견해 보세요.',
-          )}
-        </p>
-        <dl>
-          <div>
-            <dt>이달 공개 작품</dt>
-            <dd>{creator.monthlySeriesCount ?? 0}</dd>
-          </div>
-          <div>
-            <dt>전체 공개 작품</dt>
-            <dd>{creator.seriesCount}</dd>
-          </div>
-        </dl>
-        <a
-          href={`#creator-${creator.handle}`}
-          className="creator-monthly-action"
-        >
-          작품 세계 만나기 <ArrowUpRight aria-hidden="true" />
-        </a>
-      </div>
-    </article>
-  )
-}
-
 export function CreatorDirectory({
   initialCreators,
   monthLabel = '이번 달',
+  featuredHandles,
 }: {
   readonly initialCreators: readonly CreatorDirectoryItem[]
   readonly monthLabel?: string
+  readonly featuredHandles?: readonly string[] | undefined
 }): ReactNode {
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('featured')
@@ -247,76 +195,62 @@ export function CreatorDirectory({
   }, [uniqueCreators, normalizedQuery, sortMode])
   const monthlyCreators = useMemo(
     () =>
-      uniqueCreators
-        .filter((creator) => (creator.monthlySeriesCount ?? 0) > 0)
-        .sort(
-          (a, b) => (b.monthlySeriesCount ?? 0) - (a.monthlySeriesCount ?? 0),
-        )
-        .slice(0, 5),
-    [uniqueCreators],
+      featuredHandles === undefined
+        ? uniqueCreators.slice(0, 5)
+        : [...new Set(featuredHandles)]
+            .flatMap((handle) => {
+              const creator = uniqueCreators.find(
+                (item) => item.handle === handle,
+              )
+              return creator === undefined ? [] : [creator]
+            })
+            .slice(0, 5),
+    [uniqueCreators, featuredHandles],
   )
 
   return (
     <div className="creator-directory">
-      <header className="creator-directory-hero">
-        <div className="creator-directory-heading">
+      <header className="creator-best-heading">
+        <div>
           <Link href="/browse" className="creator-home-link">
             <ArrowLeft aria-hidden="true" /> 홈으로
           </Link>
-          <span>PEOPLE BEHIND THE STORIES</span>
-          <h1>
-            작가의 시선,
-            <br />
-            새로운 작품의 시작.
+          <span className="creator-eyebrow">THE MONTHLY BEST</span>
+          <h1 id="creator-monthly-title">
+            이달의 작가 <em>BEST 5</em>
           </h1>
-          <p>
-            이야기를 만드는 사람을 만나고, 그들의 작품 세계로 들어가 보세요.
-          </p>
+          <p>자신만의 시선으로 이야기를 만드는 작가들을 만나보세요.</p>
         </div>
-        <div className="creator-hero-note">
+        <div className="creator-best-month">
           <span>{monthLabel}</span>
-          <strong>지금, 주목할 이야기.</strong>
-          <p>공개 작품과 함께 만나는 ilog 작가들</p>
           <Link href="/creator-apply">
             나도 크리에이터로 시작하기 <ArrowUpRight aria-hidden="true" />
           </Link>
         </div>
       </header>
-      {normalizedQuery !== '' ? null : (
-        <section
-          className="creator-monthly"
-          aria-labelledby="creator-monthly-title"
-        >
-          <header>
-            <div>
-              <span className="creator-eyebrow">THIS MONTH · {monthLabel}</span>
-              <h2 id="creator-monthly-title">이달의 작가</h2>
-            </div>
-            <p>이번 달 새 작품을 공개한 작가들의 시선을 만나보세요.</p>
-          </header>
-          {monthlyCreators.length === 0 ? (
-            <div className="creator-monthly-awaiting">
-              <Sparkles aria-hidden="true" />
-              <div>
-                <strong>다음 이야기를 기다리고 있습니다.</strong>
-                <p>
-                  이번 달 새 작품이 공개되면 이곳에서 작가를 소개합니다.
-                  아래에서 공개 작품을 먼저 만나보세요.
-                </p>
-              </div>
-              <a href="#creator-worlds">
-                작품 세계 둘러보기 <ArrowUpRight aria-hidden="true" />
-              </a>
-            </div>
-          ) : (
-            <div className="creator-monthly-grid">
-              {monthlyCreators.map((creator) => (
-                <MonthlyCreatorCard key={creator.handle} creator={creator} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      <section
+        className="creator-monthly"
+        aria-labelledby="creator-monthly-title"
+      >
+        <CalendlyCarousel
+          items={monthlyCreators.map((creator) => ({
+            id: creator.handle,
+            stat: creator.displayName,
+            quote: creatorBio(
+              creator,
+              '이야기를 만드는 작가의 시선을 만나보세요.',
+            ),
+            author: creator.displayName,
+            role: `@${creator.handle} · 공개 작품 ${String(creator.seriesCount)}개`,
+            defaultImage: creator.avatarUrl ?? '',
+            selectedImage: creator.avatarUrl ?? '',
+            alt: `${creator.displayName} 프로필 사진`,
+            href: `/u/${encodeURIComponent(creator.handle)}`,
+          }))}
+          autoPlayInterval={6000}
+          pauseOnHover
+        />
+      </section>
       <section
         className="creator-directory-list"
         id="creator-worlds"

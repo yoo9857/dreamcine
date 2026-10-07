@@ -12,15 +12,13 @@ const CANONICAL = absoluteUrlOrNull('/creators')
 
 export const metadata: Metadata = {
   title: '이달의 작가와 작품 세계',
-  description:
-    '이달 새 작품을 공개한 ilog 작가를 만나고, 작가별 공개 작품을 감상하세요.',
+  description: '이달의 추천 작가를 만나고, 작가별 공개 작품을 감상하세요.',
   ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
   robots: { index: true, follow: true },
   openGraph: {
     type: 'website',
     title: '이달의 작가와 작품 세계 · ilog',
-    description:
-      '이달 새 작품을 공개한 ilog 작가를 만나고, 작가별 공개 작품을 감상하세요.',
+    description: '이달의 추천 작가를 만나고, 작가별 공개 작품을 감상하세요.',
     siteName: 'ilog',
     ...(CANONICAL === null ? {} : { url: CANONICAL }),
   },
@@ -166,7 +164,15 @@ export default async function CreatorsPage(): Promise<ReactNode> {
   return (
     <div className="creators-page" id="discovery-top">
       <DiscoveryTopbar user={headerUser} />
-      <CreatorDirectory initialCreators={creators} monthLabel={month.label} />
+      <CreatorDirectory
+        initialCreators={creators}
+        monthLabel={month.label}
+        featuredHandles={
+          process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
+            ? undefined
+            : ['hanbin9857', 'kedrael', 'higgsfield']
+        }
+      />
       <DiscoveryFooter handle={headerUser?.handle ?? 'ilog'} />
     </div>
   )

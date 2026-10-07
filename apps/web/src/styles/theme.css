@@ -4,5 +4,6 @@
 /* Tailwind 가 클래스를 찾을 범위. 프리미티브는 packages/ui 에 있으므로
    앱 디렉터리만 훑으면 유틸리티가 누락된다. */
 @source '../../app';
+@source '../../components';
 @source '../';
 @source '../../../../packages/ui/src';

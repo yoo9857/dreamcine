@@ -1,14 +1,37 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import React from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { CreatorDirectoryItem } from '@/src/services/user/get-featured-creators'
 
 import { CreatorDirectory } from './CreatorDirectory'
 
 afterEach(cleanup)
+
+beforeAll(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {
+        return undefined
+      }
+      unobserve() {
+        return undefined
+      }
+      disconnect() {
+        return undefined
+      }
+    },
+  )
+})
 
 const creators: readonly CreatorDirectoryItem[] = [
   {
@@ -55,8 +78,11 @@ describe('CreatorDirectory', () => {
       },
     )
 
-    expect(screen.queryByRole('heading', { name: '첫 작가' })).toBeNull()
-    expect(screen.getByRole('heading', { name: '두 번째 작가' })).toBeTruthy()
+    const worlds = within(
+      screen.getByRole('region', { name: '검색한 작가와 작품' }),
+    )
+    expect(worlds.queryByRole('heading', { name: '첫 작가' })).toBeNull()
+    expect(worlds.getByRole('heading', { name: '두 번째 작가' })).toBeTruthy()
     expect(
       screen
         .getByRole('link', { name: /두 번째 작가 @second.creator/ })
@@ -95,7 +121,7 @@ describe('CreatorDirectory', () => {
         monthLabel="2026년 10월"
       />,
     )
-    const monthly = container.querySelectorAll('.creator-monthly-card h3')
+    const monthly = container.querySelectorAll('[data-carousel-id] h3')
     expect(Array.from(monthly).map((node) => node.textContent)).toEqual([
       '첫 작가',
       '두 번째 작가',
@@ -113,8 +139,11 @@ describe('CreatorDirectory', () => {
     render(<CreatorDirectory initialCreators={creators} />)
     const input = screen.getByRole('textbox', { name: '작가와 작품 검색' })
     fireEvent.change(input, { target: { value: '@first.creator' } })
-    expect(screen.getByRole('heading', { name: '첫 작가' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: '두 번째 작가' })).toBeNull()
+    const worlds = within(
+      screen.getByRole('region', { name: '검색한 작가와 작품' }),
+    )
+    expect(worlds.getByRole('heading', { name: '첫 작가' })).toBeTruthy()
+    expect(worlds.queryByRole('heading', { name: '두 번째 작가' })).toBeNull()
     fireEvent.change(input, { target: { value: '도시의 밤' } })
     expect(screen.getByRole('link', { name: '도시의 밤 재생' })).toBeTruthy()
     fireEvent.change(input, { target: { value: '없는이름' } })
@@ -123,7 +152,7 @@ describe('CreatorDirectory', () => {
     expect(screen.getByText('2명의 작가')).toBeTruthy()
   })
 
-  it('keeps existing work worlds when no one has published this month', () => {
+  it('keeps best creators even if they did not upload this month', () => {
     const { container } = render(
       <CreatorDirectory
         initialCreators={creators.map((creator) => ({
@@ -133,9 +162,43 @@ describe('CreatorDirectory', () => {
         }))}
       />,
     )
-    expect(container.querySelectorAll('.creator-monthly-card')).toHaveLength(0)
-    expect(screen.getByText('다음 이야기를 기다리고 있습니다.')).toBeTruthy()
+    expect(container.querySelectorAll('[data-carousel-id]')).toHaveLength(2)
     expect(container.querySelectorAll('.creator-world')).toHaveLength(2)
     expect(screen.getAllByText('비공개')).toHaveLength(2)
+  })
+
+  it('shows exactly five distinct best creators in the selected order', () => {
+    const many = Array.from({ length: 7 }, (_, index) => ({
+      ...creators[0],
+      handle: `creator${String(index)}`,
+      displayName: `Creator ${String(index)}`,
+      bio: null,
+      avatarUrl: null,
+      tier: 'BRONZE' as const,
+      isVerified: false,
+      followerCount: 0,
+      seriesCount: 1,
+    }))
+    const { container } = render(
+      <CreatorDirectory
+        initialCreators={many}
+        featuredHandles={[
+          'creator4',
+          'creator2',
+          'creator2',
+          'creator0',
+          'creator6',
+          'creator1',
+          'creator3',
+        ]}
+      />,
+    )
+    expect(
+      Array.from(container.querySelectorAll('[data-carousel-id] h3')).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['Creator 4', 'Creator 2', 'Creator 0', 'Creator 6', 'Creator 1'])
+    expect(container.querySelectorAll('.creator-best-pending')).toHaveLength(0)
+    expect(container.querySelectorAll('.creator-world')).toHaveLength(7)
   })
 })
