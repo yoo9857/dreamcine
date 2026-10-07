@@ -12,6 +12,27 @@ afterEach(() => {
 })
 
 describe('UserBadges', () => {
+  it('keeps the published monthly award on an unverified BRONZE creator', () => {
+    render(
+      <UserBadges
+        user={publicUserFixture({ handle: 'kedrael', tier: 'BRONZE' })}
+      />,
+    )
+    expect(
+      screen
+        .getByRole('img', { name: '2026.10 크리에이터 시즌 태그' })
+        .getAttribute('src'),
+    ).toBe('/brand/tags/creator-season-2026-10.png')
+  })
+
+  it('does not grant a published award to an unselected creator', () => {
+    render(
+      <UserBadges
+        user={publicUserFixture({ handle: 'unselected', tier: 'GOLD' })}
+      />,
+    )
+    expect(screen.queryByAltText(/크리에이터 시즌 태그/u)).toBeNull()
+  })
   it('BRONZE + 미인증이면 아무것도 그리지 않는다', () => {
     // 빈 래퍼도 만들지 않는다 — 빈 span 이 gap 을 벌려 이름 뒤에 공백이 남는다.
     const { container } = render(

@@ -1,6 +1,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { LiquidMetalButton } from '@/components/ui/liquid-metal-button'
 
 import type { SessionUser } from '@/src/auth/types'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
@@ -39,13 +40,17 @@ export function DiscoveryTopbar({
           maxLength={50}
           placeholder="제목, 시리즈, 크리에이터를 검색하세요"
         />
-        <button type="submit">검색</button>
+        <LiquidMetalButton
+          type="submit"
+          label="검색"
+          className="discovery-search-liquid"
+        />
       </Form>
       <div className="discovery-top-actions">
-        {user === null ? null : <NotificationBell />}
         <div className="discovery-live" aria-label="새 콘텐츠 업데이트 중">
           <span /> LIVE
         </div>
+        {user === null ? null : <NotificationBell />}
         {user === null ? (
           <div className="discovery-auth-actions">
             <Link href="/signup">회원가입</Link>

@@ -71,19 +71,23 @@
   display: grid;
   grid-template-columns: 48px 1fr auto;
   align-items: center;
-  border: 1px solid rgb(255 255 255 / 5%);
+  padding: 3px;
+  border: 1px solid rgb(170 191 206 / 16%);
   border-radius: 999px;
-  background: #171f29;
+  background: linear-gradient(180deg, #101e27, #0b171f);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
 }
 
 .discovery-search:focus-within {
-  border-color: rgb(255 30 30 / 65%);
-  box-shadow: 0 0 0 4px rgb(255 30 30 / 9%);
+  border-color: rgb(179 205 222 / 48%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 5%),
+    0 0 0 2px rgb(179 205 222 / 7%);
 }
-.discovery-search svg {
+.discovery-search > svg {
   width: 20px;
   margin-left: 18px;
   fill: none;
@@ -99,11 +103,12 @@
   color: white;
   background: transparent;
   font-size: 13px;
+  width: 100%;
 }
 .discovery-search input::placeholder {
   color: #75818c;
 }
-.discovery-search button {
+.discovery-search > button:not(.liquid-metal-button) {
   align-self: stretch;
   min-width: 120px;
   border: 0;
@@ -113,6 +118,23 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 850;
+}
+.discovery-search .discovery-search-liquid {
+  --lm-width: 96px;
+  --lm-height: 40px;
+  margin: 0;
+  box-shadow: none;
+}
+.discovery-search .discovery-search-liquid[data-hovered='true'] {
+  box-shadow: none;
+}
+.discovery-search-liquid .liquid-metal-face {
+  inset: 1px;
+  background: linear-gradient(180deg, #1b2c37, #101e27);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+.discovery-search-liquid[data-hovered='true'] .liquid-metal-face {
+  background: linear-gradient(180deg, #263c49, #162732);
 }
 .discovery-live {
   justify-self: end;
@@ -139,7 +161,7 @@
   gap: 18px;
 }
 
-/* ── 알림 버튼·팝업 (LIVE 왼쪽) ───────────────────── */
+/* ── 알림 버튼·팝업 (LIVE 오른쪽) ───────────────────── */
 .notification-bell {
   position: relative;
 }
@@ -2032,7 +2054,7 @@
     min-height: 44px;
     grid-template-columns: 39px 1fr auto;
   }
-  .discovery-search svg {
+  .discovery-search > svg {
     width: 18px;
     margin-left: 14px;
   }
@@ -2043,8 +2065,12 @@
   .discovery-search input::placeholder {
     color: transparent;
   }
-  .discovery-search button {
+  .discovery-search > button:not(.liquid-metal-button) {
     min-width: 66px;
+  }
+  .discovery-search .discovery-search-liquid {
+    --lm-width: 66px;
+    --lm-height: 36px;
   }
   .discovery-top-actions {
     gap: 8px;
@@ -2264,5 +2290,31 @@
   .discovery-tabs a,
   .discovery-hero-actions a {
     transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .discovery-topbar {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 12px;
+  }
+  .discovery-top-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .discovery-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+  .discovery-search input::placeholder {
+    color: #82909b;
+  }
+  .notification-popover {
+    top: calc(128px + env(safe-area-inset-top));
+    max-height: calc(100dvh - 128px - 96px - env(safe-area-inset-top));
+  }
+  .browse-account-popover {
+    top: calc(128px + env(safe-area-inset-top));
   }
 }

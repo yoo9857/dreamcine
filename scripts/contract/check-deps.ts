@@ -23,6 +23,10 @@ const DEPENDENCY_EVIDENCE: Readonly<Record<string, RegExp>> = {
   '@radix-ui/react-dialog': /Radix UI/u,
   'lucide-react': /lucide-react/u,
   'framer-motion': /framer-motion@14[.]0[.]0[\s\S]*?상태: APPROVED/u,
+  '@paper-design/shaders':
+    /@paper-design\/shaders@0[.]0[.]81[\s\S]*?상태: APPROVED/u,
+  clsx: /clsx@2[.]1[.]1[\s\S]*?상태: APPROVED/u,
+  'tailwind-merge': /tailwind-merge@3[.]7[.]0[\s\S]*?상태: APPROVED/u,
   'react-hook-form': /react-hook-form/u,
   zod: /zod 3|\bzod\b/u,
   '@tanstack/react-query': /@tanstack\/react-query/u,

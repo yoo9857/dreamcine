@@ -733,3 +733,16 @@
   reduced-motion에서는 단어 애니메이션과 배경 영상 자동재생을 끈다.
 - 근거: 이 세션에서 사용자가 패키지 설치를 명시적으로 요청했다.
 - 상태: APPROVED (사용자 명시 요청)
+
+## [DEP-005] 사용자 제공 Liquid Metal 검색 버튼의 의존성
+
+- 사용자 요구 (2026-10-07): 상단 검색 버튼에 제공한 LiquidMetalButton을 시험 적용하고
+  `@paper-design/shaders`, `clsx`, `tailwind-merge`, `lucide-react`를 사용한다.
+- 결정: `@paper-design/shaders@0.0.81`, `clsx@2.1.1`, `tailwind-merge@3.7.0`을
+  `@aidream/web`에 정확한 버전으로 추가하고 기존 `lucide-react`를 재사용한다.
+- 범위: 공용 버튼의 장식용 WebGL 셰이더와 클래스 합성. 검색은 기존 Next Form으로
+  제출하며 새 provider나 상태 관리 패키지는 추가하지 않는다.
+- 대응: 모션 감소 설정과 WebGL 미지원 환경은 정적인 금속 테두리로 표시한다.
+  셰이더는 지연 로드하며 해제 시 GPU 리소스와 타이머를 정리한다.
+- 근거: 이 세션에서 사용자가 컴포넌트와 의존성 설치를 명시적으로 요청했다.
+- 상태: APPROVED (사용자 명시 요청)

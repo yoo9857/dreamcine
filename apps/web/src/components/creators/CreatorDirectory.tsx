@@ -1,18 +1,12 @@
 'use client'
 
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
-  Film,
-  Play,
-  Search,
-  X,
-} from 'lucide-react'
+import { ArrowUpRight, Film, Play, Search, X } from 'lucide-react'
 import Link from 'next/link'
-import React, { useMemo, useRef, useState, type ReactNode } from 'react'
+import React, { useMemo, useState, type ReactNode } from 'react'
 
+import { CoverflowCarousel } from '@/components/ui/coverflow-carousel'
+
+import { CreatorSeasonTag } from '@/src/components/user/CreatorSeasonTag'
 import { UserBadges } from '@/src/components/user/UserTierLine'
 import type {
   CreatorDirectoryItem,
@@ -56,6 +50,7 @@ function CreatorPortrait({
       alt=""
       loading="lazy"
       decoding="async"
+      draggable={false}
       onError={() => {
         setFailed(true)
       }}
@@ -166,28 +161,31 @@ function CreatorWorld({
 function MonthlyCreatorCard({
   creator,
   index,
+  active,
+  onSelect,
+  monthLabel,
 }: {
   readonly creator: CreatorDirectoryItem
   readonly index: number
+  readonly active: boolean
+  readonly onSelect: () => void
+  readonly monthLabel: string
 }): ReactNode {
   const [coverFailed, setCoverFailed] = useState(false)
   const work = creator.works?.find((item) => item.posterUrl !== null)
-  const cover = work?.posterUrl ?? creator.avatarUrl
   return (
-    <li className="creator-monthly-card">
+    <div className={`creator-monthly-card${active ? ' is-spotlight' : ''}`}>
       <Link
         href={`/u/${encodeURIComponent(creator.handle)}`}
         className="creator-monthly-profile"
         aria-label={`${creator.displayName} 작가 프로필 보기`}
+        tabIndex={active ? 0 : -1}
+        aria-hidden={!active}
       >
         <div className="creator-monthly-cover">
-          {cover === null || coverFailed ? (
-            <span className="creator-monthly-monogram" aria-hidden="true">
-              {creator.displayName.trim().slice(0, 1).toUpperCase()}
-            </span>
-          ) : (
+          {work?.posterUrl === undefined || coverFailed ? null : (
             <img
-              src={cover}
+              src={work.posterUrl ?? ''}
               alt=""
               loading="lazy"
               decoding="async"
@@ -199,19 +197,18 @@ function MonthlyCreatorCard({
           <span className="creator-monthly-number">
             {String(index + 1).padStart(2, '0')}
           </span>
-          {work === undefined || coverFailed ? null : (
-            <span className="creator-monthly-work-title">{work.title}</span>
-          )}
+          <CreatorSeasonTag
+            monthLabel={monthLabel}
+            className="creator-monthly-season-tag"
+          />
+          <span className="creator-monthly-avatar">
+            <CreatorPortrait creator={creator} />
+          </span>
         </div>
         <div className="creator-monthly-body">
           <div className="creator-monthly-identity">
-            <span className="creator-monthly-avatar">
-              <CreatorPortrait creator={creator} />
-            </span>
-            <div>
-              <h3>{creator.displayName}</h3>
-              <span className="creator-monthly-handle">@{creator.handle}</span>
-            </div>
+            <h3>{creator.displayName}</h3>
+            <span className="creator-monthly-handle">@{creator.handle}</span>
           </div>
           <p>{creatorBio(creator, '작품으로 전하는 나만의 이야기.')}</p>
           <div className="creator-monthly-card-footer">
@@ -224,7 +221,15 @@ function MonthlyCreatorCard({
           </div>
         </div>
       </Link>
-    </li>
+      {active ? null : (
+        <button
+          className="creator-monthly-select"
+          type="button"
+          aria-label={`${creator.displayName} 강조 보기`}
+          onClick={onSelect}
+        />
+      )}
+    </div>
   )
 }
 
@@ -235,19 +240,16 @@ function MonthlyCreators({
   readonly creators: readonly CreatorDirectoryItem[]
   readonly monthLabel: string
 }): ReactNode {
-  const track = useRef<HTMLOListElement>(null)
-  const scroll = (direction: number) => {
-    const element = track.current
-    if (element === null) return
-    const card = element.firstElementChild
-    const distance = (card?.getBoundingClientRect().width ?? 220) + 14
-    element.scrollBy({
-      left: direction * distance,
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ? 'instant'
-        : 'smooth',
-    })
-  }
+  const slides = useMemo(
+    () =>
+      creators.map((creator) => ({
+        src: creator.avatarUrl ?? '',
+        alt: creator.displayName,
+        title: creator.displayName,
+        subtitle: `@${creator.handle}`,
+      })),
+    [creators],
+  )
   return (
     <section
       className="creator-monthly"
@@ -258,29 +260,6 @@ function MonthlyCreators({
           <span className="creator-monthly-dot" />
           {monthLabel} · 이달의 선정 작가
         </span>
-        <div
-          className="creator-monthly-controls"
-          aria-label="이달의 작가 카드 이동"
-        >
-          <button
-            type="button"
-            aria-label="이전 작가 보기"
-            onClick={() => {
-              scroll(-1)
-            }}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label="다음 작가 보기"
-            onClick={() => {
-              scroll(1)
-            }}
-          >
-            <ChevronRight aria-hidden="true" />
-          </button>
-        </div>
         <span className="creator-monthly-count">
           {creators.length}명의 시선
         </span>
@@ -290,21 +269,43 @@ function MonthlyCreators({
           이달의 작가를 준비하고 있습니다. 아래에서 작가와 작품을 만나보세요.
         </p>
       ) : (
-        <ol
-          ref={track}
-          className="creator-monthly-track"
-          style={{
-            gridTemplateColumns: `repeat(${String(creators.length)}, minmax(0, 1fr))`,
+        <CoverflowCarousel
+          slides={slides}
+          label="이달의 작가 입체 슬라이드"
+          className="creator-monthly-coverflow"
+          cardWidth="clamp(210px, 18cqw, 220px)"
+          cardHeight="296px"
+          cardClassName="creator-monthly-slide"
+          rotate={30}
+          depth={0.3}
+          perspective={5}
+          falloff={0.6}
+          fade={0.03}
+          gap={0.07}
+          initialIndex={Math.floor(creators.length / 2)}
+          autoPlayInterval={6000}
+          showNavigation
+          showPagination
+          navigationLabels={{
+            previous: '이전 작가 보기',
+            next: '다음 작가 보기',
+            pause: '자동 전환 일시정지',
+            play: '자동 전환 시작',
+            select: (slide) => `${slide.title ?? ''} 선택`,
           }}
-        >
-          {creators.map((creator, index) => (
-            <MonthlyCreatorCard
-              key={creator.handle}
-              creator={creator}
-              index={index}
-            />
-          ))}
-        </ol>
+          renderSlide={(_, index, active, onSelect) => {
+            const creator = creators[index]
+            return creator === undefined ? null : (
+              <MonthlyCreatorCard
+                creator={creator}
+                index={index}
+                active={active}
+                onSelect={onSelect}
+                monthLabel={monthLabel}
+              />
+            )
+          }}
+        />
       )}
     </section>
   )
@@ -370,20 +371,15 @@ export function CreatorDirectory({
   return (
     <div className="creator-directory">
       <header className="creator-best-heading">
-        <div>
-          <Link href="/browse" className="creator-home-link">
-            <ArrowLeft aria-hidden="true" /> 홈으로
-          </Link>
-          <span className="creator-eyebrow">THE MONTHLY BEST</span>
-          <h1 id="creator-monthly-title">
-            이달의 작가 <em>MONTHLY SELECTION</em>
-          </h1>
-          <p>자신만의 시선으로 이야기를 만드는 작가들을 만나보세요.</p>
-        </div>
+        <h1 id="creator-monthly-title" className="sr-only">
+          이달의 작가
+        </h1>
         <div className="creator-best-month">
-          <Link href="/creator-apply">
-            나도 크리에이터로 시작하기 <ArrowUpRight aria-hidden="true" />
-          </Link>
+          <CreatorSeasonTag monthLabel={monthLabel} />
+          <p>
+            이달의 크리에이터에게{' '}
+            <Link href="/creators/season-tags">시즌 태그</Link>가 부여됩니다.
+          </p>
         </div>
       </header>
       <MonthlyCreators creators={monthlyCreators} monthLabel={monthLabel} />

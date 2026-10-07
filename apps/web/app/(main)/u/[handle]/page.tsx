@@ -29,6 +29,7 @@ import { getServerSession } from '@/src/auth/server-session'
 import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
 import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import { ProfileShareButton } from '@/src/components/profile/ProfileShareButton'
+import { CreatorSeasonAwards } from '@/src/components/user/CreatorSeasonAwards'
 import { JsonLd } from '@/src/components/seo/JsonLd'
 import { FollowButton } from '@/src/components/social/FollowButton'
 import { workTypeLabel } from '@/src/components/studio/work-types'
@@ -593,6 +594,7 @@ export default async function ProfilePage({
                 <p className="cp-handle">
                   <span>@{profile.handle}</span>
                   <TierBadge tier={profile.tier} size="sm" />
+                  <CreatorSeasonAwards handle={profile.handle} />
                   <span className="cp-joined">
                     <CalendarDays aria-hidden="true" />
                     {JOINED.format(profile.joinedAt)} 가입

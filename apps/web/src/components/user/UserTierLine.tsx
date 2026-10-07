@@ -3,6 +3,8 @@ import { TierBadge } from '@aidream/ui'
 import { BadgeCheck } from 'lucide-react'
 import Link from 'next/link'
 import React, { type ReactNode } from 'react'
+import { CreatorSeasonAwards } from './CreatorSeasonAwards'
+import { creatorSeasonAwards } from '@/src/content/creator-season-editions'
 
 export interface UserBadgesProps {
   readonly user: PublicUserSummary
@@ -27,7 +29,11 @@ export function UserBadges({
   compact = false,
   className,
 }: UserBadgesProps): ReactNode {
-  if (!user.isVerified && user.tier === 'BRONZE') {
+  if (
+    !user.isVerified &&
+    user.tier === 'BRONZE' &&
+    creatorSeasonAwards(user.handle).length === 0
+  ) {
     // 그릴 것이 없으면 빈 래퍼도 만들지 않는다. 빈 span 이 gap 을 벌린다.
     return null
   }
@@ -47,6 +53,7 @@ export function UserBadges({
         />
       ) : null}
       <TierBadge tier={user.tier} size="xs" compact={compact} />
+      <CreatorSeasonAwards handle={user.handle} compact={compact} />
     </span>
   )
 }

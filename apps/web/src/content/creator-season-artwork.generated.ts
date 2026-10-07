@@ -1,0 +1,28 @@
+const artworkIndex: Readonly<Record<string, string>> = {
+  '2026.01': '/brand/tags/creator-season-2026-01.png',
+  '2026.02': '/brand/tags/creator-season-2026-02.png',
+  '2026.03': '/brand/tags/creator-season-2026-03.png',
+  '2026.04': '/brand/tags/creator-season-2026-04.png',
+  '2026.05': '/brand/tags/creator-season-2026-05.png',
+  '2026.06': '/brand/tags/creator-season-2026-06.png',
+  '2026.07': '/brand/tags/creator-season-2026-07.png',
+  '2026.08': '/brand/tags/creator-season-2026-08.png',
+  '2026.09': '/brand/tags/creator-season-2026-09.png',
+  '2026.10': '/brand/tags/creator-season-2026-10.png',
+  '2026.11': '/brand/tags/creator-season-2026-11.png',
+  '2026.12': '/brand/tags/creator-season-2026-12.png',
+  '2027.01': '/brand/tags/creator-season-2027-01.png',
+  '2027.02': '/brand/tags/creator-season-2027-02.png',
+  '2027.03': '/brand/tags/creator-season-2027-03.png',
+  '2027.04': '/brand/tags/creator-season-2027-04.png',
+  '2027.05': '/brand/tags/creator-season-2027-05.png',
+  '2027.06': '/brand/tags/creator-season-2027-06.png',
+  '2027.07': '/brand/tags/creator-season-2027-07.png',
+  '2027.08': '/brand/tags/creator-season-2027-08.png',
+  '2027.09': '/brand/tags/creator-season-2027-09.png',
+  '2027.10': '/brand/tags/creator-season-2027-10.png',
+  '2027.11': '/brand/tags/creator-season-2027-11.png',
+  '2027.12': '/brand/tags/creator-season-2027-12.png',
+}
+
+export default artworkIndex

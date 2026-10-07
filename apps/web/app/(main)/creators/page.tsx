@@ -7,6 +7,7 @@ import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import type { Metadata } from 'next'
 
 import { absoluteUrlOrNull } from '@/src/lib/site-url'
+import { creatorSeasonEditions } from '@/src/content/creator-season-editions'
 
 const CANONICAL = absoluteUrlOrNull('/creators')
 
@@ -170,7 +171,7 @@ export default async function CreatorsPage(): Promise<ReactNode> {
         featuredHandles={
           process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
             ? undefined
-            : ['hanbin9857', 'kedrael', 'higgsfield']
+            : creatorSeasonEditions[month.edition]
         }
       />
       <DiscoveryFooter handle={headerUser?.handle ?? 'ilog'} />

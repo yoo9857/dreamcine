@@ -23,8 +23,34 @@ corepack pnpm dlx shadcn@latest add button
 ```
 
 Review generated theme changes against the existing `packages/ui` tokens.
+
+`coverflow-carousel.tsx` contains the supplied 3D carousel geometry, drag inertia,
+keyboard navigation, captions and pagination. `coverflow-carousel-demo.tsx`
+keeps the supplied stock-image demo separate from the application's creator data.
+The existing content security policy permits the application's creator images;
+the stock demo is intended for an isolated component preview.
+
+`/creators` passes up to five real creators and uses `renderSlide` for its portrait,
+biography and profile link. `cardHeight` keeps the existing compact card size.
+Autoplay pauses on hover, focus and a hidden document, with a pause button and
+reduced-motion support. No additional packages or providers are required.
 Installation documentation: https://ui.shadcn.com/docs/installation/manual
 Motion documentation: https://motion.dev/docs/react-installation
 
 `demo.tsx` is the supplied usage example; `/creator-apply` is the working
 integration with real navigation and the existing application endpoint.
+
+`liquid-metal-button.tsx` adapts the supplied Paper Shaders button into a native
+button with typed shader lifecycle, submit support, keyboard focus, reduced
+motion, timer cleanup and a static metal fallback. `DiscoveryTopbar` uses it
+inside the existing search form. Styles live in
+`src/styles/liquid-metal-button.css`; `liquid-metal-button-demo.tsx` contains
+the text/icon example. The user-requested packages are pinned in `apps/web`;
+no additional provider or image asset is needed.
+
+Season artwork is generated with
+`node scripts/design/generate-creator-season-tag.mjs YYYY MM|all`.
+Published selections live in `src/content/creator-season-editions.ts`.
+Append a new month without deleting past selections: the profile header and
+existing user badge components read the same history. This is an editorial
+selection registry; generating artwork does not grant an award to a user.

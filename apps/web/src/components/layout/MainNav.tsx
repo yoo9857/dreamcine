@@ -1,5 +1,4 @@
 import { can } from '@aidream/core'
-import { Button } from '@aidream/ui'
 import Link from 'next/link'
 import React, { type ReactNode } from 'react'
 
@@ -7,6 +6,7 @@ import { actorFromSession } from '@/src/auth/actor'
 import type { RouteSession } from '@/src/auth/types'
 import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 import { NavigationLinks } from './NavigationLinks'
+import { GuestSessionActions } from './GuestSessionActions'
 
 export function MainNav({
   session,
@@ -45,18 +45,7 @@ export function MainNav({
         )}
       </aside>
 
-      {session === null && !pending ? (
-        <div className="aidream-session-actions">
-          <>
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/signup">회원가입</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/login">로그인</Link>
-            </Button>
-          </>
-        </div>
-      ) : null}
+      {session === null && !pending ? <GuestSessionActions /> : null}
 
       {pending ? null : (
         <NavigationLinks

@@ -18,6 +18,14 @@ afterEach(cleanup)
 
 beforeAll(() => {
   vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  )
+  vi.stubGlobal(
     'ResizeObserver',
     class {
       observe() {
@@ -132,7 +140,7 @@ describe('CreatorDirectory', () => {
     expect(
       screen.getByRole('link', { name: '도시의 밤 재생' }).getAttribute('href'),
     ).toBe('/watch/city-episode')
-    expect(container.querySelector('.creator-monthly-track')).toBeTruthy()
+    expect(container.querySelector('.coverflow-frame')).toBeTruthy()
   })
 
   it('searches handles with @ and work titles, then clears the search', () => {
@@ -221,8 +229,39 @@ describe('CreatorDirectory', () => {
         (node) => node.textContent,
       ),
     ).toEqual(['Creator 4', 'Creator 2', 'Creator 0', 'Creator 1', 'Creator 3'])
-    const monthly = within(screen.getByRole('region', { name: /이달의 작가/u }))
-    expect(monthly.getAllByRole('link')).toHaveLength(5)
-    expect(monthly.queryByRole('button', { name: /자동/u })).toBeNull()
+    const monthly = within(
+      screen.getByRole('region', { name: '이달의 작가 입체 슬라이드' }),
+    )
+    expect(container.querySelectorAll('.creator-monthly-profile')).toHaveLength(
+      5,
+    )
+    expect(monthly.getAllByRole('link')).toHaveLength(1)
+    expect(
+      monthly.getByRole('button', { name: '자동 전환 일시정지' }),
+    ).toBeTruthy()
+  })
+
+  it('switches the active profile with navigation and allows pausing', () => {
+    render(<CreatorDirectory initialCreators={creators} />)
+    const monthly = within(
+      screen.getByRole('region', { name: '이달의 작가 입체 슬라이드' }),
+    )
+    expect(
+      monthly
+        .getByRole('link', { name: '두 번째 작가 작가 프로필 보기' })
+        .getAttribute('href'),
+    ).toBe('/u/second.creator')
+    fireEvent.click(monthly.getByRole('button', { name: '다음 작가 보기' }))
+    expect(
+      monthly
+        .getByRole('link', { name: '첫 작가 작가 프로필 보기' })
+        .getAttribute('href'),
+    ).toBe('/u/first.creator')
+    fireEvent.click(monthly.getByRole('button', { name: '자동 전환 일시정지' }))
+    expect(
+      monthly
+        .getByRole('button', { name: '자동 전환 시작' })
+        .getAttribute('aria-pressed'),
+    ).toBe('false')
   })
 })

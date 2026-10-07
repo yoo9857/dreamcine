@@ -31,6 +31,7 @@ export function creatorMonth(now = new Date()) {
   const year = Number(parts.find((part) => part.type === 'year')?.value)
   const month = Number(parts.find((part) => part.type === 'month')?.value)
   return {
+    edition: `${String(year)}.${String(month).padStart(2, '0')}`,
     label: `${String(year)}년 ${String(month)}월`,
     start: new Date(Date.UTC(year, month - 1, 1, -9)),
     end: new Date(Date.UTC(year, month, 1, -9)),

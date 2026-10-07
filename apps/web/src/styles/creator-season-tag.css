@@ -1,0 +1,27 @@
+.creator-season-tag {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 28px;
+  line-height: 0;
+}
+.creator-season-tag img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.creator-season-awards {
+  display: inline-flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.creator-season-awards .creator-season-award {
+  width: 28px;
+}
+.creator-season-awards .creator-season-award-compact {
+  width: 20px;
+}
+.cp-handle .creator-season-awards .creator-season-tag {
+  width: 36px;
+}
