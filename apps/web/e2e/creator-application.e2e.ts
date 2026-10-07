@@ -269,3 +269,34 @@ test('동작 줄이기에서는 같은 장면의 정지 배경을 보여준다',
     page.getByRole('heading', { name: 'AI 영화와 드라마, 함께 만들어요.' }),
   ).toBeVisible()
 })
+
+test('모바일에서는 가벼운 배경 영상만 요청한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  const videoRequests: string[] = []
+  page.on('request', (request) => {
+    if (
+      request.url().includes('ilog-cinematic') &&
+      request.url().endsWith('.mp4')
+    )
+      videoRequests.push(request.url())
+  })
+  const response = await page.goto('/creator-apply#about', {
+    waitUntil: 'domcontentloaded',
+  })
+  expect(response?.status()).toBe(200)
+  await expect
+    .poll(() =>
+      page.locator('video').evaluate((video: HTMLVideoElement) => ({
+        ready: video.readyState >= 2,
+        source: new URL(video.currentSrc).pathname,
+      })),
+    )
+    .toEqual({
+      ready: true,
+      source: '/brand/creator/ilog-cinematic-mobile.mp4',
+    })
+  expect(videoRequests.length).toBeGreaterThan(0)
+  expect(
+    videoRequests.every((url) => url.includes('ilog-cinematic-mobile')),
+  ).toBe(true)
+})

@@ -7,6 +7,12 @@
   four accepted clips in traveler, silk, noir, dragon order. Each transition
   uses a 0.75-second dissolve, including dragon back to traveler. The circular
   edit is 21 seconds, 1280x720, 24 fps, silent H.264 with fast-start MP4.
+  The optimized desktop encode is 2,580,831 bytes (50% less than the initial
+  edit), with measured mean SSIM 0.982792 over all 504 frames against that edit.
+- `ilog-cinematic-mobile.mp4`: the same 21-second edit at 960x540 and 24 fps,
+  1,337,082 bytes. A media-qualified source selects it for screens up to 760px
+  wide, avoiding the larger desktop download. Playback pauses in hidden tabs
+  and resumes when visible, unless the visitor manually paused it.
 - `ilog-cinematic-poster.jpg`: the actual first frame of that circular edit,
   used while loading and for playback errors or reduced-motion preferences.
   Only one media surface is rendered at a time.
@@ -45,3 +51,7 @@ preview and the workspace's public/native video files. Do not reuse that clip.
 The moon and city concepts were also rejected and are excluded from the preview.
 Prompts and provenance for the current candidates are kept under
 `tmp/creator-video/v3` and `tmp/creator-video/v4`.
+
+Motion features are loaded asynchronously through `LazyMotion` and the minimal
+`framer-motion/m` components so the full animation runtime is excluded from
+the initial page bundle.
