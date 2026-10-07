@@ -1,25 +1,42 @@
 'use client'
 
-import { ArrowUpRight, Search, Sparkles, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Film,
+  Play,
+  Search,
+  Sparkles,
+  X,
+} from 'lucide-react'
 import Link from 'next/link'
 import React, { useMemo, useState, type ReactNode } from 'react'
 
-import type { CreatorDirectoryItem } from '@/src/services/user/get-featured-creators'
 import { UserBadges } from '@/src/components/user/UserTierLine'
+import type {
+  CreatorDirectoryItem,
+  CreatorWorkPreview,
+} from '@/src/services/user/get-featured-creators'
 
 type SortMode = 'featured' | 'followers' | 'works'
-
 const sortOptions: readonly { value: SortMode; label: string }[] = [
-  { value: 'featured', label: 'ALL CREATORS' },
-  { value: 'followers', label: 'MOST FOLLOWED' },
-  { value: 'works', label: 'MOST WORKS' },
+  { value: 'featured', label: '전체 작가' },
+  { value: 'followers', label: '팔로워순' },
+  { value: 'works', label: '공개 작품순' },
 ]
 
-function compactNumber(value: number): string {
-  return new Intl.NumberFormat('ko-KR', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value)
+function followerLabel(value: number | null): string {
+  return value === null
+    ? '비공개'
+    : new Intl.NumberFormat('ko-KR', {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(value)
+}
+
+function creatorBio(creator: CreatorDirectoryItem, fallback: string): string {
+  const bio = creator.bio?.trim()
+  return bio === undefined || bio.length === 0 ? fallback : bio
 }
 
 function CreatorPortrait({
@@ -27,159 +44,306 @@ function CreatorPortrait({
 }: {
   readonly creator: CreatorDirectoryItem
 }): ReactNode {
-  return creator.avatarUrl === null ? (
+  const [failed, setFailed] = useState(false)
+  return creator.avatarUrl === null || failed ? (
     <span className="creator-avatar-fallback" aria-hidden="true">
       {creator.displayName.trim().slice(0, 1).toUpperCase()}
     </span>
   ) : (
-    <img src={creator.avatarUrl} alt="" />
+    <img
+      src={creator.avatarUrl}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => {
+        setFailed(true)
+      }}
+    />
   )
 }
 
-function CreatorCard({
+function WorkPreview({
+  work,
+}: {
+  readonly work: CreatorWorkPreview
+}): ReactNode {
+  const [failed, setFailed] = useState(false)
+  const duration =
+    work.durationSec === null
+      ? null
+      : `${String(Math.floor(work.durationSec / 60))}:${String(work.durationSec % 60).padStart(2, '0')}`
+  return (
+    <Link
+      href={work.watchPath}
+      className="creator-work-preview"
+      aria-label={`${work.title} 재생`}
+    >
+      <div className="creator-work-image">
+        {work.posterUrl === null || failed ? (
+          <Film aria-hidden="true" />
+        ) : (
+          <img
+            src={work.posterUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => {
+              setFailed(true)
+            }}
+          />
+        )}
+        <span className="creator-work-play">
+          <Play aria-hidden="true" />
+        </span>
+        {duration === null ? null : (
+          <span className="creator-work-duration">{duration}</span>
+        )}
+      </div>
+      <strong>{work.title}</strong>
+      <span>
+        작품 감상하기 <ArrowUpRight aria-hidden="true" />
+      </span>
+    </Link>
+  )
+}
+
+function CreatorWorld({
   creator,
 }: {
   readonly creator: CreatorDirectoryItem
 }): ReactNode {
+  const profilePath = `/u/${encodeURIComponent(creator.handle)}`
   return (
-    <article className="creator-directory-card">
-      <Link href={`/u/${encodeURIComponent(creator.handle)}`}>
-        <div className="creator-card-portrait">
-          <CreatorPortrait creator={creator} />
-          <span className="creator-card-open" aria-hidden="true">
-            <ArrowUpRight />
-          </span>
-        </div>
-        <div className="creator-card-copy">
+    <article className="creator-world" id={`creator-${creator.handle}`}>
+      <div className="creator-world-identity">
+        <Link href={profilePath} className="creator-world-profile">
+          <div className="creator-world-avatar">
+            <CreatorPortrait creator={creator} />
+          </div>
           <div>
-            {/*
-              배지는 제목 밖에 둔다 — 제목의 접근성 이름은 사람 이름이어야
-              한다. (UserBadges 주석 참고)
-            */}
             <h3>{creator.displayName}</h3>
-            <UserBadges user={creator} />
             <span>@{creator.handle}</span>
           </div>
-          <p>
-            {creator.bio ?? '새로운 이야기를 만드는 ilog 크리에이터입니다.'}
-          </p>
-          <dl>
-            <div>
-              <dt>FOLLOWERS</dt>
-              <dd>{compactNumber(creator.followerCount)}</dd>
-            </div>
-            <div>
-              <dt>WORKS</dt>
-              <dd>{creator.seriesCount}</dd>
-            </div>
-          </dl>
-        </div>
-      </Link>
+        </Link>
+        <UserBadges user={creator} />
+        <p>
+          {creatorBio(creator, '작품으로 전하는 이 작가의 시선을 만나보세요.')}
+        </p>
+        <dl>
+          <div>
+            <dt>공개 작품</dt>
+            <dd>{creator.seriesCount}</dd>
+          </div>
+          <div>
+            <dt>팔로워</dt>
+            <dd>{followerLabel(creator.followerCount)}</dd>
+          </div>
+        </dl>
+        <Link href={profilePath} className="creator-profile-link">
+          작가 프로필 <ArrowUpRight aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="creator-world-works">
+        {(creator.works?.length ?? 0) > 0 ? (
+          creator.works?.map((work) => (
+            <WorkPreview key={work.id} work={work} />
+          ))
+        ) : (
+          <Link href={profilePath} className="creator-world-discover">
+            <Film aria-hidden="true" />
+            <strong>{creator.displayName}의 작품 세계</strong>
+            <span>
+              프로필에서 공개 작품 만나보기 <ArrowUpRight aria-hidden="true" />
+            </span>
+          </Link>
+        )}
+      </div>
     </article>
   )
 }
 
 function MonthlyCreatorCard({
   creator,
-  duplicate = false,
 }: {
   readonly creator: CreatorDirectoryItem
-  readonly duplicate?: boolean
 }): ReactNode {
   return (
-    <Link
-      href={`/u/${encodeURIComponent(creator.handle)}`}
-      className="creator-monthly-card"
-      tabIndex={duplicate ? -1 : undefined}
-      aria-hidden={duplicate ? true : undefined}
-    >
-      <div className="creator-monthly-portrait">
+    <article className="creator-monthly-card">
+      <Link
+        href={`/u/${encodeURIComponent(creator.handle)}`}
+        className="creator-monthly-portrait"
+        aria-label={`${creator.displayName} 프로필`}
+      >
         <CreatorPortrait creator={creator} />
-      </div>
+      </Link>
       <div className="creator-monthly-copy">
-        <span>
-          <Sparkles aria-hidden="true" /> ILOG CURATED
+        <span className="creator-monthly-tag">
+          <Sparkles aria-hidden="true" /> 이달의 새로운 이야기
         </span>
         <h3>{creator.displayName}</h3>
         <UserBadges user={creator} />
         <strong>@{creator.handle}</strong>
-        <p>{creator.bio ?? '새로운 이야기를 만드는 ilog 크리에이터입니다.'}</p>
+        <p>
+          {creatorBio(
+            creator,
+            '새로 공개한 작품에서 이 작가의 시선을 발견해 보세요.',
+          )}
+        </p>
         <dl>
           <div>
-            <dt>FOLLOWERS</dt>
-            <dd>{compactNumber(creator.followerCount)}</dd>
+            <dt>이달 공개 작품</dt>
+            <dd>{creator.monthlySeriesCount ?? 0}</dd>
           </div>
           <div>
-            <dt>WORKS</dt>
+            <dt>전체 공개 작품</dt>
             <dd>{creator.seriesCount}</dd>
           </div>
-          <div>
-            <dt>ACHIEVEMENT</dt>
-            <dd>EDITOR&apos;S PICK</dd>
-          </div>
         </dl>
+        <a
+          href={`#creator-${creator.handle}`}
+          className="creator-monthly-action"
+        >
+          작품 세계 만나기 <ArrowUpRight aria-hidden="true" />
+        </a>
       </div>
-      <span className="creator-monthly-open" aria-hidden="true">
-        <ArrowUpRight />
-      </span>
-    </Link>
+    </article>
   )
 }
 
 export function CreatorDirectory({
   initialCreators,
+  monthLabel = '이번 달',
 }: {
   readonly initialCreators: readonly CreatorDirectoryItem[]
+  readonly monthLabel?: string
 }): ReactNode {
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('featured')
-  const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR')
-  const creators = useMemo(() => {
-    const filtered = initialCreators.filter((creator) => {
-      if (normalizedQuery === '') return true
-      return `${creator.displayName} ${creator.handle} ${creator.bio ?? ''}`
-        .toLocaleLowerCase('ko-KR')
-        .includes(normalizedQuery)
-    })
-    if (sortMode === 'followers') {
-      return [...filtered].sort((a, b) => b.followerCount - a.followerCount)
-    }
-    if (sortMode === 'works') {
-      return [...filtered].sort((a, b) => b.seriesCount - a.seriesCount)
-    }
-    return filtered
-  }, [initialCreators, normalizedQuery, sortMode])
-  const monthlyCreators = useMemo(
-    () => initialCreators.slice(0, 5),
+  const normalizedQuery = query
+    .trim()
+    .replace(/^@/u, '')
+    .toLocaleLowerCase('ko-KR')
+  const uniqueCreators = useMemo(
+    () => [
+      ...new Map(
+        initialCreators.map((creator) => [creator.handle, creator]),
+      ).values(),
+    ],
     [initialCreators],
   )
-  const monthlyHandles = useMemo(
-    () => new Set(monthlyCreators.map((creator) => creator.handle)),
-    [monthlyCreators],
+  const creators = useMemo(() => {
+    const filtered = uniqueCreators.filter((creator) =>
+      `${creator.displayName} ${creator.handle} ${creator.bio ?? ''} ${creator.works?.map((work) => work.title).join(' ') ?? ''}`
+        .toLocaleLowerCase('ko-KR')
+        .includes(normalizedQuery),
+    )
+    if (sortMode === 'followers')
+      return [...filtered].sort(
+        (a, b) => (b.followerCount ?? -1) - (a.followerCount ?? -1),
+      )
+    if (sortMode === 'works')
+      return [...filtered].sort((a, b) => b.seriesCount - a.seriesCount)
+    return filtered
+  }, [uniqueCreators, normalizedQuery, sortMode])
+  const monthlyCreators = useMemo(
+    () =>
+      uniqueCreators
+        .filter((creator) => (creator.monthlySeriesCount ?? 0) > 0)
+        .sort(
+          (a, b) => (b.monthlySeriesCount ?? 0) - (a.monthlySeriesCount ?? 0),
+        )
+        .slice(0, 5),
+    [uniqueCreators],
   )
-  const visibleCreators =
-    normalizedQuery === ''
-      ? creators.filter((creator) => !monthlyHandles.has(creator.handle))
-      : creators
 
   return (
-    <main className="creator-directory">
+    <div className="creator-directory">
       <header className="creator-directory-hero">
         <div className="creator-directory-heading">
-          <span>CREATOR DIRECTORY</span>
-          <h1>작가</h1>
-          <p>이야기 뒤의 시선을 발견하고, 다음 작품을 먼저 만나보세요.</p>
+          <Link href="/browse" className="creator-home-link">
+            <ArrowLeft aria-hidden="true" /> 홈으로
+          </Link>
+          <span>PEOPLE BEHIND THE STORIES</span>
+          <h1>
+            작가의 시선,
+            <br />
+            새로운 작품의 시작.
+          </h1>
+          <p>
+            이야기를 만드는 사람을 만나고, 그들의 작품 세계로 들어가 보세요.
+          </p>
         </div>
+        <div className="creator-hero-note">
+          <span>{monthLabel}</span>
+          <strong>지금, 주목할 이야기.</strong>
+          <p>공개 작품과 함께 만나는 ilog 작가들</p>
+          <Link href="/creator-apply">
+            나도 크리에이터로 시작하기 <ArrowUpRight aria-hidden="true" />
+          </Link>
+        </div>
+      </header>
+      {normalizedQuery !== '' ? null : (
+        <section
+          className="creator-monthly"
+          aria-labelledby="creator-monthly-title"
+        >
+          <header>
+            <div>
+              <span className="creator-eyebrow">THIS MONTH · {monthLabel}</span>
+              <h2 id="creator-monthly-title">이달의 작가</h2>
+            </div>
+            <p>이번 달 새 작품을 공개한 작가들의 시선을 만나보세요.</p>
+          </header>
+          {monthlyCreators.length === 0 ? (
+            <div className="creator-monthly-awaiting">
+              <Sparkles aria-hidden="true" />
+              <div>
+                <strong>다음 이야기를 기다리고 있습니다.</strong>
+                <p>
+                  이번 달 새 작품이 공개되면 이곳에서 작가를 소개합니다.
+                  아래에서 공개 작품을 먼저 만나보세요.
+                </p>
+              </div>
+              <a href="#creator-worlds">
+                작품 세계 둘러보기 <ArrowUpRight aria-hidden="true" />
+              </a>
+            </div>
+          ) : (
+            <div className="creator-monthly-grid">
+              {monthlyCreators.map((creator) => (
+                <MonthlyCreatorCard key={creator.handle} creator={creator} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+      <section
+        className="creator-directory-list"
+        id="creator-worlds"
+        aria-labelledby="creator-worlds-title"
+      >
+        <header>
+          <div>
+            <span className="creator-eyebrow">INSIDE THEIR WORLDS</span>
+            <h2 id="creator-worlds-title">
+              {normalizedQuery === ''
+                ? '작가들의 작품 세계'
+                : '검색한 작가와 작품'}
+            </h2>
+            <p>작가의 개성과 이야기를 작품으로 만나보세요.</p>
+          </div>
+          <span aria-live="polite">{creators.length}명의 작가</span>
+        </header>
         <div className="creator-directory-tools">
           <label className="creator-directory-search">
             <Search aria-hidden="true" />
-            <span className="sr-only">작가 검색</span>
+            <span className="sr-only">작가와 작품 검색</span>
             <input
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value)
               }}
-              placeholder="이름 또는 @아이디 검색"
+              placeholder="이름, @아이디 또는 작품 검색"
             />
             {query === '' ? null : (
               <button
@@ -209,80 +373,40 @@ export function CreatorDirectory({
             ))}
           </nav>
         </div>
-      </header>
-
-      {normalizedQuery !== '' || monthlyCreators.length === 0 ? null : (
-        <section
-          className="creator-monthly"
-          aria-labelledby="creator-monthly-title"
-        >
-          <header>
-            <div>
-              <span>MONTHLY SELECTION</span>
-              <h2 id="creator-monthly-title">이달의 작가</h2>
-            </div>
-            <p>새로운 장면을 만드는 다섯 개의 시선을 만나보세요.</p>
-          </header>
-          <div className="creator-monthly-grid">
-            <div className="creator-monthly-track">
-              {[false, true].map((duplicate) => (
-                <div
-                  className="creator-monthly-group"
-                  aria-hidden={duplicate ? true : undefined}
-                  key={duplicate ? 'copy' : 'original'}
-                >
-                  {monthlyCreators.map((creator) => (
-                    <MonthlyCreatorCard
-                      creator={creator}
-                      duplicate={duplicate}
-                      key={creator.handle}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="creator-directory-list" aria-live="polite">
-        <header>
-          <div>
-            <span className="creator-section-mark" aria-hidden="true">
-              CR
-            </span>
-            <div>
-              <h2>
-                {normalizedQuery === '' ? 'EXPLORE CREATORS' : 'SEARCH RESULTS'}
-              </h2>
-              <p>프로필을 선택하면 작품과 작가의 이야기를 볼 수 있습니다.</p>
-            </div>
-          </div>
-          <span>{visibleCreators.length} CREATORS</span>
-        </header>
-
-        {visibleCreators.length === 0 ? (
+        {creators.length === 0 ? (
           <div className="creator-directory-empty">
             <Search aria-hidden="true" />
-            <h3>일치하는 작가가 없습니다.</h3>
-            <p>이름이나 아이디를 다르게 입력해 보세요.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setQuery('')
-              }}
-            >
-              전체 작가 보기
-            </button>
+            <h3>
+              {normalizedQuery === ''
+                ? '첫 번째 작품 세계를 기다립니다.'
+                : '검색 결과가 없습니다.'}
+            </h3>
+            <p>
+              {normalizedQuery === ''
+                ? '작품을 공개하고 당신만의 시선을 소개해 보세요.'
+                : '다른 작가 이름이나 작품 제목으로 찾아보세요.'}
+            </p>
+            {normalizedQuery === '' ? (
+              <Link href="/creator-apply">크리에이터로 시작하기</Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('')
+                }}
+              >
+                전체 작가 보기
+              </button>
+            )}
           </div>
         ) : (
           <div className="creator-directory-grid">
-            {visibleCreators.map((creator) => (
-              <CreatorCard creator={creator} key={creator.handle} />
+            {creators.map((creator) => (
+              <CreatorWorld key={creator.handle} creator={creator} />
             ))}
           </div>
         )}
       </section>
-    </main>
+    </div>
   )
 }

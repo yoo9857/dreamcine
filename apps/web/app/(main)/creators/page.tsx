@@ -11,14 +11,16 @@ import { absoluteUrlOrNull } from '@/src/lib/site-url'
 const CANONICAL = absoluteUrlOrNull('/creators')
 
 export const metadata: Metadata = {
-  title: '크리에이터',
-  description: 'ilog에서 AI 드라마를 만드는 크리에이터를 만나보세요.',
+  title: '이달의 작가와 작품 세계',
+  description:
+    '이달 새 작품을 공개한 ilog 작가를 만나고, 작가별 공개 작품을 감상하세요.',
   ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
   robots: { index: true, follow: true },
   openGraph: {
     type: 'website',
-    title: '크리에이터 · ilog',
-    description: 'ilog에서 AI 드라마를 만드는 크리에이터를 만나보세요.',
+    title: '이달의 작가와 작품 세계 · ilog',
+    description:
+      '이달 새 작품을 공개한 ilog 작가를 만나고, 작가별 공개 작품을 감상하세요.',
     siteName: 'ilog',
     ...(CANONICAL === null ? {} : { url: CANONICAL }),
   },
@@ -28,9 +30,11 @@ import {
   HIGGSFIELD_BIO,
   HIGGSFIELD_CREATOR,
   HIGGSFIELD_FILMS,
+  higgsfieldWatchPath,
 } from '@/src/content/higgsfield'
 import {
   getFeaturedCreators,
+  creatorMonth,
   type CreatorDirectoryItem,
 } from '@/src/services/user/get-featured-creators'
 
@@ -58,6 +62,7 @@ const developmentCreators: readonly CreatorDirectoryItem[] = [
     isVerified: true,
     followerCount: 12840,
     seriesCount: 5,
+    monthlySeriesCount: 1,
   },
   {
     handle: 'sora.archive',
@@ -68,6 +73,7 @@ const developmentCreators: readonly CreatorDirectoryItem[] = [
     isVerified: true,
     followerCount: 9220,
     seriesCount: 8,
+    monthlySeriesCount: 2,
   },
   {
     handle: 'minseo.film',
@@ -121,24 +127,35 @@ function withHiggsfield(
     {
       ...HIGGSFIELD_CREATOR,
       bio: HIGGSFIELD_BIO,
-      followerCount: 0,
       seriesCount: HIGGSFIELD_FILMS.length,
+      followerCount: null,
+      monthlySeriesCount: 0,
+      works: HIGGSFIELD_FILMS.map((film) => ({
+        id: film.slug,
+        title: film.title,
+        posterUrl: film.poster,
+        watchPath: higgsfieldWatchPath(film.slug),
+        durationSec: film.durationSec,
+      })),
     },
   ]
 }
 
-async function loadCreators(): Promise<readonly CreatorDirectoryItem[]> {
+async function loadCreators(
+  month: ReturnType<typeof creatorMonth>,
+): Promise<readonly CreatorDirectoryItem[]> {
   const creators =
     process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
       ? developmentCreators
-      : await getFeaturedCreators(24)
+      : await getFeaturedCreators(100, month)
   return withHiggsfield(creators)
 }
 
 export default async function CreatorsPage(): Promise<ReactNode> {
+  const month = creatorMonth()
   const [session, creators] = await Promise.all([
     getServerSession(),
-    loadCreators(),
+    loadCreators(month),
   ])
   const headerUser =
     session?.user ??
@@ -149,7 +166,7 @@ export default async function CreatorsPage(): Promise<ReactNode> {
   return (
     <div className="creators-page" id="discovery-top">
       <DiscoveryTopbar user={headerUser} />
-      <CreatorDirectory initialCreators={creators} />
+      <CreatorDirectory initialCreators={creators} monthLabel={month.label} />
       <DiscoveryFooter handle={headerUser?.handle ?? 'ilog'} />
     </div>
   )

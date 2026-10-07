@@ -254,6 +254,105 @@ export function listFeaturedCreators(limit: number): Promise<readonly User[]> {
   })
 }
 
+/** Directory counts and previews only include playable, public works. */
+export function listCreatorDirectory(options: {
+  readonly limit: number
+  readonly monthStart: Date
+  readonly monthEnd: Date
+}) {
+  return executeDb(async () => {
+    const publicEpisode = {
+      status: 'PUBLISHED' as const,
+      visibility: 'PUBLIC' as const,
+      deletedAt: null,
+      asset: { status: 'READY' as const },
+    }
+    const publicSeries = {
+      deletedAt: null,
+      episodes: { some: publicEpisode },
+    }
+    const rows = await db.user.findMany({
+      where: {
+        deletedAt: null,
+        status: 'ACTIVE',
+        profileVisibility: 'PUBLIC',
+        series: { some: publicSeries },
+      },
+      orderBy: [
+        { followerCount: 'desc' },
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
+      take: options.limit,
+      include: {
+        _count: { select: { series: { where: publicSeries } } },
+        series: {
+          where: publicSeries,
+          orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+          take: 3,
+          select: {
+            id: true,
+            title: true,
+            posterKey: true,
+            episodes: {
+              where: publicEpisode,
+              orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+              take: 1,
+              select: {
+                id: true,
+                title: true,
+                thumbKey: true,
+                publishedAt: true,
+                asset: { select: { posterKey: true, durationSec: true } },
+              },
+            },
+          },
+        },
+      },
+    })
+    const monthly = await db.series.groupBy({
+      by: ['ownerId'],
+      where: {
+        ownerId: { in: rows.map((row) => row.id) },
+        deletedAt: null,
+        episodes: {
+          some: {
+            ...publicEpisode,
+            publishedAt: { gte: options.monthStart, lt: options.monthEnd },
+          },
+        },
+      },
+      _count: { _all: true },
+    })
+    const monthlyCounts = new Map(
+      monthly.map((row) => [row.ownerId, row._count._all]),
+    )
+    return rows.map((row) => ({
+      user: mapUser(row),
+      publicSeriesCount: row._count.series,
+      monthlySeriesCount: monthlyCounts.get(row.id) ?? 0,
+      works: row.series.flatMap((series) => {
+        const episode = series.episodes[0]
+        return episode === undefined
+          ? []
+          : [
+              {
+                id: series.id,
+                title: series.title,
+                episodeId: episode.id,
+                posterKey:
+                  series.posterKey ??
+                  episode.thumbKey ??
+                  episode.asset?.posterKey ??
+                  null,
+                durationSec: episode.asset?.durationSec ?? null,
+              },
+            ]
+      }),
+    }))
+  })
+}
+
 export function listUsersForAdmin(options: {
   limit: number
   cursor?: string

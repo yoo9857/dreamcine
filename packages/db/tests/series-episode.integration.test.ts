@@ -103,6 +103,63 @@ function expectCode(error: unknown, code: AppError['code']): void {
 }
 
 describe('T08 series/episode repositories', () => {
+  it('counts only public playable works in the creator directory and respects Seoul month boundaries', async () => {
+    const fixtureData = await fixture('directory')
+    const monthStart = new Date('2026-09-30T15:00:00Z')
+    const monthEnd = new Date('2026-10-31T15:00:00Z')
+    for (const [index, visibility, status, assetStatus, publishedAt] of [
+      [1, 'PUBLIC', 'PUBLISHED', 'READY', monthStart],
+      [2, 'PUBLIC', 'PUBLISHED', 'READY', new Date('2026-09-30T14:59:59Z')],
+      [3, 'PRIVATE', 'PUBLISHED', 'READY', monthStart],
+      [4, 'UNLISTED', 'PUBLISHED', 'READY', monthStart],
+      [5, 'PUBLIC', 'DRAFT', 'READY', monthStart],
+      [6, 'PUBLIC', 'PUBLISHED', 'PENDING', monthStart],
+    ] as const) {
+      const series = await database.series.create({
+        data: {
+          ownerId: fixtureData.ownerId,
+          slug: `directory-${String(index)}`,
+          title: `Work ${String(index)}`,
+        },
+      })
+      const asset = await database.videoAsset.create({
+        data: {
+          originalKey: `directory/${String(index)}.mp4`,
+          status: assetStatus,
+        },
+      })
+      await database.episode.create({
+        data: {
+          seriesId: series.id,
+          assetId: asset.id,
+          number: 1,
+          title: 'Episode',
+          visibility,
+          status,
+          publishedAt,
+        },
+      })
+    }
+    const options = { limit: 100, monthStart, monthEnd }
+    const directory = await repo.listCreatorDirectory(options)
+    expect(directory).toHaveLength(1)
+    expect(directory[0]).toMatchObject({
+      publicSeriesCount: 2,
+      monthlySeriesCount: 1,
+    })
+    expect(directory[0]?.works).toHaveLength(2)
+    await database.user.update({
+      where: { id: fixtureData.ownerId },
+      data: { profileVisibility: 'PRIVATE' },
+    })
+    expect(await repo.listCreatorDirectory(options)).toHaveLength(0)
+    await database.user.update({
+      where: { id: fixtureData.ownerId },
+      data: { profileVisibility: 'PUBLIC', status: 'SUSPENDED' },
+    })
+    expect(await repo.listCreatorDirectory(options)).toHaveLength(0)
+  })
+
   it('기본 시즌을 만들고 태그와 함께 DRAFT 에피소드를 생성한다', async () => {
     const data = await fixture('create')
     const episode = await repo.createEpisodeWithTags({
