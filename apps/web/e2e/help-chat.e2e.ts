@@ -12,6 +12,23 @@ for (const viewport of [
     await page.setViewportSize(viewport)
     const response = await page.goto('/creator-apply')
     expect(response?.status()).toBe(200)
+    await page
+      .getByRole('navigation', { name: '크리에이터 모집 페이지' })
+      .getByRole('link', { name: '지원서 신청' })
+      .click()
+    const next = page.getByRole('button', { name: /^다음 단계/ })
+    await expect
+      .poll(() =>
+        next.evaluate((button) => {
+          const box = button.getBoundingClientRect()
+          return (
+            document
+              .elementFromPoint(box.right - 8, box.y + box.height / 2)
+              ?.closest('button') === button
+          )
+        }),
+      )
+      .toBe(true)
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.getByRole('button', { name: '고객 상담', exact: true }).click()
     const panel = page.getByRole('dialog', { name: '고객 상담' })
