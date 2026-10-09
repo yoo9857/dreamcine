@@ -15,3 +15,5 @@
 O01 개발 Fast lane 적용. 관련 단위·회귀 검사, 저장소 lint/typecheck/depcruise/format 및 계약 검사 실행. 실제 브라우저에서 모바일 폭 320·390px, 드래그·자동 전환·감소된 모션·WebGL 실패 시 검색 동작 검증. 전체 DB 통합/E2E/Lighthouse 게이트를 통과한 것으로 표현하지 않는다.
 
 GitHub 이미지 빌드 후 운영은 웹만 배포(`deploy_worker=false`). 직전 웹 이미지 SHA는 `867c36e761831f47056a903252e36b6886913a81`. 운영 readiness·대상 화면·태그 이미지·콘솔·컨테이너 health를 확인한다. 실패하면 직전 웹 SHA로 롤백한다.
+
+배포 완료: 앱 `985b34a4d5b5d98ca3d4d11bc909c4c66b6382c4`, [배포 실행](https://github.com/yoo9857/dreamcine/actions/runs/37617004928) 성공. 운영 웹 healthy, readiness 전체 정상, 실제 작가 3명/태그 24종/검색/프로필 태그/320·390px 화면 검증 통과, 페이지·서버 오류 0건. 관련 회귀 테스트 59개 통과. 벡터 태그 24종의 전체 이미지 전송량은 약 113KB이다. [새 환경 인수인계](../HANDOFF_2026-10-07_CREATOR_UI.md)에 설치·실행·다음 달 태그·검증·배포 방법을 정리했다.

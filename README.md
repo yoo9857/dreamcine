@@ -49,18 +49,21 @@ CODEX 세션을 시작할 때 **아래 프롬프트를 그대로 붙여넣는다
 
 ## 개발 시작
 
+최신 크리에이터·검색 UI를 다른 환경에서 이어서 작업하려면
+[2026-10-07 인수인계](docs/HANDOFF_2026-10-07_CREATOR_UI.md)의 검증된 설치·실행 명령과 운영 배포 상태를 먼저 확인한다.
+
 ```bash
-pnpm install
-cp .env.example .env.local     # 값 채우기 → docs/00_SPEC/03_TECH_STACK.md 참조
-docker compose up -d           # postgres, redis, minio
-pnpm db:migrate
-pnpm dev
+corepack pnpm install --frozen-lockfile
+corepack pnpm exec prisma generate --schema prisma/schema.prisma
+# apps/web/.env.local 설정은 위 인수인계 문서를 따른다.
+corepack pnpm --filter @aidream/web exec node scripts/copy-maplibre-worker.mjs
+corepack pnpm --filter @aidream/web exec next dev --port 3001
 ```
 
 ## 게이트 명령 (하네스의 핵심)
 
 ```bash
-pnpm gate        # lint + typecheck + test + build — 전부 통과해야 커밋 가능
-pnpm gate:s2     # Skeleton 단계 게이트 (typecheck + lint 만)
-pnpm gate:s3     # Stub/구현 단계 게이트 (전체 + 계약 테스트)
+corepack pnpm gate        # 정적 검사 + 계약 검사 + 단위·통합/E2E 검사
+corepack pnpm gate:s2     # 정적 검사
+corepack pnpm gate:s3     # 전체 게이트
 ```
