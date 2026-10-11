@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Suspense, type ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 
 import type { FeedItem } from '@aidream/core'
 
@@ -87,21 +87,6 @@ const developmentBrowseItems: readonly FeedItem[] = [
     aspectRatio: 9 / 16,
   })),
 ]
-
-function DiscoveryFallback(): ReactNode {
-  return (
-    <div className="discovery-loading" aria-label="인기 에피소드 불러오는 중">
-      <div className="discovery-hero-placeholder">
-        <span>AIDREAM ORIGINALS</span>
-        <h1>
-          취향이 열리는 순간,
-          <br />
-          ilog.
-        </h1>
-      </div>
-    </div>
-  )
-}
 
 function DiscoveryTabs(): ReactNode {
   return (
@@ -205,17 +190,18 @@ async function PopularDiscovery({
   )
 }
 
-export function AuthenticatedDiscoveryHome({
+export async function AuthenticatedDiscoveryHome({
   session,
 }: {
   readonly session: RouteSession
-}): ReactNode {
+}): Promise<ReactNode> {
+  // Keep the route's single loading boundary until the first home view is ready.
+  // Streaming another fallback here flashes a promotional hero before the feed.
+  const content = await PopularDiscovery({ session })
   return (
     <div className="discovery-home" id="discovery-top">
       <DiscoveryTopbar user={session.user} />
-      <Suspense fallback={<DiscoveryFallback />}>
-        <PopularDiscovery session={session} />
-      </Suspense>
+      {content}
       <DiscoveryCreatorCta />
       <DiscoveryFooter handle={session.user.handle} />
     </div>

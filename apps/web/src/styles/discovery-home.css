@@ -1700,34 +1700,6 @@
   align-self: center;
 }
 
-.discovery-loading {
-  display: grid;
-  gap: 26px;
-}
-.discovery-hero-placeholder {
-  min-height: 510px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 50px;
-  border-radius: 23px;
-  color: white;
-  background:
-    radial-gradient(circle at 75% 30%, rgb(255 30 30 / 34%), transparent 28%),
-    linear-gradient(135deg, #152534, #08131a);
-}
-.discovery-hero-placeholder span {
-  color: var(--discovery-lime);
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: 0.13em;
-}
-.discovery-hero-placeholder h1 {
-  margin: 18px 0 0;
-  font-size: clamp(50px, 5vw, 76px);
-  line-height: 1.07;
-  letter-spacing: -0.07em;
-}
 .discovery-empty-hero {
   min-height: 650px;
   display: grid;
