@@ -9,12 +9,13 @@ export function LeftBrandLogo({
   return (
     <>
       <Image
-        src="/brand/leftlogo.png"
+        src="/brand/leftlogo-display.webp"
         alt=""
         width={180}
         height={60}
         sizes="(max-width: 767px) 128px, 160px"
         priority={priority}
+        unoptimized
         className="brand-left-logo"
       />
       <span className="sr-only">ilog</span>

@@ -18,6 +18,17 @@ for (const width of [320, 390, 768, 1440]) {
     ]) {
       const response = await page.goto(`/works?${query}`)
       expect(response?.status()).toBe(200)
+      await expect
+        .poll(() =>
+          page
+            .locator('.brand-left-logo:visible')
+            .first()
+            .evaluate(
+              (image: HTMLImageElement) =>
+                image.complete && image.naturalWidth > 0,
+            ),
+        )
+        .toBe(true)
       await expect(
         page.getByRole('heading', { level: 1, name: '작품' }),
       ).toBeVisible()
