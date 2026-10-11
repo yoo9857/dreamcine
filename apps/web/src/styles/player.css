@@ -11,10 +11,14 @@
 }
 
 .ilog-player-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  max-height: none;
   display: block;
   object-fit: contain;
+  object-position: center;
   background: #010304;
   cursor: pointer;
 }
@@ -486,8 +490,7 @@
   background: #000;
 }
 
-/* 페이지가 감싸는 틀의 제한(예: watch 의 max-height 484px)이 전체 화면까지
-   따라오면 영상이 위쪽 일부에만 그려진다. 전체 화면에서는 틀을 무시한다. */
+/* Fullscreen must remain independent of any page-level media constraints. */
 .ilog-player:fullscreen .ilog-player-video {
   max-width: none;
   max-height: none;

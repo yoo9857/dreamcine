@@ -14,12 +14,12 @@
 .watch-primary {
   min-width: 0;
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 .watch-player-shell {
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 20px;
+  border-radius: 12px;
   background: #020608;
   box-shadow:
     0 28px 80px rgb(0 0 0 / 32%),
@@ -28,55 +28,73 @@
 .watch-player-shell > div {
   border-radius: 0;
 }
-.watch-player-shell video {
-  max-height: 484px;
-}
 .watch-now-playing {
-  padding: 24px 26px 25px;
-  border: 1px solid rgb(255 255 255 / 8%);
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgb(17 30 37 / 82%), rgb(8 20 26 / 78%));
+  min-width: 0;
+  padding: 4px 0 18px;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
 }
-.watch-now-kicker {
+.watch-title-line {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #788790;
-  font-size: 8px;
-  font-weight: 850;
-  letter-spacing: 0.1em;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin-bottom: 14px;
 }
-.watch-now-kicker span {
-  color: #ff5363;
+.watch-production-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #a7b4bd;
+  font-size: 12px;
+  line-height: 1.6;
 }
-.watch-now-kicker i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ff3448;
+.watch-production-details li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.watch-production-details li::before {
+  content: '|';
+  color: #48575f;
+}
+.watch-production-details time {
+  font-variant-numeric: tabular-nums;
 }
 .watch-now-playing h1 {
-  margin: 10px 0 18px;
-  font-size: clamp(28px, 2.7vw, 40px);
-  line-height: 1.12;
-  letter-spacing: -0.055em;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #f4f7f8;
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
 }
 .watch-meta-line {
   display: flex;
   align-items: center;
-  gap: 18px;
-  min-height: 44px;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  min-height: 36px;
 }
 .watch-creator {
   display: flex;
   align-items: center;
-  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  gap: 8px;
   color: white;
 }
 .watch-creator > img,
 .watch-creator > span {
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -87,16 +105,17 @@
   font-weight: 900;
 }
 .watch-creator div {
+  min-width: 0;
   display: grid;
   gap: 2px;
 }
 .watch-creator strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 .watch-creator small,
 .watch-meta-line > p {
-  color: #71808a;
-  font-size: 8px;
+  color: #94a4ae;
+  font-size: 11px;
 }
 .watch-meta-line > p {
   display: flex;
@@ -119,16 +138,29 @@
 .watch-actions button {
   min-height: 36px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .watch-synopsis {
   max-width: 760px;
-  margin: 20px 0 0;
-  padding-top: 17px;
-  border-top: 1px solid rgb(255 255 255 / 7%);
+  margin: 12px 0 0;
   color: #a4b0b7;
   font-size: 12px;
   line-height: 1.75;
+}
+.watch-series-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  color: #94a4ae;
+  font-size: 11px;
+}
+.watch-series-context:hover {
+  color: white;
+}
+.watch-series-context svg {
+  width: 12px;
+  height: 12px;
 }
 .watch-credit,
 .watch-source {
@@ -676,13 +708,29 @@
   .watch-long-grid {
     grid-template-columns: 1fr;
   }
-  .watch-now-playing h1 {
-    font-size: 28px;
-  }
-  .watch-now-playing,
   .watch-comments,
   .watch-long-section {
     padding: 20px;
+  }
+  .watch-title-line {
+    gap: 6px 10px;
+    margin-bottom: 12px;
+  }
+  .watch-title-line h1 {
+    width: 100%;
+  }
+  .watch-production-details {
+    font-size: 11px;
+    gap: 5px 10px;
+  }
+  .watch-production-details li {
+    gap: 10px;
+  }
+  .watch-production-details li:first-child::before {
+    display: none;
+  }
+  .watch-actions button {
+    min-height: 40px;
   }
   .watch-recommendation-empty {
     grid-template-columns: auto 1fr;

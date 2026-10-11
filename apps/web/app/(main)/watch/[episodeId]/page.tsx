@@ -2,6 +2,7 @@ import { AppError, isShortFormWork, type FeedItem } from '@aidream/core'
 import {
   findEpisodeById,
   findEpisodeMetaView,
+  findEpisodeProductionInfo,
   findPlaybackEpisode,
   getEpisodeSocialState,
 } from '@aidream/db'
@@ -151,6 +152,10 @@ function PreviewWatchPage(): ReactNode {
         }}
         viewCount="12840"
         publishedAt="2026. 08. 26"
+        year={2026}
+        genre="SF · 드라마"
+        durationSec={1482}
+        directors={['한빈']}
         actions={
           <>
             <button type="button">♡ 926</button>
@@ -219,7 +224,7 @@ export default async function WatchPage(
       cookieHeader: requestHeaders.get('cookie'),
       now: new Date(),
     })
-    const [comments, social, episode, recommendations, metaView] =
+    const [comments, social, episode, recommendations, metaView, production] =
       await Promise.all([
         listComments(episodeId, { limit: 20 }),
         getEpisodeSocialState(episodeId, session?.userId),
@@ -227,6 +232,7 @@ export default async function WatchPage(
         getFeed({ type: 'latest', limit: 18 }, session),
         // 구조화 데이터 실패가 재생을 막지 않는다.
         findEpisodeMetaView(episodeId).catch(() => null),
+        findEpisodeProductionInfo(episodeId).catch(() => null),
       ])
     if (episode === null) notFound()
     const seriesDetail = await getSeries(episode.seriesId)
@@ -296,6 +302,14 @@ export default async function WatchPage(
           creator={creator}
           viewCount={episode.viewCount}
           publishedAt={publishedAt}
+          year={
+            (episode.recordedAt ?? episode.publishedAt)?.getUTCFullYear() ??
+            null
+          }
+          genre={production?.genre ?? null}
+          durationSec={playback.durationSec}
+          directors={production?.directors ?? []}
+          seriesHref={`/series/${episode.seriesId}`}
           actions={
             session === null ? null : (
               <>

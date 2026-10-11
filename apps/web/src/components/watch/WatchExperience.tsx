@@ -15,7 +15,7 @@ import {
   Volume2,
 } from 'lucide-react'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 import { UserTierLine } from '@/src/components/user/UserTierLine'
 
 function duration(value: number | null): string {
@@ -202,6 +202,11 @@ export function WatchExperience({
   credit = null,
   sourceUrl = null,
   longCaption = null,
+  year = null,
+  genre = null,
+  durationSec = null,
+  directors = [],
+  seriesHref = null,
 }: {
   readonly player: ReactNode
   readonly title: string
@@ -217,18 +222,35 @@ export function WatchExperience({
   readonly credit?: string | null
   readonly sourceUrl?: string | null
   readonly longCaption?: ((item: FeedItem) => string | null) | null
+  readonly year?: number | null
+  readonly genre?: string | null
+  readonly durationSec?: number | null
+  readonly directors?: readonly string[]
+  readonly seriesHref?: string | null
 }): ReactNode {
   return (
-    <main className="watch-experience">
+    <div className="watch-experience">
       <div className="watch-stage-grid">
         <div className="watch-primary">
           <div className="watch-player-shell">{player}</div>
           <section className="watch-now-playing">
-            <div className="watch-now-kicker">
-              <span>NOW PLAYING</span>
-              <i /> {seriesTitle}
+            <div className="watch-title-line">
+              <h1>{title}</h1>
+              <ul className="watch-production-details" aria-label="작품 정보">
+                {year === null ? null : <li>{year}</li>}
+                {genre === null ? null : <li>{genre}</li>}
+                {durationSec === null ? null : (
+                  <li>
+                    <time dateTime={`PT${String(durationSec)}S`}>
+                      {duration(durationSec).padStart(5, '0')}
+                    </time>
+                  </li>
+                )}
+                {directors.length === 0 ? null : (
+                  <li>Director {directors.join(', ')}</li>
+                )}
+              </ul>
             </div>
-            <h1>{title}</h1>
             <div className="watch-meta-line">
               <Link
                 href={`/u/${encodeURIComponent(creator.handle)}`}
@@ -242,7 +264,7 @@ export function WatchExperience({
                 <div>
                   <strong>
                     {/* 바깥이 이미 프로필 링크다 — 중첩 링크를 만들지 않는다. */}
-                    <UserTierLine user={creator} link={false} />
+                    <UserTierLine user={creator} link={false} compact />
                   </strong>
                   <small>@{creator.handle}</small>
                 </div>
@@ -259,8 +281,15 @@ export function WatchExperience({
                     : `${viewCount === null ? '' : ' · '}${publishedAt}`}
                 </p>
               )}
-              <div className="watch-actions">{actions}</div>
+              {actions == null ? null : (
+                <div className="watch-actions">{actions}</div>
+              )}
             </div>
+            {seriesTitle === title || seriesHref === null ? null : (
+              <Link href={seriesHref} className="watch-series-context">
+                {seriesTitle} <ArrowUpRight aria-hidden="true" />
+              </Link>
+            )}
             {description === null ? null : (
               <p className="watch-synopsis">{description}</p>
             )}
@@ -350,6 +379,6 @@ export function WatchExperience({
           )}
         </div>
       </section>
-    </main>
+    </div>
   )
 }

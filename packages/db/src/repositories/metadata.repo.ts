@@ -15,6 +15,41 @@ export interface SitemapEntry {
   readonly lastModified: Date
 }
 
+/** Playback has already checked visibility before requesting production credits. */
+export function findEpisodeProductionInfo(episodeId: string): Promise<{
+  readonly genre: string | null
+  readonly directors: readonly string[]
+} | null> {
+  return executeDb(async () => {
+    const directors = {
+      where: { role: 'DIRECTOR' as const },
+      orderBy: { order: 'asc' as const },
+      select: { name: true },
+    }
+    const row = await db.episode.findFirst({
+      where: { id: episodeId, deletedAt: null },
+      select: {
+        category: { select: { nameKo: true } },
+        credits: directors,
+        series: {
+          select: {
+            category: { select: { nameKo: true } },
+            credits: directors,
+          },
+        },
+      },
+    })
+    if (row === null) return null
+    const credits = row.credits.length > 0 ? row.credits : row.series.credits
+    return {
+      genre: row.category?.nameKo ?? row.series.category?.nameKo ?? null,
+      directors: [
+        ...new Set(credits.map((credit) => credit.name.trim()).filter(Boolean)),
+      ],
+    }
+  })
+}
+
 /**
  * `watch/[episodeId]` 의 `generateMetadata` 와 JSON-LD 가 쓰는 단일 조회.
  *

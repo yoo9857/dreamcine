@@ -15,3 +15,5 @@
 로컬 개발 서버 검사에만 React Refresh용 Playwright `bypassCSP`를 사용하며 앱의 CSP는 변경하지 않는다. 운영 스모크는 이 옵션을 끄고 실제 CSP 및 실제 API로 다시 검증한다. 전체 DB 통합/E2E/Lighthouse 게이트 통과를 의미하지 않는다. O01 개발 Fast lane 적용.
 
 배포 전 readiness의 db·redis·storage·queue·mail 정상, 웹·워커·스케줄러 healthy 확인. 직전 앱 SHA: `985b34a4d5b5d98ca3d4d11bc909c4c66b6382c4`.
+
+운영 배포 완료: `af9176f1d2dcd65c03d915d9567e4bb0a8c1e406`. 이미지 빌드 run `38148933844`, 웹 배포 run `38149499750` 성공. 배포 후 실제 API 및 검색 인터랙션·반응형 Playwright 8개 통과. readiness 전체 정상, 웹 healthy 확인.

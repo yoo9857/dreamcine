@@ -71,6 +71,7 @@ export default async function HiggsfieldWatchPage({
         creator={HIGGSFIELD_CREATOR}
         viewCount={null}
         publishedAt={null}
+        durationSec={film.durationSec}
         actions={null}
         credit={film.credit}
         sourceUrl={film.sourceUrl}
