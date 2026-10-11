@@ -38,7 +38,7 @@ test('live watch playback stays aligned in normal and fullscreen modes', async (
   )
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  for (const width of [390, 1440]) {
+  for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.goto('/watch/cmtl395df0013oa012exnoupq')
     const video = page.locator('.ilog-player-video')

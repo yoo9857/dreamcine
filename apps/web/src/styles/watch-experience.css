@@ -669,7 +669,7 @@
     grid-template-columns: 280px 1fr;
   }
   .watch-short-list > div {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
   }
   .watch-short-card {
     grid-template-columns: 64px 1fr;
