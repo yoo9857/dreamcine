@@ -257,6 +257,7 @@
   gap: 8px;
 }
 
+.aidream-app-shell:has(.search-page) .aidream-session-actions,
 .aidream-app-shell:has(.is-works-gallery) .aidream-session-actions,
 .aidream-app-shell:has(.is-creators-gallery) .aidream-session-actions,
 .aidream-app-shell:has(.is-profile-showcase) .aidream-session-actions,

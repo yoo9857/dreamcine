@@ -9,9 +9,15 @@ import React from 'react'
 export function GuestSessionActions() {
   const pathname = usePathname()
   const hasTopbar =
-    ['/browse', '/works', '/creators', '/messages', '/notices', '/events'].some(
-      (route) => pathname === route || pathname.startsWith(`${route}/`),
-    ) ||
+    [
+      '/browse',
+      '/search',
+      '/works',
+      '/creators',
+      '/messages',
+      '/notices',
+      '/events',
+    ].some((route) => pathname === route || pathname.startsWith(`${route}/`)) ||
     ['/u/', '/series/', '/watch/'].some((route) => pathname.startsWith(route))
 
   if (hasTopbar) return null

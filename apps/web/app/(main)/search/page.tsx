@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
 
 import { SearchResults } from '@/src/components/feed/SearchResults'
+import { getServerSession } from '@/src/auth/server-session'
+import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
 import type { Metadata } from 'next'
 
 import { absoluteUrlOrNull } from '@/src/lib/site-url'
+import '@/src/styles/search.css'
 
 const CANONICAL = absoluteUrlOrNull('/search')
 
@@ -21,16 +24,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  readonly searchParams: Promise<{ q?: string }>
-}): Promise<ReactNode> {
-  const params = await searchParams
+export default async function SearchPage(): Promise<ReactNode> {
+  const session = await getServerSession()
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-fg">검색</h1>
-      <SearchResults initialQuery={params.q ?? ''} />
+    <div className="discovery-home search-page" id="discovery-top">
+      <SearchResults user={session?.user ?? null} />
+      <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
     </div>
   )
 }

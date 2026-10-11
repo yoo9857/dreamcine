@@ -9,7 +9,8 @@ export function RouteTransition({
   readonly children: ReactNode
 }): ReactNode {
   const pathname = usePathname()
-  const isDiscoveryHome = pathname === '/' || pathname === '/browse'
+  const isDiscoveryHome =
+    pathname === '/' || pathname === '/browse' || pathname === '/search'
   const isBrowseHome = pathname === '/browse'
   // 작가·작품 페이지는 같은 어두운 셸(상단 바 + 레일)을 쓴다.
   const isProfileShowcase =

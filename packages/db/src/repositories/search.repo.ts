@@ -200,7 +200,8 @@ export function searchCatalog(
         SELECT s.id, s.title, s.slug, s.poster_key AS "posterKey",
           s.owner_id AS "creatorId", creator.handle AS "creatorHandle",
           creator.display_name AS "creatorDisplayName",
-          creator.avatar_key AS "creatorAvatarKey",
+          creator.avatar_key AS "creatorAvatarKey", creator.tier AS "creatorTier",
+          creator.verified_at AS "creatorVerifiedAt",
           similarity(s.title, ${query}) AS "searchScore"
         FROM series s
         INNER JOIN "user" creator ON creator.id = s.owner_id

@@ -1,5 +1,5 @@
 import { Skeleton } from '@aidream/ui'
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 
 export function FeedSkeleton({
   count = 8,
