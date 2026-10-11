@@ -1,7 +1,14 @@
 'use client'
 
 import { SearchResultSchema, type SearchResult } from '@aidream/core'
-import { Avatar, Button, EmptyState, ErrorState, Tabs } from '@aidream/ui'
+import {
+  Avatar,
+  Button,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  Tabs,
+} from '@aidream/ui'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { ArrowRight, Clapperboard, Compass, Search, X } from 'lucide-react'
 import Image from 'next/image'
@@ -23,7 +30,6 @@ import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import { UserTierLine } from '@/src/components/user/UserTierLine'
 import { higgsfieldWorkCard } from '@/src/content/higgsfield'
 import { EpisodeCard } from './EpisodeCard'
-import { FeedSkeleton } from './FeedSkeleton'
 
 const SearchPageSchema = z.object({
   items: z.array(SearchResultSchema),
@@ -145,7 +151,17 @@ function SearchResultsContent({
           <p className="sr-only" role="status">
             검색 중
           </p>
-          <FeedSkeleton count={6} />
+          <div className={`search-grid search-grid-${type}`} aria-hidden="true">
+            {Array.from({ length: 6 }, (_unused, index) => (
+              <div className="search-loading-row" key={index}>
+                <Skeleton className="search-loading-thumb" />
+                <div>
+                  <Skeleton variant="text" />
+                  <Skeleton variant="text" />
+                </div>
+              </div>
+            ))}
+          </div>
         </>
       ) : null}
       {valid && result.isError && items.length === 0 ? (
@@ -253,14 +269,7 @@ function SearchResultsContent({
           </form>
         }
       />
-      <header className="search-hero">
-        <div>
-          <p className="search-eyebrow">DISCOVER YOUR NEXT STORY</p>
-          <h1>이야기를 찾는 순간.</h1>
-          <p>마음에 남을 영상부터 새로운 크리에이터까지.</p>
-        </div>
-        <Clapperboard aria-hidden="true" />
-      </header>
+      <h1 className="sr-only">검색</h1>
       <Tabs
         label="검색 대상"
         value={type}

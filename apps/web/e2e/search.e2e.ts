@@ -51,7 +51,29 @@ test.beforeEach(async ({ page }, testInfo) => {
             ]
           : type === 'user'
             ? [{ type: 'user', ...creator, followerCount: 1234 }]
-            : [episode(params.has('cursor') ? 'second' : 'first')]
+            : (params.has('cursor')
+                ? ['second']
+                : [
+                    'first',
+                    'scene-2',
+                    'scene-3',
+                    'scene-4',
+                    'scene-5',
+                    'scene-6',
+                  ]
+              ).map((id) => {
+                const item = episode(id)
+                return {
+                  ...item,
+                  episode: {
+                    ...item.episode,
+                    thumbUrl: new URL(
+                      '/brand/works/red-horizon.png',
+                      route.request().url(),
+                    ).href,
+                  },
+                }
+              })
     await route.fulfill({
       json: {
         items,
@@ -120,6 +142,13 @@ for (const width of [320, 390, 768, 1024, 1366, 1440]) {
     ).toBe(true)
     const input = await page.getByRole('searchbox').boundingBox()
     expect(input?.width).toBeGreaterThan(95)
+    await expect(page.locator('.search-hero')).toHaveCount(0)
+    const firstResult = await page
+      .locator('.search-grid .episode-card')
+      .first()
+      .boundingBox()
+    expect(firstResult?.height).toBeLessThan(140)
+    expect(firstResult?.y).toBeLessThan(320)
     await page.screenshot({
       path: testInfo.outputPath(`search-${String(width)}.png`),
       fullPage: true,
