@@ -512,7 +512,7 @@ export default async function SeriesPage({
         )}
       </main>
 
-      <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
+      <DiscoveryFooter handle={session?.user.handle ?? null} />
     </div>
   )
 }

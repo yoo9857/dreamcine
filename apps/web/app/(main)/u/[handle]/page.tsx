@@ -758,7 +758,7 @@ export default async function ProfilePage({
           )}
         </main>
 
-        <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
+        <DiscoveryFooter handle={session?.user.handle ?? null} />
       </div>
     )
   } catch (error: unknown) {

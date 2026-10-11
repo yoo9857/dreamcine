@@ -6,7 +6,7 @@ import { LeftBrandLogo } from '@/src/components/brand/LeftBrandLogo'
 export function DiscoveryFooter({
   handle,
 }: {
-  readonly handle: string
+  readonly handle: string | null
 }): ReactNode {
   return (
     <footer className="discovery-footer" aria-label="ilog 푸터">
@@ -34,10 +34,11 @@ export function DiscoveryFooter({
           <section>
             <h3>DISCOVER</h3>
             <Link href="/browse">홈</Link>
-            <Link href="/search">전체 탐색</Link>
-            <Link href="/search?q=로맨스">로맨스</Link>
-            <Link href="/search?q=드라마">드라마</Link>
-            <Link href="/search?q=영화">영화</Link>
+            <Link href="/works">모든 작품</Link>
+            <Link href="/works?sort=popular">인기 작품</Link>
+            <Link href="/works?format=long">롱폼</Link>
+            <Link href="/works?format=short">숏폼</Link>
+            <Link href="/search">검색</Link>
           </section>
           <section>
             <h3>CREATE</h3>
@@ -49,7 +50,15 @@ export function DiscoveryFooter({
           </section>
           <section>
             <h3>MY ILOG</h3>
-            <Link href={`/u/${encodeURIComponent(handle)}`}>내 프로필</Link>
+            <Link
+              href={
+                handle === null
+                  ? '/login?next=%2Faccount%23profile'
+                  : `/u/${encodeURIComponent(handle)}`
+              }
+            >
+              내 프로필
+            </Link>
             <Link href="/following">팔로잉</Link>
             <Link href="/notifications">알림</Link>
             <Link href="/account#profile">프로필 관리</Link>

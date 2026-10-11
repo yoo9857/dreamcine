@@ -334,7 +334,7 @@ export function WatchExperience({
                 <span>QUICK WATCH</span>
                 <h2>다른 숏폼</h2>
               </div>
-              <Link href="/works">전체 보기</Link>
+              <Link href="/works?format=short">전체 보기</Link>
             </header>
             <div>
               {shortItems.length === 0 ? (
@@ -358,7 +358,7 @@ export function WatchExperience({
             <h2>이어 볼 롱폼</h2>
             <p>한 편의 이야기에 더 깊이 빠져보세요.</p>
           </div>
-          <Link href="/works">
+          <Link href="/works?format=long">
             모든 작품 <ArrowUpRight />
           </Link>
         </header>

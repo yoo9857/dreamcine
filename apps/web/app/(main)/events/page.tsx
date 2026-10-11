@@ -18,7 +18,7 @@ export default async function EventsPage(): Promise<ReactNode> {
     <div className="events-page" id="discovery-top">
       <DiscoveryTopbar user={session ? session.user : null} />
       <EventsBoard />
-      <DiscoveryFooter handle={session ? session.user.handle : 'ilog'} />
+      <DiscoveryFooter handle={session?.user.handle ?? null} />
     </div>
   )
 }

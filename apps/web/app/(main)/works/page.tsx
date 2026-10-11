@@ -167,27 +167,45 @@ function preview(
 
 async function loadWorks(
   session: Awaited<ReturnType<typeof getServerSession>>,
+  sort: 'latest' | 'popular',
 ): Promise<Page<FeedItem>> {
   if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
     return { items: developmentPreviewItems, nextCursor: null }
   }
-  return getFeed({ type: 'latest', limit: 24 }, session)
+  return getFeed({ type: sort, limit: 24 }, session)
 }
 
-export default async function WorksPage(): Promise<ReactNode> {
+export default async function WorksPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<{
+    readonly sort?: string
+    readonly format?: string
+  }>
+}): Promise<ReactNode> {
+  const query = await searchParams
+  const sort = query.sort === 'popular' ? 'popular' : 'latest'
+  const format =
+    query.format === 'long' || query.format === 'short' ? query.format : 'all'
   const session = await getServerSession()
   const headerUser =
     session?.user ??
     (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
       ? developmentPreviewUser
       : null)
-  const page = await loadWorks(session)
+  const page = await loadWorks(session, sort)
 
   return (
     <div className="works-page" id="discovery-top">
       <DiscoveryTopbar user={headerUser} />
-      <WorksCatalog initialItems={page.items} initialCursor={page.nextCursor} />
-      <DiscoveryFooter handle={headerUser?.handle ?? 'ilog'} />
+      <WorksCatalog
+        key={`${sort}:${format}`}
+        initialItems={page.items}
+        initialCursor={page.nextCursor}
+        feedType={sort}
+        initialFormat={format}
+      />
+      <DiscoveryFooter handle={headerUser?.handle ?? null} />
     </div>
   )
 }

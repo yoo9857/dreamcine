@@ -1,180 +1,136 @@
 // @vitest-environment jsdom
-
 import type { FeedItem } from '@aidream/core'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import React from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
-
+import { afterEach, expect, it } from 'vitest'
 import { DiscoveryStoryShelves } from './DiscoveryStoryShelves'
-
 afterEach(cleanup)
-
-const liveItem: FeedItem = {
-  episodeId: 'episode-live',
-  title: '실시간 인기 작품',
+const item: FeedItem = {
+  episodeId: 'live',
+  title: '공개 작품',
   thumbUrl: '/brand/posters/memory.png',
   durationSec: 120,
-  ageRating: 'A12',
+  ageRating: 'ALL',
   viewCount: '1200',
-  likeCount: 33,
+  likeCount: 3,
   publishedAt: '2026-08-27T00:00:00.000Z',
-  series: { id: 'series-live', title: '라이브 시리즈', slug: 'live' },
+  series: { id: 'series', title: '시리즈', slug: 'series' },
   creator: {
-    handle: 'hanbin',
-    displayName: '한빈',
+    handle: 'creator',
+    displayName: '작가',
     avatarUrl: null,
     tier: 'BRONZE',
     isVerified: false,
   },
   isLiked: false,
 }
-
-describe('DiscoveryStoryShelves', () => {
-  it('renders five compact discovery rows with live and festival artwork', () => {
-    const view = render(<DiscoveryStoryShelves items={[liveItem]} />)
-
-    expect(
-      screen.getByRole('heading', { name: '지금 가장 많이 보는 이야기' }),
-    ).toBeTruthy()
-    expect(
-      screen.getByRole('heading', { name: '언제나 사랑받는 이야기' }),
-    ).toBeTruthy()
-    expect(
-      screen.getByRole('heading', { name: '마음이 머무는 로맨스' }),
-    ).toBeTruthy()
-    expect(
-      screen.getByRole('heading', { name: '한 장면씩 깊어지는 드라마' }),
-    ).toBeTruthy()
-    expect(
-      screen.getByRole('heading', { name: '오늘 밤을 위한 영화' }),
-    ).toBeTruthy()
-    expect(
-      view.container.querySelectorAll('.discovery-shelf-card').length,
-    ).toBe(15)
-    expect(
-      screen.getAllByRole('link', { name: '실시간 인기 작품 보기' }).length,
-    ).toBe(5)
-    expect(screen.getAllByRole('link', { name: 'THREAD 보기' }).length).toBe(5)
-    expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
+it('opens real collections instead of empty keyword searches', () => {
+  render(
+    <DiscoveryStoryShelves
+      items={[item]}
+      latestItems={[
+        item,
+        {
+          ...item,
+          episodeId: 'short',
+          title: '숏폼 작품',
+          aspectRatio: 9 / 16,
+        },
+      ]}
+    />,
+  )
+  expect(
+    screen
+      .getAllByRole('link', { name: /모두 보기/u })
+      .map((link) => link.getAttribute('href')),
+  ).toEqual([
+    '/works?sort=popular',
+    '/works?sort=latest',
+    '/works?format=long',
+    '/works?format=short',
+    '/u/higgsfield',
+  ])
+  expect(screen.queryByText('마음이 머무는 로맨스')).toBeNull()
+})
+it('keeps latest separate from popularity and excludes festival films from rankings', () => {
+  render(
+    <DiscoveryStoryShelves
+      items={[item]}
+      latestItems={[{ ...item, episodeId: 'new', title: '새 작품' }]}
+    />,
+  )
+  const popular = screen.getByRole('region', {
+    name: '지금 가장 많이 보는 이야기',
   })
-
-  it('uses playable festival films when nothing is published', () => {
-    render(<DiscoveryStoryShelves items={[]} />)
-
-    expect(screen.getAllByRole('link', { name: 'THREAD 보기' }).length).toBe(5)
-    expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
-  })
-
-  it('fills the ranked row with festival films after published works', () => {
-    const titles = [
-      'ohhanbin_opt',
-      'fly',
-      'in seoul',
-      'Breathe No More',
-      'fight',
-      'lip balm',
-    ]
-    const views = ['6', '1', '1', '1', '0', '0']
-    const items = titles.map((title, index) => ({
-      ...liveItem,
-      episodeId: `episode-${String(index)}`,
-      title,
-      viewCount: views[index] ?? '0',
-    }))
-    const view = render(<DiscoveryStoryShelves items={items} />)
-
-    const trending = view.container.querySelector('#shelf-track-trending')
-    expect(trending).not.toBeNull()
-    if (trending === null) return
-    const labels = [
-      ...trending.querySelectorAll<HTMLAnchorElement>(
-        '.discovery-shelf-card a',
-      ),
-    ].map((anchor) => anchor.getAttribute('aria-label'))
-    expect(labels).toEqual([
-      'ohhanbin_opt 보기',
-      'fly 보기',
-      'in seoul 보기',
-      'Breathe No More 보기',
-      'fight 보기',
-      'lip balm 보기',
-      'THREAD 보기',
-      'Borrowed Wounds 보기',
-    ])
-
-    const thread = trending.querySelector('a[aria-label="THREAD 보기"]')
-    expect(thread?.getAttribute('href')).toBe('/watch/higgsfield/thread')
-    expect(thread?.querySelector('small')).toBeNull()
-    const wounds = trending.querySelector(
-      'a[aria-label="Borrowed Wounds 보기"]',
-    )
-    expect(wounds?.getAttribute('href')).toBe(
-      '/watch/higgsfield/borrowed-wounds',
-    )
-    expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
-    expect(
-      screen.queryByRole('link', { name: '사라지는 도시의 밤 보기' }),
-    ).toBeNull()
-  })
-
-  it('ranks the trending row by views, not feed order', () => {
-    const quiet = {
-      ...liveItem,
-      episodeId: 'quiet',
-      title: '조용한 작품',
-      viewCount: '0',
-    }
-    const popular = {
-      ...liveItem,
-      episodeId: 'popular',
-      title: '인기 작품',
-      viewCount: '5000',
-    }
-    const view = render(<DiscoveryStoryShelves items={[quiet, popular]} />)
-
-    const trending = view.container.querySelector('#shelf-track-trending')
-    const first = trending?.querySelector('.discovery-shelf-card a')
-    expect(first?.getAttribute('aria-label')).toBe('인기 작품 보기')
-    expect(first?.querySelector('.discovery-shelf-rank')?.textContent).toBe('1')
-  })
-
-  it('lists short-form cards on a 9:16 rail', () => {
-    const vertical: FeedItem = {
-      ...liveItem,
-      episodeId: 'vertical',
-      title: '세로 영상',
-      viewCount: '3',
-      aspectRatio: 9 / 16,
-    }
-    const declaredShort: FeedItem = {
-      ...liveItem,
-      episodeId: 'declared-short',
-      title: '선언된 숏폼',
-      viewCount: '9',
-      aspectRatio: 16 / 9,
-      series: { ...liveItem.series, workType: 'SHORT_FORM' },
-    }
-    const view = render(
-      <DiscoveryStoryShelves items={[vertical, declaredShort, liveItem]} />,
-    )
-
-    const wide = view.container.querySelector('#shelf-track-trending')
-    expect(wide?.classList.contains('is-portrait')).toBe(false)
-    expect(wide?.querySelector('[aria-label="세로 영상 보기"]')).toBeNull()
-    expect(wide?.querySelector('[aria-label="선언된 숏폼 보기"]')).toBeNull()
-    expect(
-      wide?.querySelector('[aria-label="실시간 인기 작품 보기"]'),
-    ).not.toBeNull()
-
-    const portrait = view.container.querySelector('#shelf-track-trending-short')
-    expect(portrait).not.toBeNull()
-    if (portrait === null) return
-    expect(portrait.classList.contains('is-portrait')).toBe(true)
-    const labels = [
-      ...portrait.querySelectorAll<HTMLAnchorElement>(
-        '.discovery-shelf-card a',
-      ),
-    ].map((anchor) => anchor.getAttribute('aria-label'))
-    expect(labels).toEqual(['선언된 숏폼 보기', '세로 영상 보기'])
-  })
+  expect(
+    within(popular).getByRole('link', { name: '공개 작품 보기' }),
+  ).toBeTruthy()
+  expect(
+    within(popular).queryByRole('link', { name: '새 작품 보기' }),
+  ).toBeNull()
+  expect(
+    within(popular).queryByRole('link', { name: 'THREAD 보기' }),
+  ).toBeNull()
+  expect(
+    within(
+      screen.getByRole('region', { name: '새로 올라온 이야기' }),
+    ).getByRole('link', { name: '새 작품 보기' }),
+  ).toBeTruthy()
+})
+it('shows only real festival works when no episodes exist', () => {
+  const view = render(<DiscoveryStoryShelves items={[]} />)
+  expect(view.container.querySelectorAll('.discovery-shelf')).toHaveLength(1)
+  expect(
+    screen.getByRole('link', { name: 'THREAD 보기' }).getAttribute('href'),
+  ).toBe('/watch/higgsfield/thread')
+  expect(screen.queryByRole('link', { name: '내일의 기억 보기' })).toBeNull()
+})
+it('ranks before limiting and keeps works without thumbnails available', () => {
+  const view = render(
+    <DiscoveryStoryShelves
+      items={[
+        item,
+        {
+          ...item,
+          episodeId: 'most',
+          title: '인기 작품',
+          thumbUrl: null,
+          viewCount: '9999',
+        },
+      ]}
+    />,
+  )
+  const first = view.container.querySelector(
+    '#shelf-track-trending .discovery-shelf-card a',
+  )
+  expect(first?.getAttribute('aria-label')).toBe('인기 작품 보기')
+  expect(first?.querySelector('.discovery-shelf-rank')?.textContent).toBe('1')
+  expect(first?.querySelector('.discovery-shelf-no-image')).not.toBeNull()
+})
+it('keeps short and long collections consistent with the selected work type', () => {
+  render(
+    <DiscoveryStoryShelves
+      items={[
+        item,
+        {
+          ...item,
+          episodeId: 'short',
+          title: '선언된 숏폼',
+          series: { ...item.series, workType: 'SHORT_FORM' },
+        },
+      ]}
+    />,
+  )
+  const short = screen.getByRole('region', { name: '짧게 발견하는 숏폼' })
+  expect(
+    within(short).getByRole('link', { name: '선언된 숏폼 보기' }),
+  ).toBeTruthy()
+  expect(
+    within(short).queryByRole('link', { name: '공개 작품 보기' }),
+  ).toBeNull()
+  expect(
+    within(
+      screen.getByRole('region', { name: '깊이 몰입하는 롱폼' }),
+    ).queryByRole('link', { name: '선언된 숏폼 보기' }),
+  ).toBeNull()
 })

@@ -17,13 +17,12 @@ import { HeroLikeButton } from './HeroLikeButton'
 
 const discoveryTabs = [
   { href: '/browse', label: '전체', active: true },
-  { href: '/search', label: '새로 올라온' },
+  { href: '/works?sort=latest', label: '새로 올라온' },
   { href: '/following', label: '팔로잉' },
-  { href: '/search?q=드라마', label: '드라마' },
-  { href: '/search?q=예능', label: '예능' },
-  { href: '/search?q=음악', label: '뮤직' },
-  { href: '/search?q=다큐', label: '다큐멘터리' },
-  { href: '/search?q=숏폼', label: '숏폼' },
+  { href: '/works?sort=popular', label: '인기 작품' },
+  { href: '/works?format=long', label: '롱폼' },
+  { href: '/works?format=short', label: '숏폼' },
+  { href: '/u/higgsfield', label: '큐레이션' },
 ] as const
 
 const developmentBrowseItem = {
@@ -111,9 +110,15 @@ async function PopularDiscovery({
 }): Promise<ReactNode> {
   const isDevelopmentPreview =
     process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
-  const page = isDevelopmentPreview
-    ? { items: developmentBrowseItems, nextCursor: null }
-    : await getFeed({ type: 'popular', limit: 20 }, session)
+  const [page, latest] = isDevelopmentPreview
+    ? [
+        { items: developmentBrowseItems, nextCursor: null },
+        { items: developmentBrowseItems, nextCursor: null },
+      ]
+    : await Promise.all([
+        getFeed({ type: 'popular', limit: 20 }, session),
+        getFeed({ type: 'latest', limit: 20 }, session),
+      ])
   const lead = page.items[0]
   if (lead === undefined) {
     return (
@@ -129,7 +134,7 @@ async function PopularDiscovery({
           </div>
         </section>
         <DiscoveryTabs />
-        <DiscoveryStoryShelves items={[]} />
+        <DiscoveryStoryShelves items={[]} latestItems={latest.items} />
       </>
     )
   }
@@ -185,7 +190,7 @@ async function PopularDiscovery({
 
       <DiscoveryTabs />
 
-      <DiscoveryStoryShelves items={page.items} />
+      <DiscoveryStoryShelves items={page.items} latestItems={latest.items} />
     </>
   )
 }

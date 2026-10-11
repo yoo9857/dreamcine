@@ -69,7 +69,7 @@ export default async function NoticesPage(): Promise<ReactNode> {
           </ol>
         )}
       </main>
-      <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
+      <DiscoveryFooter handle={session?.user.handle ?? null} />
     </div>
   )
 }

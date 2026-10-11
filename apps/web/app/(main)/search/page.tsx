@@ -29,7 +29,7 @@ export default async function SearchPage(): Promise<ReactNode> {
   return (
     <div className="discovery-home search-page" id="discovery-top">
       <SearchResults user={session?.user ?? null} />
-      <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
+      <DiscoveryFooter handle={session?.user.handle ?? null} />
     </div>
   )
 }

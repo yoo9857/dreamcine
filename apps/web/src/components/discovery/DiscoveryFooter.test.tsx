@@ -9,6 +9,15 @@ import { DiscoveryFooter } from './DiscoveryFooter'
 afterEach(cleanup)
 
 describe('DiscoveryFooter', () => {
+  it('sends guests to sign in instead of another creator profile', () => {
+    render(<DiscoveryFooter handle={null} />)
+    expect(
+      screen.getByRole('link', { name: '내 프로필' }).getAttribute('href'),
+    ).toBe('/login?next=%2Faccount%23profile')
+    expect(
+      screen.getByRole('link', { name: '숏폼' }).getAttribute('href'),
+    ).toBe('/works?format=short')
+  })
   it('connects discovery, creator, account, and support destinations', () => {
     render(<DiscoveryFooter handle="hanbin" />)
 

@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 
 import type { FeedItem } from '@aidream/core'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import React, { createRef } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useInfiniteFeed } from '@/src/hooks/use-infinite-feed'
 
@@ -69,8 +75,58 @@ function hookResult(overrides: Record<string, unknown> = {}) {
 }
 
 describe('WorksCatalog', () => {
+  afterEach(cleanup)
   beforeEach(() => {
+    window.history.replaceState(null, '', '/works')
     vi.mocked(useInfiniteFeed).mockReturnValue(hookResult())
+  })
+
+  it('opens a short collection immediately and preserves sorting when paging', () => {
+    const view = render(
+      <WorksCatalog
+        initialItems={items}
+        initialCursor={null}
+        feedType="popular"
+        initialFormat="short"
+      />,
+    )
+    expect(screen.queryByRole('heading', { name: 'LONG FORM' })).toBeNull()
+    expect(view.container.querySelector('.works-short-card')).not.toBeNull()
+    expect(vi.mocked(useInfiniteFeed).mock.lastCall?.[0].endpoint).toBe(
+      '/api/feed?type=popular&limit=24',
+    )
+    expect(
+      screen.getByRole('link', { name: '최신순' }).getAttribute('href'),
+    ).toBe('/works?sort=latest&format=short')
+  })
+  it('restores the format after browser navigation', () => {
+    render(<WorksCatalog initialItems={items} initialCursor={null} />)
+    fireEvent.click(screen.getByRole('button', { name: 'SHORT FORM' }))
+    expect(new URL(window.location.href).searchParams.get('format')).toBe(
+      'short',
+    )
+    window.history.replaceState(null, '', '/works?format=long')
+    fireEvent.popState(window)
+    expect(screen.queryByRole('heading', { name: 'SHORT FORM' })).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: 'LONG FORM' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+  it('does not claim there are no shorts while more pages remain', () => {
+    vi.mocked(useInfiniteFeed).mockReturnValue(
+      hookResult({ items: [base], hasNextPage: true }),
+    )
+    render(
+      <WorksCatalog
+        initialItems={[base]}
+        initialCursor="next"
+        initialFormat="short"
+      />,
+    )
+    expect(screen.queryByText('공개된 숏폼 작품이 아직 없습니다.')).toBeNull()
+    expect(screen.getByRole('button', { name: /MORE WORKS/u })).toBeTruthy()
   })
 
   it('filters long and short works with pressed-state buttons', () => {

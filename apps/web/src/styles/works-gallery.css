@@ -84,6 +84,19 @@
   font-size: 11px;
 }
 
+.works-sort-nav {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #94a4ae;
+}
+.works-sort-nav a[aria-current='page'] {
+  color: #f4f7f8;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
 .works-format-nav {
   display: flex;
   gap: 3px;

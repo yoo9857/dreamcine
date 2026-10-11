@@ -4,7 +4,7 @@ import { isShortFormWork, type FeedItem } from '@aidream/core'
 import { Heart, Play, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import React, { useMemo, useState, type ReactNode } from 'react'
+import React, { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { useInfiniteFeed } from '@/src/hooks/use-infinite-feed'
 
@@ -165,13 +165,27 @@ function LoadingCards({ format }: { readonly format: WorkFormat }): ReactNode {
 export function WorksCatalog({
   initialItems,
   initialCursor,
+  feedType = 'latest',
+  initialFormat = 'all',
 }: {
   readonly initialItems: readonly FeedItem[]
   readonly initialCursor: string | null
+  readonly feedType?: 'latest' | 'popular'
+  readonly initialFormat?: WorkFormat
 }): ReactNode {
-  const [format, setFormat] = useState<WorkFormat>('all')
+  const [format, setFormat] = useState<WorkFormat>(initialFormat)
+  useEffect(() => {
+    const restore = (): void => {
+      const value = new URL(window.location.href).searchParams.get('format')
+      setFormat(value === 'long' || value === 'short' ? value : 'all')
+    }
+    window.addEventListener('popstate', restore)
+    return () => {
+      window.removeEventListener('popstate', restore)
+    }
+  }, [])
   const feed = useInfiniteFeed({
-    endpoint: '/api/feed?type=latest&limit=24',
+    endpoint: `/api/feed?type=${feedType}&limit=24`,
     initialItems,
     initialCursor,
   })
@@ -190,7 +204,22 @@ export function WorksCatalog({
       <header className="works-header">
         <div className="works-heading">
           <h1>작품</h1>
-          <span>길게 몰입하고, 짧게 발견하세요.</span>
+          <span>
+            {feedType === 'popular'
+              ? '지금 가장 많이 보는 이야기'
+              : '새로 올라온 이야기'}
+          </span>
+          <nav className="works-sort-nav" aria-label="작품 정렬">
+            {(['latest', 'popular'] as const).map((sort) => (
+              <Link
+                key={sort}
+                href={`/works?sort=${sort}${format === 'all' ? '' : `&format=${format}`}`}
+                aria-current={feedType === sort ? 'page' : undefined}
+              >
+                {sort === 'latest' ? '최신순' : '인기순'}
+              </Link>
+            ))}
+          </nav>
         </div>
         <nav className="works-format-nav" aria-label="작품 형식 필터">
           {(
@@ -207,6 +236,14 @@ export function WorksCatalog({
               key={value}
               onClick={() => {
                 setFormat(value)
+                const url = new URL(window.location.href)
+                if (value === 'all') url.searchParams.delete('format')
+                else url.searchParams.set('format', value)
+                window.history.pushState(
+                  null,
+                  '',
+                  `${url.pathname}${url.search}`,
+                )
               }}
             >
               {format === value ? <span aria-hidden="true" /> : null}
@@ -216,7 +253,7 @@ export function WorksCatalog({
         </nav>
       </header>
 
-      <main className="works-content">
+      <div className="works-content">
         {format === 'short' ? null : (
           <section className="works-section" id="long-form">
             <header className="works-section-heading">
@@ -248,12 +285,12 @@ export function WorksCatalog({
                 <WorkFormatMark format="short" />
                 <div>
                   <h2>SHORT FORM</h2>
-                  <p>3분 안에 만나는 새로운 장면</p>
+                  <p>짧게 발견하는 새로운 장면</p>
                 </div>
               </div>
               <small>{shortForm.length} LOADED</small>
             </header>
-            {shortForm.length === 0 ? (
+            {shortForm.length === 0 && !feed.hasNextPage ? (
               <EmptyFormat label="숏폼" />
             ) : (
               <div className="works-short-rail">
@@ -286,11 +323,17 @@ export function WorksCatalog({
           ) : null}
           {!feed.hasNextPage && feed.items.length > 0 ? (
             <p className="works-catalog-end">
-              <span /> 모든 작품을 확인했습니다
+              <span />{' '}
+              {format === 'all'
+                ? '모든 작품'
+                : format === 'short'
+                  ? '모든 숏폼'
+                  : '모든 롱폼'}
+              을 확인했습니다
             </p>
           ) : null}
         </div>
-      </main>
+      </div>
     </>
   )
 }

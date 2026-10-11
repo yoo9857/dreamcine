@@ -174,7 +174,7 @@ export default async function CreatorsPage(): Promise<ReactNode> {
             : creatorSeasonEditions[month.edition]
         }
       />
-      <DiscoveryFooter handle={headerUser?.handle ?? 'ilog'} />
+      <DiscoveryFooter handle={headerUser?.handle ?? null} />
     </div>
   )
 }

@@ -67,7 +67,7 @@ export default async function SeasonTagsPage() {
           </section>
         ))}
       </main>
-      <DiscoveryFooter handle={session?.user.handle ?? 'ilog'} />
+      <DiscoveryFooter handle={session?.user.handle ?? null} />
     </div>
   )
 }

@@ -22,6 +22,7 @@ vi.mock('./DiscoveryFooter', () => ({
 
 it('waits for home content instead of returning a second promotional loading screen', async () => {
   let complete!: (value: { items: []; nextCursor: null }) => void
+  feed.mockResolvedValue({ items: [], nextCursor: null })
   feed.mockReturnValueOnce(
     new Promise((resolve) => {
       complete = resolve
