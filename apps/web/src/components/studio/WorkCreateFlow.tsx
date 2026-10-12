@@ -6,6 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ArrowLeft,
+  ArrowDown,
   Film,
   FolderOpen,
   Plus,
@@ -112,6 +113,7 @@ function WorkStep({
   onWorkTypeChange,
   onChooseNew,
   onBusyChange,
+  onModeChange,
 }: {
   readonly works: readonly WorkOption[]
   readonly onSelect: (work: SelectedWork) => void
@@ -120,6 +122,7 @@ function WorkStep({
   readonly onWorkTypeChange: (workType: WorkType) => void
   readonly onChooseNew: () => void
   readonly onBusyChange: (busy: boolean) => void
+  readonly onModeChange: (mode: 'EXISTING' | 'NEW') => void
 }): ReactNode {
   // 시리즈가 하나도 없으면 고를 것이 없다. 선택지를 보여주는 대신 바로
   // 만들기로 연다 — 첫 크리에이터에게 빈 목록은 막다른 길로 읽힌다.
@@ -159,6 +162,7 @@ function WorkStep({
               checked={mode === 'EXISTING'}
               onChange={() => {
                 setMode('EXISTING')
+                onModeChange('EXISTING')
               }}
             />
             <span>
@@ -174,6 +178,7 @@ function WorkStep({
               checked={mode === 'NEW'}
               onChange={() => {
                 setMode('NEW')
+                onModeChange('NEW')
                 onChooseNew()
               }}
             />
@@ -220,7 +225,8 @@ function WorkStep({
       </div>
       <div className="studio-work-new" hidden={mode !== 'NEW'}>
         <CreateSeriesForm
-          submitLabel="이 시리즈로 등록 준비"
+          formId="studio-registration-series"
+          hideSubmit
           onWorkTypeChange={onWorkTypeChange}
           onBusyChange={onBusyChange}
           onCreated={(series) => {
@@ -230,6 +236,7 @@ function WorkStep({
               workType: series.workType,
             })
             setMode('EXISTING')
+            onModeChange('EXISTING')
           }}
         />
       </div>
@@ -244,6 +251,19 @@ export function WorkCreateFlow({
   readonly works: readonly SeriesResponse[]
   readonly availableAssets: readonly StudioAssetOption[]
 }): ReactNode {
+  const rootRef = useRef<HTMLElement>(null)
+  const [mode, setMode] = useState<'EXISTING' | 'NEW'>(
+    works.length === 0 ? 'NEW' : 'EXISTING',
+  )
+  const [notice, setNotice] = useState<{ message: string; selector: string }>()
+  const guide = (
+    nextStep: 1 | 2 | 3,
+    selector: string,
+    message: string,
+  ): void => {
+    setStep(nextStep)
+    setNotice({ selector, message })
+  }
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const stepHeadingRef = useRef<HTMLHeadingElement>(null)
   const previousStep = useRef(step)
@@ -253,6 +273,12 @@ export function WorkCreateFlow({
     stepHeadingRef.current?.focus({ preventScroll: true })
     stepHeadingRef.current?.scrollIntoView({ block: 'start' })
   }, [step])
+  useEffect(() => {
+    if (notice === undefined) return
+    const target = rootRef.current?.querySelector<HTMLElement>(notice.selector)
+    target?.scrollIntoView({ block: 'center' })
+    target?.focus({ preventScroll: true })
+  }, [notice])
   const [work, setWork] = useState<SelectedWork>()
   const [newWorkType, setNewWorkType] = useState<WorkType>('SERIES')
   const [workOptions, setWorkOptions] = useState<readonly WorkOption[]>(works)
@@ -267,6 +293,7 @@ export function WorkCreateFlow({
   })
   const onDraftChange = useCallback((value: EpisodeDraftSummary): void => {
     setDraft(value)
+    setNotice(undefined)
   }, [])
   const [registering, setRegistering] = useState(false)
   const [creatingSeries, setCreatingSeries] = useState(false)
@@ -280,14 +307,84 @@ export function WorkCreateFlow({
     if (createdEpisode !== undefined) completeHeadingRef.current?.focus()
   }, [createdEpisode])
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId)
-  const canContinue =
-    step === 1 ? work !== undefined : selectedAsset !== undefined
   const canRegister =
     work !== undefined &&
     selectedAsset !== undefined &&
     draft.title.trim() !== '' &&
     draft.aiDisclosure.trim() !== ''
   const locked = registering || creatingSeries
+  const titleReady = draft.title.trim() !== ''
+  const aiReady = draft.aiDisclosure.trim() !== ''
+  const guideWork = (): void => {
+    guide(
+      1,
+      mode === 'NEW'
+        ? '#studio-registration-series input[name="title"]'
+        : '.studio-work-picker button',
+      mode === 'NEW'
+        ? '새 작품의 제목을 입력한 뒤 하단의 만들고 다음 버튼을 눌러주세요.'
+        : '목록에서 등록할 작품을 하나 선택해 주세요. 새 작품이라면 새 시리즈 만들기를 선택하세요.',
+    )
+  }
+  const guideMedia = (): void => {
+    const upload = rootRef.current?.querySelector<HTMLDetailsElement>(
+      '.studio-registration-upload',
+    )
+    if (assets.length === 0 && upload !== null && upload !== undefined)
+      upload.open = true
+    guide(
+      2,
+      assets.length === 0
+        ? '.studio-registration-upload summary'
+        : '.studio-asset-choice input',
+      assets.length === 0
+        ? '새 영상 업로드를 열었습니다. 파일을 올리고 변환이 끝나면 영상을 선택해 주세요.'
+        : '사용할 영상 왼쪽의 선택 버튼을 눌러주세요.',
+    )
+  }
+  const navigate = (nextStep: 1 | 2 | 3): void => {
+    if (nextStep > 1 && work === undefined) {
+      guideWork()
+      return
+    }
+    if (nextStep === 3 && selectedAsset === undefined) {
+      guideMedia()
+      return
+    }
+    setNotice(undefined)
+    setStep(nextStep)
+  }
+  const guideDetails = (): void => {
+    guide(
+      3,
+      !titleReady
+        ? '#studio-registration-episode input[name="title"]'
+        : '.studio-ai-tool-options button',
+      !titleReady
+        ? '영상 제목을 입력해 주세요. 아래의 AI 도구 선택까지 마치면 등록할 수 있습니다.'
+        : '사용한 AI 도구를 선택하거나 목록에 없는 도구를 직접 입력해 주세요.',
+    )
+  }
+  const actionHint =
+    step === 1
+      ? mode === 'NEW'
+        ? '형식과 제목 입력 → 만들고 다음'
+        : work === undefined
+          ? '작품 하나를 선택하면 다음으로 진행합니다'
+          : '작품 선택 완료 · 다음은 영상 준비'
+      : step === 2
+        ? selectedAsset === undefined
+          ? assets.length === 0
+            ? '업로드 → 변환 완료 → 영상 선택'
+            : '아래 준비된 영상 중 하나를 선택하세요'
+          : '영상 선택 완료 · 다음은 제목과 AI 도구 입력'
+        : !titleReady
+          ? aiReady
+            ? '남은 필수 입력: 영상 제목'
+            : '남은 필수 입력: 영상 제목 · AI 도구'
+          : !aiReady
+            ? '남은 필수 입력: AI 도구 선택 또는 직접 입력'
+            : '필수 입력 완료 · 초안 저장 후 공개할 수 있습니다'
   const steps = [
     {
       title: '작품 선택',
@@ -353,6 +450,7 @@ export function WorkCreateFlow({
   }
   return (
     <section
+      ref={rootRef}
       className="studio-registration-layout studio-wizard"
       aria-label="시리즈와 영상 등록"
     >
@@ -362,10 +460,6 @@ export function WorkCreateFlow({
             <ol>
               {steps.map((item, index) => {
                 const number = (index + 1) as 1 | 2 | 3
-                const accessible =
-                  number === 1 ||
-                  (work !== undefined &&
-                    (number === 2 || selectedAsset !== undefined))
                 const done =
                   number === 1
                     ? work !== undefined
@@ -378,9 +472,9 @@ export function WorkCreateFlow({
                       type="button"
                       aria-label={`${String(number)}. ${item.title}`}
                       aria-current={step === number ? 'step' : undefined}
-                      disabled={locked || !accessible}
+                      disabled={locked}
                       onClick={() => {
-                        setStep(number)
+                        navigate(number)
                       }}
                     >
                       <span className="studio-wizard-step-number">
@@ -406,6 +500,13 @@ export function WorkCreateFlow({
               {steps[step - 1]?.heading}
             </h2>
             <p>{steps[step - 1]?.hint}</p>
+            <p
+              className="studio-wizard-action-hint"
+              id="studio-wizard-action-hint"
+              role="status"
+            >
+              {notice?.message ?? actionHint}
+            </p>
           </header>
           {step === 1 || work === undefined ? null : (
             <div className="studio-wizard-context">
@@ -469,7 +570,14 @@ export function WorkCreateFlow({
             >
               <WorkStep
                 works={workOptions}
-                onSelect={setWork}
+                onModeChange={(nextMode) => {
+                  setMode(nextMode)
+                  setNotice(undefined)
+                }}
+                onSelect={(nextWork) => {
+                  setWork(nextWork)
+                  setNotice(undefined)
+                }}
                 selectedId={work?.id}
                 onWorkTypeChange={setNewWorkType}
                 onBusyChange={setCreatingSeries}
@@ -491,6 +599,50 @@ export function WorkCreateFlow({
               />
             </fieldset>
           </section>
+          {step !== 3 ? null : (
+            <div className="studio-wizard-required" aria-label="필수 입력 항목">
+              <button
+                type="button"
+                aria-label="영상 제목 입력으로 이동"
+                disabled={locked}
+                onClick={() => {
+                  guide(
+                    3,
+                    '#studio-registration-episode input[name="title"]',
+                    '목록에 표시할 영상 제목을 입력하세요.',
+                  )
+                }}
+                data-complete={titleReady}
+              >
+                <span>1</span>
+                <strong>영상 제목</strong>
+                <small>
+                  {titleReady ? '입력 완료' : '입력 필요'}{' '}
+                  <ArrowDown aria-hidden="true" />
+                </small>
+              </button>
+              <button
+                type="button"
+                aria-label="AI 도구 선택으로 이동"
+                disabled={locked}
+                onClick={() => {
+                  guide(
+                    3,
+                    '.studio-ai-tool-options button',
+                    '사용한 AI 도구를 선택하거나 아래에 직접 입력하세요.',
+                  )
+                }}
+                data-complete={aiReady}
+              >
+                <span>2</span>
+                <strong>AI 도구</strong>
+                <small>
+                  {aiReady ? '입력 완료' : '아래에서 선택'}{' '}
+                  <ArrowDown aria-hidden="true" />
+                </small>
+              </button>
+            </div>
+          )}
           <section
             hidden={step === 1}
             id="registration-content"
@@ -605,19 +757,8 @@ export function WorkCreateFlow({
       </div>
       {createdEpisode === undefined ? (
         <footer className="studio-wizard-footer">
-          <div className="studio-wizard-footer-note">
-            <strong>
-              {step === 3
-                ? '먼저 초안으로 안전하게 저장'
-                : '입력 내용은 단계 이동 중 유지됩니다'}
-            </strong>
-            <span>
-              {step === 1
-                ? '작품을 선택하면 다음 단계로 갈 수 있어요'
-                : step === 2
-                  ? '변환 완료 영상을 선택해 주세요'
-                  : '확인 후 원하는 시점에 공개할 수 있어요'}
-            </span>
+          <div className="studio-wizard-footer-note" aria-live="polite">
+            <strong>{actionHint}</strong>
           </div>
           <div className="studio-wizard-footer-actions">
             {step === 1 ? null : (
@@ -627,18 +768,28 @@ export function WorkCreateFlow({
                 variant="ghost"
                 disabled={locked}
                 onClick={() => {
-                  setStep(step === 3 ? 2 : 1)
+                  navigate(step === 3 ? 2 : 1)
                 }}
               >
                 <ArrowLeft aria-hidden="true" /> 이전
               </Button>
             )}
-            {step === 3 ? (
+            {step === 1 && mode === 'NEW' ? (
+              <Button
+                key="create-series"
+                form="studio-registration-series"
+                type="submit"
+                disabled={locked}
+                loading={creatingSeries}
+              >
+                만들고 다음 <ArrowRight aria-hidden="true" />
+              </Button>
+            ) : step === 3 && canRegister ? (
               <Button
                 key="register"
                 form="studio-registration-episode"
                 type="submit"
-                disabled={!canRegister || locked}
+                disabled={locked}
                 loading={registering}
               >
                 초안으로 등록 <ArrowRight aria-hidden="true" />
@@ -647,13 +798,37 @@ export function WorkCreateFlow({
               <Button
                 key="continue"
                 type="button"
-                disabled={!canContinue || locked}
+                disabled={locked}
                 onClick={(event) => {
                   event.preventDefault()
-                  setStep(step === 1 ? 2 : 3)
+                  if (step === 1 && work === undefined) {
+                    guideWork()
+                    return
+                  }
+                  if (step === 2 && selectedAsset === undefined) {
+                    guideMedia()
+                    return
+                  }
+                  if (step === 3) {
+                    guideDetails()
+                    return
+                  }
+                  navigate(step === 1 ? 2 : 3)
                 }}
               >
-                {step === 1 ? '다음 · 영상 준비' : '다음 · 정보 입력'}{' '}
+                {step === 1
+                  ? work === undefined
+                    ? '작품 선택하기'
+                    : '다음 · 영상 준비'
+                  : step === 2
+                    ? selectedAsset === undefined
+                      ? assets.length === 0
+                        ? '영상 업로드하기'
+                        : '영상 선택하기'
+                      : '다음 · 정보 입력'
+                    : !titleReady
+                      ? '제목 입력하기'
+                      : 'AI 도구 선택하기'}{' '}
                 <ArrowRight aria-hidden="true" />
               </Button>
             )}

@@ -28,6 +28,8 @@ export function CreateSeriesForm({
   submitLabel = '시리즈 만들기',
   onWorkTypeChange,
   onBusyChange,
+  formId,
+  hideSubmit = false,
 }: {
   /**
    * 시리즈를 만든 뒤 이동 대신 호출할 콜백. 단일 페이지 편집기를 유지한다.
@@ -40,6 +42,8 @@ export function CreateSeriesForm({
   readonly submitLabel?: string
   readonly onWorkTypeChange?: (workType: WorkType) => void
   readonly onBusyChange?: (busy: boolean) => void
+  readonly formId?: string
+  readonly hideSubmit?: boolean
 } = {}): ReactNode {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -129,6 +133,7 @@ export function CreateSeriesForm({
 
   return (
     <form
+      id={formId}
       onSubmit={(event) => void submit(event)}
       className="studio-series-form"
       aria-busy={busy}
@@ -209,9 +214,11 @@ export function CreateSeriesForm({
           {error}
         </p>
       )}
-      <Button type="submit" disabled={busy}>
-        {busy ? '만드는 중…' : submitLabel}
-      </Button>
+      {hideSubmit ? null : (
+        <Button type="submit" disabled={busy}>
+          {busy ? '만드는 중…' : submitLabel}
+        </Button>
+      )}
     </form>
   )
 }

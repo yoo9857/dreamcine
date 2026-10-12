@@ -97,22 +97,24 @@ function fillDetails(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
 }
 describe('WorkCreateFlow wizard', () => {
-  it('starts with only the first step visible and guards future steps', () => {
+  it('shows actionable guidance instead of a disabled next button', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     expect(
       screen.getByRole('navigation', { name: '시리즈 등록 단계' }),
     ).toBeTruthy()
     expect(
       screen
-        .getByRole('button', { name: /작품 선택/u })
+        .getByRole('button', { name: /^1\. 작품 선택/u })
         .getAttribute('aria-current'),
     ).toBe('step')
-    expect(
-      screen.getByRole('button', { name: /다음 · 영상 준비/u }),
-    ).toHaveProperty('disabled', true)
-    expect(
-      screen.getByRole('button', { name: /^2\. 영상 준비/u }),
-    ).toHaveProperty('disabled', true)
+    const choose = screen.getByRole('button', { name: '작품 선택하기' })
+    expect(choose).toHaveProperty('disabled', false)
+    fireEvent.click(choose)
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /첫 번째 꿈/u }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '2. 영상 준비' }))
+    expect(screen.getByRole('status').textContent).toContain('작품을 하나 선택')
     expect(screen.queryByRole('textbox', { name: '회차 제목' })).toBeNull()
     expect(screen.queryByRole('radio', { name: /episode.mp4/u })).toBeNull()
     expect(screen.queryByRole('button', { name: /초안으로 등록/u })).toBeNull()
@@ -125,8 +127,8 @@ describe('WorkCreateFlow wizard', () => {
       screen.getByRole('heading', { name: '이야기를 담은 영상을 준비하세요' }),
     )
     expect(
-      screen.getByRole('button', { name: /다음 · 정보 입력/u }),
-    ).toHaveProperty('disabled', true)
+      screen.getByRole('button', { name: '영상 선택하기' }),
+    ).toHaveProperty('disabled', false)
     expect(screen.queryByRole('textbox', { name: '회차 제목' })).toBeNull()
     nextDetails()
     expect(document.activeElement).toBe(
@@ -146,9 +148,13 @@ describe('WorkCreateFlow wizard', () => {
       screen.getByRole('textbox', { name: 'AI 제작 표기' }),
     ).toHaveProperty('required', false)
     fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
-    expect(
-      screen.getByRole('button', { name: /초안으로 등록/u }),
-    ).toHaveProperty('disabled', true)
+    expect(screen.queryByRole('button', { name: /초안으로 등록/u })).toBeNull()
+    const guide = screen.getByRole('button', { name: 'AI 도구 선택하기' })
+    expect(guide).toHaveProperty('disabled', false)
+    fireEvent.click(guide)
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'ChatGPT' }),
+    )
   })
 
   it('keeps the clicked continue button separate from the submit button when returning to completed details', () => {
@@ -177,7 +183,7 @@ describe('WorkCreateFlow wizard', () => {
     )
     prepare()
     fillDetails()
-    fireEvent.click(screen.getByRole('button', { name: /작품 선택/u }))
+    fireEvent.click(screen.getByRole('button', { name: /^1\. 작품 선택/u }))
     fireEvent.click(screen.getByRole('button', { name: /다른 꿈/u }))
     nextMedia()
     expect(screen.getByRole('radio', { name: /episode.mp4/u })).toHaveProperty(
@@ -229,10 +235,9 @@ describe('WorkCreateFlow wizard', () => {
     fireEvent.submit(form)
     fireEvent.submit(form)
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('button', { name: /작품 선택/u })).toHaveProperty(
-      'disabled',
-      true,
-    )
+    expect(
+      screen.getByRole('button', { name: /^1\. 작품 선택/u }),
+    ).toHaveProperty('disabled', true)
     expect(screen.getByRole('button', { name: /이전/u })).toHaveProperty(
       'disabled',
       true,
@@ -240,7 +245,9 @@ describe('WorkCreateFlow wizard', () => {
     expect(title.closest('fieldset')).toHaveProperty('disabled', true)
     fail(new TypeError('offline'))
     const alert = await screen.findByRole('alert')
-    expect(document.activeElement).toBe(alert)
+    await waitFor(() => {
+      expect(document.activeElement).toBe(alert)
+    })
     expect(title).toHaveProperty('value', '새로운 회차')
     expect(
       screen.getByRole('button', { name: /초안으로 등록/u }),
@@ -266,23 +273,25 @@ describe('WorkCreateFlow wizard', () => {
     expect(
       screen.getByRole('combobox', { name: '시리즈 형식' }),
     ).toHaveProperty('value', 'FILM')
-    expect(
-      screen.getByRole('button', { name: /다음 · 영상 준비/u }),
-    ).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: '만들고 다음' })).toHaveProperty(
+      'disabled',
+      false,
+    )
     expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
   })
   it('clears the old destination for a new series and guards completed steps again', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     prepare()
     fillDetails()
-    fireEvent.click(screen.getByRole('button', { name: /작품 선택/u }))
+    fireEvent.click(screen.getByRole('button', { name: /^1\. 작품 선택/u }))
     fireEvent.click(screen.getByRole('radio', { name: /새 시리즈 만들기/u }))
+    fireEvent.click(screen.getByRole('button', { name: '3. 정보 입력' }))
+    expect(document.activeElement).toBe(
+      screen.getByRole('textbox', { name: '시리즈 제목' }),
+    )
     expect(
-      screen.getByRole('button', { name: /^2\. 영상 준비/u }),
-    ).toHaveProperty('disabled', true)
-    expect(
-      screen.getByRole('button', { name: /^3\. 정보 입력/u }),
-    ).toHaveProperty('disabled', true)
+      screen.getByRole('heading', { name: '어떤 작품에 등록할까요?' }),
+    ).toBeTruthy()
   })
   it('opens creation directly when the creator has no series', () => {
     render(<WorkCreateFlow works={[]} availableAssets={[]} />)
@@ -309,9 +318,11 @@ describe('WorkCreateFlow wizard', () => {
     render(<WorkCreateFlow works={[]} availableAssets={[ASSET]} />)
     const title = screen.getByRole('textbox', { name: '시리즈 제목' })
     fireEvent.change(title, { target: { value: '로봇 마을' } })
-    const form = title.closest('form')
-    if (form === null) throw Error('missing form')
-    fireEvent.submit(form)
+    const create = screen.getByRole<HTMLButtonElement>('button', {
+      name: '만들고 다음',
+    })
+    expect(create.form).toBe(title.closest('form'))
+    fireEvent.click(create)
     await waitFor(() => {
       expect(
         screen.getByRole('heading', {
@@ -329,14 +340,16 @@ describe('WorkCreateFlow wizard', () => {
     nextDetails()
     expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
   })
-  it('shows the upload tools when no video is ready and keeps the next step guarded', () => {
+  it('opens upload guidance instead of a disabled next button when no video is ready', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
     nextMedia()
     expect(screen.getByTestId('uploader').closest('details')?.open).toBe(true)
     expect(
-      screen.getByRole('button', { name: /다음 · 정보 입력/u }),
-    ).toHaveProperty('disabled', true)
+      screen.getByRole('button', { name: '영상 업로드하기' }),
+    ).toHaveProperty('disabled', false)
+    fireEvent.click(screen.getByRole('button', { name: '영상 업로드하기' }))
+    expect(screen.getByRole('status').textContent).toContain('파일을 올리고')
   })
   it('sorts recent series first and retains long titles in the selection list', () => {
     render(
@@ -377,5 +390,32 @@ describe('WorkCreateFlow wizard', () => {
     expect(
       screen.getByRole('button', { name: /다음 · 영상 준비/u }),
     ).toHaveProperty('disabled', false)
+  })
+  it('shows the two required fields and directs users to the missing title without submitting', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    prepare()
+    expect(screen.getByLabelText('필수 입력 항목')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '제목 입력하기' }))
+    expect(document.activeElement).toBe(
+      screen.getByRole('textbox', { name: '회차 제목' }),
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'AI 도구 선택으로 이동' }),
+    )
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'ChatGPT' }),
+    )
+  })
+  it('takes users to the video choice when clicking a future step too early', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    fireEvent.click(screen.getByRole('button', { name: '3. 정보 입력' }))
+    expect(document.activeElement).toBe(
+      screen.getByRole('radio', { name: /episode.mp4/u }),
+    )
+    expect(screen.getByRole('status').textContent).toContain('선택 버튼')
   })
 })

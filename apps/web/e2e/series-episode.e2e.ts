@@ -87,7 +87,7 @@ async function createSeriesAndEpisode(
   if (await newSeries.count())
     await page.getByText('새 시리즈 만들기', { exact: true }).click()
   await page.getByLabel('시리즈 제목').fill(title)
-  await page.getByRole('button', { name: '이 시리즈로 등록 준비' }).click()
+  await page.getByRole('button', { name: '만들고 다음' }).click()
   await expect(
     page.getByRole('heading', { name: '이야기를 담은 영상을 준비하세요' }),
   ).toBeVisible()
