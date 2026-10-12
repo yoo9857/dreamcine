@@ -79,7 +79,8 @@ async function createSeriesAndEpisode(
   const assetId = await readyAsset(userId)
   await page.goto('/studio/new')
   const newSeries = page.getByRole('radio', { name: /새 시리즈 만들기/u })
-  if (await newSeries.count()) await newSeries.check()
+  if (await newSeries.count())
+    await page.getByText('새 시리즈 만들기', { exact: true }).click()
   await page.getByLabel('시리즈 제목').fill(title)
   await page.getByRole('button', { name: '이 시리즈로 등록 준비' }).click()
   await expect(
