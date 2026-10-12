@@ -1,11 +1,18 @@
 /* 단계 이동은 DOM을 유지한다. 숨긴 입력·업로더를 CSS가 다시 노출하지 않는다. */
+.studio-page:has(.studio-wizard) {
+  padding-top: 20px;
+}
 .studio-task-page:has(.studio-wizard) {
   min-width: 0;
+  gap: 12px;
 }
 .studio-task-page:has(.studio-wizard) > .studio-page-header {
   width: 100%;
   max-width: 960px;
   margin-inline: auto;
+}
+.studio-task-page:has(.studio-wizard) > .studio-page-header h1 {
+  margin: 0;
 }
 .studio-registration-layout.studio-wizard {
   display: block;
@@ -318,6 +325,9 @@
   }
 }
 @media (max-width: 600px) {
+  .studio-page:has(.studio-wizard) {
+    padding-top: 16px;
+  }
   .studio-wizard-steps ol {
     gap: 6px;
   }
