@@ -8,41 +8,35 @@ import {
   Clapperboard,
   Film,
   FolderOpen,
-  ListPlus,
   Plus,
   Search,
-  UploadCloud,
 } from 'lucide-react'
 import Link from 'next/link'
-import React, { useMemo, useState, type ReactNode } from 'react'
+import React, {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 import { Uploader } from '@/src/components/upload/Uploader'
 import { readApiError } from '@/src/lib/error-messages'
 import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
 
-import { CreateEpisodeForm } from './CreateEpisodeForm'
+import {
+  CreateEpisodeForm,
+  type EpisodeDraftSummary,
+} from './CreateEpisodeForm'
 import { CreateSeriesForm } from './CreateSeriesForm'
 import { workTypeLabel } from './work-types'
 
 /**
  * 스튜디오의 단일 등록 진입점.
  *
- * 예전에는 "업로드" 와 "새 시리즈" 가 사이드바의 동등한 최상위 항목이었다.
- * 둘은 사실 한 작업의 앞뒤 단계인데 나란히 놓여 있어서, 신규 크리에이터가
- * 어디서 시작해야 하는지 알 수 없다는 피드백이 반복됐다. 여기서는 그 둘을
- * 시리즈 → 영상 → 회차 의 3단계 한 흐름으로 합친다.
+ * 시리즈 선택, 영상 연결, 상세 입력을 한 페이지에 두고
+ * 필수 항목이 준비되면 초안으로 저장한다. 업로더는 선택 변경 중에도 유지한다.
  */
-type FlowStep = 'WORK' | 'UPLOAD' | 'DETAILS' | 'COMPLETE'
-
-const STEPS = [
-  { id: 'WORK', label: '시리즈 선택', icon: Clapperboard },
-  { id: 'UPLOAD', label: '영상 업로드', icon: UploadCloud },
-  { id: 'DETAILS', label: '회차 정보 · 공개', icon: ListPlus },
-] as const
-
-/** 완료 화면은 되돌아갈 수 있는 단계가 아니라 결과다. */
-const STEP_ORDER: readonly FlowStep[] = ['WORK', 'UPLOAD', 'DETAILS']
-
 interface SelectedWork {
   readonly id: string
   readonly title: string
@@ -55,57 +49,24 @@ type WorkOption = Pick<
   'id' | 'title' | 'workType' | 'posterUrl' | 'episodeCount' | 'updatedAt'
 >
 
-function StepNav({
-  step,
-  onSelect,
-}: {
-  readonly step: FlowStep
-  readonly onSelect: (next: FlowStep) => void
-}): ReactNode {
-  const currentIndex = STEP_ORDER.indexOf(step)
-  return (
-    <nav className="studio-create-tabs" aria-label="시리즈 등록 단계">
-      {STEPS.map((item, index) => {
-        const Icon = item.icon
-        // 완료 화면에서는 어떤 단계도 되돌리지 않는다.
-        const reachable = step !== 'COMPLETE' && index < currentIndex
-        return (
-          <button
-            key={item.id}
-            type="button"
-            aria-current={step === item.id ? 'step' : undefined}
-            disabled={!reachable}
-            onClick={() => {
-              onSelect(item.id)
-            }}
-          >
-            <Icon aria-hidden="true" />
-            <span>
-              <small>STEP {index + 1}</small>
-              {item.label}
-            </span>
-          </button>
-        )
-      })}
-    </nav>
-  )
-}
-
 /** 검색창을 띄울 기준. 이보다 적으면 눈으로 훑는 편이 빠르다. */
 const SEARCH_THRESHOLD = 6
 
 function WorkRow({
   work,
   onSelect,
+  selected,
 }: {
   readonly work: WorkOption
   readonly onSelect: (work: SelectedWork) => void
+  readonly selected: boolean
 }): ReactNode {
   const empty = work.episodeCount === 0
   return (
     <li>
       <button
         type="button"
+        aria-pressed={selected}
         onClick={() => {
           onSelect({
             id: work.id,
@@ -133,7 +94,11 @@ function WorkRow({
         {empty ? (
           <span className="studio-work-picker-flag">비어 있음</span>
         ) : null}
-        <ArrowRight aria-hidden="true" />
+        {selected ? (
+          <CheckCircle2 aria-hidden="true" />
+        ) : (
+          <ArrowRight aria-hidden="true" />
+        )}
       </button>
     </li>
   )
@@ -143,10 +108,16 @@ function WorkStep({
   works,
   onSelect,
   onCreated,
+  selectedId,
+  onWorkTypeChange,
+  onChooseNew,
 }: {
   readonly works: readonly WorkOption[]
   readonly onSelect: (work: SelectedWork) => void
   readonly onCreated: (work: SelectedWork) => void
+  readonly selectedId: string | undefined
+  readonly onWorkTypeChange: (workType: WorkType) => void
+  readonly onChooseNew: () => void
 }): ReactNode {
   // 시리즈가 하나도 없으면 고를 것이 없다. 선택지를 보여주는 대신 바로
   // 만들기로 연다 — 첫 크리에이터에게 빈 목록은 막다른 길로 읽힌다.
@@ -201,6 +172,7 @@ function WorkStep({
               checked={mode === 'NEW'}
               onChange={() => {
                 setMode('NEW')
+                onChooseNew()
               }}
             />
             <span>
@@ -235,7 +207,12 @@ function WorkStep({
           ) : (
             <ul className="studio-work-picker" aria-label="내 시리즈">
               {visible.map((work) => (
-                <WorkRow key={work.id} work={work} onSelect={onSelect} />
+                <WorkRow
+                  key={work.id}
+                  work={work}
+                  onSelect={onSelect}
+                  selected={work.id === selectedId}
+                />
               ))}
             </ul>
           )}
@@ -243,13 +220,15 @@ function WorkStep({
       ) : (
         <div className="studio-work-new">
           <CreateSeriesForm
-            submitLabel="시리즈 만들고 계속"
+            submitLabel="이 시리즈로 등록 준비"
+            onWorkTypeChange={onWorkTypeChange}
             onCreated={(series) => {
               onCreated({
                 id: series.id,
                 title: series.title,
                 workType: series.workType,
               })
+              setMode('EXISTING')
             }}
           />
         </div>
@@ -265,50 +244,73 @@ export function WorkCreateFlow({
   readonly works: readonly SeriesResponse[]
   readonly availableAssets: readonly StudioAssetOption[]
 }): ReactNode {
-  const [step, setStep] = useState<FlowStep>('WORK')
   const [work, setWork] = useState<SelectedWork>()
-  // 흐름 안에서 만든 시리즈를 목록에 더한다. 1단계로 돌아왔을 때 방금 만든
-  // 시리즈가 없으면 같은 이름으로 또 만들게 된다.
+  const [newWorkType, setNewWorkType] = useState<WorkType>('SERIES')
   const [workOptions, setWorkOptions] = useState<readonly WorkOption[]>(works)
-  // 업로더는 한 번 열면 흐름이 끝날 때까지 붙여 둔다. 다른 단계로 갈 때
-  // 떼어 내면 use-upload 의 정리 함수가 전송 중인 업로드를 경고 없이 끊는다.
-  const [uploaderOpened, setUploaderOpened] = useState(false)
-  if (step === 'UPLOAD' && !uploaderOpened) setUploaderOpened(true)
   const [assets, setAssets] =
     useState<readonly StudioAssetOption[]>(availableAssets)
   const [preferredAssetId, setPreferredAssetId] = useState<string>()
+  const [draft, setDraft] = useState<EpisodeDraftSummary>({
+    title: '',
+    assetId: '',
+    aiDisclosure: '',
+    ageRating: 'ALL',
+  })
+  const onDraftChange = useCallback((value: EpisodeDraftSummary): void => {
+    setDraft(value)
+  }, [])
+  const [registering, setRegistering] = useState(false)
   const [createdEpisode, setCreatedEpisode] = useState<EpisodeResponse>()
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [publishError, setPublishError] = useState<string>()
-
-  const selectWork = (selected: SelectedWork): void => {
-    setWork(selected)
-    // 준비된 영상이 이미 있으면 업로드를 강제하지 않는다.
-    setStep(assets.length === 0 ? 'UPLOAD' : 'DETAILS')
-  }
-
+  const publishLock = useRef(false)
+  const selectedAsset = assets.find((asset) => asset.id === draft.assetId)
+  const checks = [
+    {
+      label: '등록할 시리즈',
+      done: work !== undefined,
+      value: work?.title ?? '선택해 주세요',
+    },
+    {
+      label: '재생 영상',
+      done: selectedAsset !== undefined,
+      value: selectedAsset?.fileName ?? '준비된 영상을 선택해 주세요',
+    },
+    {
+      label: '영상 제목',
+      done: draft.title.trim() !== '',
+      value: draft.title.trim() || '제목을 입력해 주세요',
+    },
+    {
+      label: 'AI 제작 표기',
+      done: draft.aiDisclosure.trim() !== '',
+      value:
+        draft.aiDisclosure.trim() === ''
+          ? '도구와 제작 범위를 알려주세요'
+          : '입력 완료',
+    },
+  ]
+  const completeCount = checks.filter((check) => check.done).length
   const useUploadedAsset = async (assetId: string): Promise<void> => {
     const response = await fetch('/api/studio/assets/available', {
       cache: 'no-store',
     })
     if (!response.ok) throw new Error('asset-sync-failed')
     const nextAssets = (await response.json()) as StudioAssetOption[]
-    if (!nextAssets.some((asset) => asset.id === assetId)) {
+    if (!nextAssets.some((asset) => asset.id === assetId))
       throw new Error('uploaded-asset-missing')
-    }
     setAssets(nextAssets)
     setPreferredAssetId(assetId)
-    setStep('DETAILS')
   }
-
-  const publishCreatedEpisode = async (): Promise<void> => {
-    if (createdEpisode === undefined) return
+  async function publishCreatedEpisode(): Promise<void> {
+    if (createdEpisode === undefined || publishLock.current) return
+    publishLock.current = true
     setPublishing(true)
     setPublishError(undefined)
     try {
       const response = await fetch(
-        `/api/episodes/${createdEpisode.id}/publish`,
+        '/api/episodes/' + encodeURIComponent(createdEpisode.id) + '/publish',
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -317,150 +319,245 @@ export function WorkCreateFlow({
       )
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => null)
-        const apiError = readApiError(payload)
         setPublishError(
-          apiError?.message ??
-            '공개하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          readApiError(payload)?.message ??
+            '공개하지 못했습니다. 초안은 저장되어 있으니 다시 시도해 주세요.',
         )
         return
       }
       setPublished(true)
     } catch {
-      setPublishError('네트워크 연결을 확인한 뒤 다시 시도해 주세요.')
+      setPublishError(
+        '네트워크 연결을 확인한 뒤 다시 시도해 주세요. 초안은 저장되어 있습니다.',
+      )
     } finally {
+      publishLock.current = false
       setPublishing(false)
     }
   }
-
   return (
-    <section className="studio-create-flow">
-      <StepNav step={step} onSelect={setStep} />
-
-      <div className="studio-create-flow-body">
-        {step === 'WORK' ? (
-          <WorkStep
-            works={workOptions}
-            onSelect={selectWork}
-            onCreated={(created) => {
-              setWorkOptions((current) => [
-                {
-                  id: created.id,
-                  title: created.title,
-                  workType: created.workType,
-                  episodeCount: 0,
-                  updatedAt: new Date().toISOString(),
-                },
-                ...current.filter((option) => option.id !== created.id),
-              ])
-              selectWork(created)
-            }}
-          />
-        ) : null}
-
-        {uploaderOpened ? (
-          // `.studio-create-upload` 의 display 가 hidden 속성을 덮으므로
-          // 숨김은 바깥 래퍼에 둔다.
-          <div hidden={step !== 'UPLOAD'}>
-            <div className="studio-create-upload">
-              <Uploader context="episode" onReady={useUploadedAsset} />
-              {assets.length === 0 ? null : (
-                <button
-                  type="button"
-                  className="studio-create-skip"
-                  onClick={() => {
-                    setStep('DETAILS')
-                  }}
-                >
-                  이미 올린 영상 {assets.length}개 중에서 고르기{' '}
-                  <ArrowRight aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          </div>
-        ) : null}
-
-        {step === 'DETAILS' && work !== undefined ? (
-          <div className="studio-create-details">
-            <p className="studio-create-target" role="status">
-              <Clapperboard aria-hidden="true" />
-              <strong>{work.title}</strong>
-              <span>{workTypeLabel(work.workType)}</span>
-            </p>
-            {assets.length === 0 ? (
-              <div className="studio-asset-picker-empty">
-                <strong>연결할 준비 완료 영상이 없습니다</strong>
-                <p>업로드와 변환이 끝나면 이곳에서 바로 선택할 수 있습니다.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('UPLOAD')
-                  }}
-                >
-                  영상 업로드로 이동
-                </button>
+    <section
+      className="studio-registration-layout"
+      aria-label="시리즈와 영상 등록"
+    >
+      <div className="studio-registration-main">
+        <div hidden={createdEpisode !== undefined}>
+          <section
+            id="registration-series"
+            className="studio-registration-panel"
+            aria-labelledby="registration-series-heading"
+          >
+            <header className="studio-registration-panel-heading">
+              <span>01</span>
+              <div>
+                <h2 id="registration-series-heading">
+                  어떤 시리즈에 등록할까요?
+                </h2>
+                <p>
+                  기존 시리즈를 선택하거나 새 작품의 형식과 이름을 정하세요.
+                </p>
               </div>
-            ) : (
-              <CreateEpisodeForm
-                availableAssets={assets}
-                onCreated={(episode) => {
-                  setCreatedEpisode(episode)
-                  setPublished(false)
-                  setPublishError(undefined)
-                  setStep('COMPLETE')
-                }}
-                {...(preferredAssetId === undefined
-                  ? {}
-                  : { preferredAssetId })}
-                seriesId={work.id}
-                workType={work.workType}
-              />
-            )}
-          </div>
-        ) : null}
-
-        {step === 'COMPLETE' ? (
-          <section className="studio-registration-complete" role="status">
+              {work === undefined ? null : (
+                <CheckCircle2 aria-label="시리즈 선택 완료" />
+              )}
+            </header>
+            <WorkStep
+              works={workOptions}
+              onSelect={setWork}
+              selectedId={work?.id}
+              onWorkTypeChange={setNewWorkType}
+              onChooseNew={() => {
+                setWork(undefined)
+                setNewWorkType('SERIES')
+              }}
+              onCreated={(created) => {
+                setWorkOptions((current) => [
+                  {
+                    ...created,
+                    episodeCount: 0,
+                    updatedAt: new Date().toISOString(),
+                  },
+                  ...current.filter((option) => option.id !== created.id),
+                ])
+                setWork(created)
+              }}
+            />
+          </section>
+          <section
+            id="registration-content"
+            className="studio-registration-panel"
+            aria-labelledby="registration-content-heading"
+          >
+            <header className="studio-registration-panel-heading">
+              <span>02</span>
+              <div>
+                <h2 id="registration-content-heading">
+                  영상과 정보를 준비해 주세요
+                </h2>
+                <p>입력 중 시리즈를 바꿔도 작성 내용과 업로드는 유지됩니다.</p>
+              </div>
+            </header>
+            <CreateEpisodeForm
+              formId="studio-registration-episode"
+              seriesId={work?.id ?? ''}
+              workType={work?.workType ?? newWorkType}
+              availableAssets={assets}
+              hideFooter
+              onDraftChange={onDraftChange}
+              onBusyChange={setRegistering}
+              {...(preferredAssetId === undefined ? {} : { preferredAssetId })}
+              mediaTools={
+                <details
+                  className="studio-registration-upload"
+                  open={assets.length === 0}
+                >
+                  <summary>
+                    새 영상 업로드 <span>기존 영상을 선택해도 됩니다</span>
+                  </summary>
+                  <Uploader context="episode" onReady={useUploadedAsset} />
+                </details>
+              }
+              onCreated={(episode) => {
+                setCreatedEpisode(episode)
+                setPublished(false)
+                setPublishError(undefined)
+                setAssets((current) =>
+                  current.filter((asset) => asset.id !== draft.assetId),
+                )
+                setPreferredAssetId(undefined)
+              }}
+            />
+          </section>
+        </div>
+        {createdEpisode === undefined ? null : (
+          <section
+            className="studio-registration-complete"
+            aria-labelledby="registration-complete-heading"
+          >
             <CheckCircle2 aria-hidden="true" />
-            <span>REGISTRATION COMPLETE</span>
-            <h2>
+            <span>{published ? 'PUBLISHED' : 'DRAFT SAVED'}</span>
+            <h2 id="registration-complete-heading">
               {published
                 ? '영상 공개가 완료되었습니다'
-                : '영상 등록이 완료되었습니다'}
+                : '초안으로 안전하게 저장했습니다'}
             </h2>
-            <strong>{createdEpisode?.title}</strong>
+            <strong>{createdEpisode.title}</strong>
             <p>
               {published
-                ? '이제 모든 시청자가 재생 페이지에서 영상을 볼 수 있습니다.'
-                : '시리즈의 콘텐츠 목록에 초안으로 저장했습니다. 지금 공개하거나 목록에서 예약·수정 상태를 이어서 관리할 수 있습니다.'}
+                ? '이제 재생 페이지에서 작품을 확인할 수 있습니다.'
+                : '등록은 끝났습니다. 내용을 확인한 뒤 지금 공개하거나 시리즈 관리에서 이어서 편집하세요.'}
             </p>
             {publishError === undefined ? null : (
-              <small role="alert">{publishError}</small>
+              <p role="alert">{publishError}</p>
             )}
             <div className="studio-registration-actions">
-              {published && createdEpisode !== undefined ? (
+              {published ? (
                 <Button asChild>
-                  <Link href={`/watch/${createdEpisode.id}`}>
+                  <Link href={'/watch/' + createdEpisode.id}>
                     재생 페이지 열기 <ArrowRight aria-hidden="true" />
                   </Link>
                 </Button>
               ) : (
                 <Button
-                  type="button"
                   loading={publishing}
-                  onClick={() => void publishCreatedEpisode()}
+                  onClick={() => {
+                    void publishCreatedEpisode()
+                  }}
                 >
                   지금 공개
                 </Button>
               )}
               {work === undefined ? null : (
                 <Button asChild variant="secondary">
-                  <Link href={`/studio/series/${work.id}`}>시리즈 관리로</Link>
+                  <Link href={'/studio/series/' + work.id}>시리즈 관리로</Link>
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                disabled={publishing}
+                onClick={() => {
+                  setCreatedEpisode(undefined)
+                  setPublished(false)
+                  setPublishError(undefined)
+                }}
+              >
+                다른 영상 계속 등록
+              </Button>
             </div>
           </section>
-        ) : null}
+        )}
       </div>
+      <aside
+        className="studio-registration-summary"
+        aria-labelledby="registration-summary-heading"
+      >
+        <span className="studio-registration-eyebrow">REGISTRATION</span>
+        <h2 id="registration-summary-heading">등록 내용 확인</h2>
+        <p>공개 전까지 초안으로 보관됩니다.</p>
+        <div className="studio-registration-progress">
+          <span>
+            {createdEpisode === undefined ? completeCount : 4} / 4 준비 완료
+          </span>
+          <progress
+            max={4}
+            value={createdEpisode === undefined ? completeCount : 4}
+            aria-label="등록 준비 상태"
+          />
+        </div>
+        <ol>
+          {checks.map((check) => (
+            <li
+              key={check.label}
+              data-complete={check.done || createdEpisode !== undefined}
+            >
+              <CheckCircle2 aria-hidden="true" />
+              <div>
+                <strong>{check.label}</strong>
+                <span>
+                  {createdEpisode === undefined
+                    ? check.value
+                    : check.label === '영상 제목'
+                      ? createdEpisode.title
+                      : '확인 완료'}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
+        {work === undefined ? null : (
+          <div className="studio-registration-format">
+            <Clapperboard aria-hidden="true" />
+            {workTypeLabel(work.workType)}
+            <span>
+              {draft.ageRating === 'ALL'
+                ? '전체 관람가'
+                : draft.ageRating.slice(1) + '세 이상'}
+            </span>
+          </div>
+        )}
+        {createdEpisode === undefined ? (
+          <>
+            <Button
+              form="studio-registration-episode"
+              type="submit"
+              disabled={completeCount < 4 || registering}
+              loading={registering}
+              fullWidth
+            >
+              초안으로 등록 <ArrowRight aria-hidden="true" />
+            </Button>
+            <p className="studio-registration-help">
+              시리즈 생성과 영상 등록은 별도로 저장됩니다. 등록 버튼을 눌러도
+              바로 공개되지 않습니다.
+            </p>
+          </>
+        ) : (
+          <p role="status" className="studio-registration-saved">
+            <CheckCircle2 aria-hidden="true" />
+            {published ? '공개 완료' : '초안 저장 완료'}
+          </p>
+        )}
+      </aside>
     </section>
   )
 }

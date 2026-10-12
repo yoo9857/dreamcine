@@ -90,7 +90,7 @@ describe('getFeed', () => {
       isLiked: true,
     })
     expect(deps.writeCache).toHaveBeenCalledWith(
-      'feed:popular:20',
+      'feed:v2:popular:20',
       expect.any(String),
       60,
     )

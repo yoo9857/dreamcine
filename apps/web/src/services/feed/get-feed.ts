@@ -216,7 +216,7 @@ export async function getFeed(
   }
 
   const cacheable = query.cursor === undefined
-  const key = `feed:${query.type}:${String(query.limit)}`
+  const key = `feed:v2:${query.type}:${String(query.limit)}`
   let page = cacheable ? await readCached(key, dependencies) : null
   if (page === null) {
     const fetched = await dependencies[query.type]({

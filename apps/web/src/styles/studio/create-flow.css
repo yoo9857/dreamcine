@@ -251,3 +251,377 @@
 .studio-page-note a {
   color: var(--aidream-accent);
 }
+
+/* 등록 항목을 같은 페이지에 유지한다. 업로더는 성공 화면에서도 해제하지 않는다. */
+.studio-registration-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 288px;
+  align-items: start;
+  gap: 24px;
+}
+.studio-registration-main,
+.studio-registration-main > div {
+  min-width: 0;
+}
+.studio-registration-main [hidden] {
+  display: none;
+}
+.studio-registration-panel {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 12px;
+  background: var(--aidream-bg-elevated);
+}
+.studio-registration-panel + .studio-registration-panel {
+  margin-top: 20px;
+}
+.studio-registration-panel-heading {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.studio-registration-panel-heading > span {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--aidream-bg-overlay);
+  color: var(--aidream-fg-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.studio-registration-panel-heading h2 {
+  margin: 0;
+  color: var(--aidream-fg);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.studio-registration-panel-heading p {
+  margin: 6px 0 0;
+  color: var(--aidream-fg-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.studio-registration-panel-heading > svg {
+  margin-left: auto;
+  width: 18px;
+  color: var(--aidream-success);
+  flex-shrink: 0;
+}
+.studio-registration-layout .studio-work-mode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.studio-registration-layout .studio-work-mode span {
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+.studio-registration-layout .studio-work-mode strong {
+  font-size: 12px;
+}
+.studio-registration-layout .studio-work-mode small {
+  font-size: 10px;
+  line-height: 1.6;
+}
+.studio-registration-layout .studio-work-mode svg {
+  display: none;
+}
+.studio-registration-layout .studio-work-picker {
+  max-height: 240px;
+}
+.studio-registration-layout .studio-work-picker button {
+  border-radius: 8px;
+}
+.studio-registration-layout .studio-work-picker button[aria-pressed='true'] {
+  border-color: var(--aidream-accent);
+  background: var(--aidream-accent-subtle);
+}
+.studio-registration-layout
+  .studio-work-picker
+  button[aria-pressed='true']
+  > svg {
+  color: var(--aidream-accent);
+}
+.studio-registration-layout .studio-series-form {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.studio-registration-layout .studio-work-type-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.studio-registration-layout .studio-work-type-grid label > span {
+  padding: 0;
+  border-radius: 8px;
+}
+.studio-registration-layout .studio-work-type-grid small {
+  font-size: 10px;
+  line-height: 1.6;
+}
+.studio-registration-layout .studio-episode-form {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  gap: 24px;
+  background: transparent;
+}
+.studio-registration-layout .studio-episode-media-workspace {
+  grid-row: 1;
+  margin: 0;
+  padding: 0 0 24px;
+  border: 0;
+  border-bottom: 1px solid var(--aidream-border-subtle);
+}
+.studio-registration-layout .studio-episode-form-main {
+  padding: 0;
+  min-width: 0;
+}
+.studio-registration-layout .studio-episode-form-heading > span {
+  display: none;
+}
+.studio-registration-layout .studio-episode-form-heading h3 {
+  font-size: 13px;
+}
+.studio-registration-layout .studio-episode-form-heading p {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.studio-registration-layout .studio-episode-identity-grid {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+.studio-registration-layout .studio-episode-identity-grid > :last-child {
+  grid-column: 1 / -1;
+}
+.studio-registration-layout .studio-episode-meta-grid {
+  grid-template-columns: minmax(0, 1fr) 140px;
+}
+.studio-registration-layout .studio-episode-ai-field {
+  grid-column: 1 / -1;
+}
+.studio-registration-layout textarea {
+  min-height: 90px;
+}
+.studio-registration-upload {
+  margin-bottom: 16px;
+  border: 1px dashed var(--aidream-border);
+  border-radius: 9px;
+  background: var(--aidream-bg);
+}
+.studio-registration-upload summary {
+  padding: 14px;
+  font-size: 12px;
+  color: var(--aidream-fg);
+  cursor: pointer;
+}
+.studio-registration-upload summary > span {
+  margin-left: 8px;
+  color: var(--aidream-fg-muted);
+  font-size: 10px;
+}
+.studio-registration-upload > div {
+  padding: 0 14px 14px;
+}
+.studio-registration-summary {
+  position: sticky;
+  top: 86px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 12px;
+  background: var(--aidream-bg-elevated);
+}
+.studio-registration-eyebrow {
+  color: var(--aidream-fg-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+.studio-registration-summary h2 {
+  margin: 7px 0;
+  font-size: 19px;
+  letter-spacing: -0.035em;
+}
+.studio-registration-summary > p {
+  margin: 0;
+  color: var(--aidream-fg-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.studio-registration-progress {
+  display: grid;
+  gap: 8px;
+  margin: 22px 0;
+  color: var(--aidream-fg-secondary);
+  font-size: 11px;
+}
+.studio-registration-progress progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 2px;
+  accent-color: var(--aidream-accent);
+  background: var(--aidream-bg-overlay);
+}
+.studio-registration-progress progress::-webkit-progress-bar {
+  background: var(--aidream-bg-overlay);
+}
+.studio-registration-progress progress::-webkit-progress-value {
+  background: var(--aidream-accent);
+}
+.studio-registration-summary ol {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.studio-registration-summary li {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+.studio-registration-summary li > svg {
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--aidream-fg-muted);
+  opacity: 0.5;
+}
+.studio-registration-summary li[data-complete='true'] > svg {
+  opacity: 1;
+  color: var(--aidream-success);
+}
+.studio-registration-summary li > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.studio-registration-summary li strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+.studio-registration-summary li span {
+  color: var(--aidream-fg-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.studio-registration-format {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 20px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--aidream-border-subtle);
+  color: var(--aidream-fg-secondary);
+  font-size: 11px;
+}
+.studio-registration-format svg {
+  width: 14px;
+}
+.studio-registration-format span {
+  margin-left: auto;
+  color: var(--aidream-fg-muted);
+}
+.studio-registration-summary > button {
+  margin-top: 18px;
+  min-height: 44px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+.studio-registration-summary .studio-registration-help {
+  margin-top: 12px;
+  font-size: 10px;
+}
+.studio-registration-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--aidream-danger-subtle);
+  color: var(--aidream-danger);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.studio-registration-saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 20px;
+}
+.studio-registration-saved svg {
+  width: 16px;
+  color: var(--aidream-success);
+}
+.studio-registration-layout button:focus-visible,
+.studio-registration-layout summary:focus-visible,
+.studio-registration-layout a:focus-visible {
+  outline: 2px solid var(--aidream-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 1150px) {
+  .studio-registration-layout {
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 16px;
+  }
+  .studio-registration-panel {
+    padding: 20px;
+  }
+  .studio-registration-summary {
+    padding: 18px;
+  }
+}
+@media (max-width: 980px) {
+  .studio-registration-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-registration-summary {
+    position: static;
+  }
+  .studio-registration-summary ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .studio-registration-panel {
+    padding: 17px 14px;
+  }
+  .studio-registration-panel-heading h2 {
+    font-size: 15px;
+  }
+  .studio-registration-panel-heading {
+    gap: 9px;
+    margin-bottom: 18px;
+  }
+  .studio-registration-layout .studio-work-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .studio-registration-layout .studio-work-type-grid small {
+    display: none;
+  }
+  .studio-registration-layout .studio-work-mode small {
+    display: none;
+  }
+  .studio-registration-layout .studio-episode-identity-grid,
+  .studio-registration-layout .studio-episode-meta-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-registration-summary ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-registration-upload summary > span {
+    display: block;
+    margin: 5px 0 0;
+  }
+}

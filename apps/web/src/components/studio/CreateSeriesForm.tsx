@@ -3,7 +3,12 @@
 import type { WorkType } from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
 import { useRouter } from 'next/navigation'
-import React, { useState, type ReactNode, type SyntheticEvent } from 'react'
+import React, {
+  useRef,
+  useState,
+  type ReactNode,
+  type SyntheticEvent,
+} from 'react'
 
 import { WORK_TYPE_OPTIONS } from './work-types'
 
@@ -16,6 +21,7 @@ function readWorkType(value: FormDataEntryValue | null): WorkType {
 export function CreateSeriesForm({
   onCreated,
   submitLabel = '시리즈 만들기',
+  onWorkTypeChange,
 }: {
   /**
    * 시리즈를 만든 뒤 이동 대신 호출할 콜백. `/studio/new` 의 단계형 흐름은
@@ -27,15 +33,19 @@ export function CreateSeriesForm({
     workType: WorkType
   }) => void
   readonly submitLabel?: string
+  readonly onWorkTypeChange?: (workType: WorkType) => void
 } = {}): ReactNode {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const submitting = useRef(false)
 
   const submit = async (
     event: SyntheticEvent<HTMLFormElement>,
   ): Promise<void> => {
     event.preventDefault()
+    if (submitting.current) return
+    submitting.current = true
     setBusy(true)
     setError(null)
     const data = new FormData(event.currentTarget)
@@ -58,6 +68,7 @@ export function CreateSeriesForm({
       // 잡지 않으면 버튼이 "만드는 중…" 에서 멈추고 아무 안내도 뜨지 않는다.
       setError('네트워크 연결을 확인한 뒤 다시 시도해 주세요.')
       setBusy(false)
+      submitting.current = false
       return
     }
     // 게이트웨이 오류는 HTML 로 온다. JSON 이 아니면 실패로 다룬다.
@@ -71,6 +82,7 @@ export function CreateSeriesForm({
         '시리즈를 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
       )
       setBusy(false)
+      submitting.current = false
       return
     }
     if (onCreated !== undefined) {
@@ -82,6 +94,7 @@ export function CreateSeriesForm({
         payload.title ?? (typeof submitted === 'string' ? submitted : '')
       onCreated({ id: payload.id, title, workType })
       setBusy(false)
+      submitting.current = false
       return
     }
     router.push(`/studio/series/${payload.id}`)
@@ -104,6 +117,9 @@ export function CreateSeriesForm({
                 name="workType"
                 value={option.value}
                 defaultChecked={option.value === 'SERIES'}
+                onChange={() => {
+                  onWorkTypeChange?.(option.value)
+                }}
               />
               <span>
                 <strong>{option.label}</strong>

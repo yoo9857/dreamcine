@@ -1,11 +1,18 @@
 'use client'
 
-import type { EpisodeResponse, WorkType } from '@aidream/core'
+import {
+  EpisodeResponseSchema,
+  type EpisodeResponse,
+  type WorkType,
+} from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, {
   useMemo,
+  useCallback,
+  useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -15,6 +22,14 @@ import React, {
 import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
 
 import { AiDisclosureField } from './AiDisclosureField'
+import { readApiError } from '@/src/lib/error-messages'
+
+export interface EpisodeDraftSummary {
+  readonly title: string
+  readonly assetId: string
+  readonly aiDisclosure: string
+  readonly ageRating: string
+}
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '길이 확인 중'
@@ -49,18 +64,56 @@ export function CreateEpisodeForm({
   preferredAssetId,
   seriesId,
   workType = 'SERIES',
+  formId,
+  mediaTools,
+  hideFooter = false,
+  onDraftChange,
+  onBusyChange,
 }: {
   readonly availableAssets?: readonly StudioAssetOption[]
   readonly onCreated?: (episode: EpisodeResponse) => void
   readonly preferredAssetId?: string
   readonly seriesId: string
   readonly workType?: WorkType
+  readonly formId?: string
+  readonly mediaTools?: ReactNode
+  readonly hideFooter?: boolean
+  readonly onDraftChange?: (draft: EpisodeDraftSummary) => void
+  readonly onBusyChange?: (busy: boolean) => void
 }): ReactNode {
   const router = useRouter()
   const [aiDisclosure, setAiDisclosure] = useState('')
   const [selectedAssetId, setSelectedAssetId] = useState(preferredAssetId ?? '')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const submitting = useRef(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const reportDraft = useCallback(
+    (assetId?: string): void => {
+      if (formRef.current === null) return
+      const values = new FormData(formRef.current)
+      const read = (name: string, fallback = ''): string => {
+        const value = values.get(name)
+        return typeof value === 'string' ? value : fallback
+      }
+      onDraftChange?.({
+        title: read('title'),
+        assetId: assetId ?? read('assetId'),
+        aiDisclosure: read('aiDisclosure'),
+        ageRating: read('ageRating', 'ALL'),
+      })
+    },
+    [onDraftChange],
+  )
+  useEffect(() => {
+    if (
+      preferredAssetId === undefined ||
+      !availableAssets.some((asset) => asset.id === preferredAssetId)
+    )
+      return
+    setSelectedAssetId(preferredAssetId)
+    reportDraft(preferredAssetId)
+  }, [preferredAssetId, availableAssets, reportDraft])
   const episodic = workType === 'SERIES'
   const shortForm = workType === 'SHORT_FORM'
   const selectedAsset = availableAssets.find(
@@ -76,54 +129,78 @@ export function CreateEpisodeForm({
     event: SyntheticEvent<HTMLFormElement>,
   ): Promise<void> => {
     event.preventDefault()
+    if (submitting.current) return
+    if (seriesId === '') {
+      setError('등록할 시리즈를 먼저 선택하거나 만들어 주세요.')
+      return
+    }
     if (aiDisclosure.trim() === '') {
       setError('AI 제작 표기를 입력해 주세요.')
       return
     }
     setBusy(true)
+    submitting.current = true
+    onBusyChange?.(true)
     setError(null)
     const form = event.currentTarget
     const data = new FormData(form)
     const description = data.get('description')
     const tagsValue = data.get('tags')
-    const response = await fetch('/api/episodes', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        seriesId,
-        seasonNumber: Number(data.get('seasonNumber')),
-        number: Number(data.get('number')),
-        title: data.get('title'),
-        ...(typeof description === 'string' && description !== ''
-          ? { description }
-          : {}),
-        assetId: data.get('assetId'),
-        ageRating: data.get('ageRating'),
-        aiDisclosure,
-        tags: (typeof tagsValue === 'string' ? tagsValue : '')
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-      }),
-    })
-    if (!response.ok) {
+    try {
+      const response = await fetch('/api/episodes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          seriesId,
+          seasonNumber: Number(data.get('seasonNumber')),
+          number: Number(data.get('number')),
+          title: data.get('title'),
+          ...(typeof description === 'string' && description !== ''
+            ? { description }
+            : {}),
+          assetId: data.get('assetId'),
+          ageRating: data.get('ageRating'),
+          aiDisclosure,
+          tags: (typeof tagsValue === 'string' ? tagsValue : '')
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        }),
+      })
+      if (!response.ok) {
+        const payload: unknown = await response.json().catch(() => null)
+        setError(
+          readApiError(payload)?.message ??
+            '콘텐츠를 만들지 못했습니다. 영상 연결과 회차 정보를 확인해 주세요.',
+        )
+        return
+      }
+      const episode = EpisodeResponseSchema.parse(await response.json())
+      form.reset()
+      setSelectedAssetId('')
+      setAiDisclosure('')
+      router.refresh()
+      onCreated?.(episode)
+      reportDraft('')
+    } catch {
       setError(
-        '콘텐츠를 만들지 못했습니다. 영상 연결과 회차 정보를 확인해 주세요.',
+        '등록 결과를 확인하지 못했습니다. 입력 내용은 유지됩니다. 연결을 확인하고 콘텐츠 목록에서 저장 여부를 확인해 주세요.',
       )
+    } finally {
+      submitting.current = false
       setBusy(false)
-      return
+      onBusyChange?.(false)
     }
-    const episode = (await response.json()) as EpisodeResponse
-    form.reset()
-    setSelectedAssetId('')
-    setAiDisclosure('')
-    setBusy(false)
-    router.refresh()
-    onCreated?.(episode)
   }
 
   return (
     <form
+      id={formId}
+      ref={formRef}
+      aria-busy={busy}
+      onChangeCapture={() => {
+        reportDraft()
+      }}
       onSubmit={(event) => void submit(event)}
       className="studio-episode-form"
     >
@@ -203,7 +280,6 @@ export function CreateEpisodeForm({
               <AiDisclosureField
                 value={aiDisclosure}
                 onChange={setAiDisclosure}
-                {...(error === null ? {} : { error })}
               />
             </div>
           </div>
@@ -218,6 +294,7 @@ export function CreateEpisodeForm({
             <p>{shortForm ? '세로형' : '가로형'} 썸네일 기준으로 확인합니다.</p>
           </div>
         </header>
+        {mediaTools}
         {availableAssets.length === 0 ? (
           <div className="studio-asset-picker-empty">
             <strong>연결할 준비 완료 영상이 없습니다</strong>
@@ -282,14 +359,24 @@ export function CreateEpisodeForm({
         )}
       </aside>
 
-      <footer className="studio-episode-form-footer">
-        <p>
-          추가 후 콘텐츠 목록에서 공개 상태와 세부 정보를 수정할 수 있습니다.
+      {error === null ? null : (
+        <p role="alert" className="studio-registration-error">
+          {error}
         </p>
-        <Button type="submit" disabled={busy || availableAssets.length === 0}>
-          {busy ? '추가 중…' : episodic ? '회차 추가' : '영상 추가'}
-        </Button>
-      </footer>
+      )}
+      {hideFooter ? null : (
+        <footer className="studio-episode-form-footer">
+          <p>
+            추가 후 콘텐츠 목록에서 공개 상태와 세부 정보를 수정할 수 있습니다.
+          </p>
+          <Button
+            type="submit"
+            disabled={busy || availableAssets.length === 0 || seriesId === ''}
+          >
+            {busy ? '추가 중…' : episodic ? '회차 추가' : '영상 추가'}
+          </Button>
+        </footer>
+      )}
     </form>
   )
 }

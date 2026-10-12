@@ -181,6 +181,8 @@ export function listPopularFeed(options: FeedOptions): Promise<Page<FeedRow>> {
       WHERE e.status = 'PUBLISHED'::"EpisodeStatus"
         AND e.deleted_at IS NULL
         AND e.published_at IS NOT NULL
+        AND e.visibility = 'PUBLIC'
+        AND s.visibility = 'PUBLIC'
         AND s.deleted_at IS NULL
         AND creator.deleted_at IS NULL
         AND creator.status = 'ACTIVE'::"UserStatus"
@@ -211,6 +213,8 @@ export function listLatestFeed(options: FeedOptions): Promise<Page<FeedRow>> {
       WHERE e.status = 'PUBLISHED'::"EpisodeStatus"
         AND e.deleted_at IS NULL
         AND e.published_at IS NOT NULL
+        AND e.visibility = 'PUBLIC'
+        AND s.visibility = 'PUBLIC'
         AND s.deleted_at IS NULL
         AND creator.deleted_at IS NULL
         AND creator.status = 'ACTIVE'::"UserStatus"
@@ -251,6 +255,8 @@ export function listFollowingFeed(
       WHERE e.status = 'PUBLISHED'::"EpisodeStatus"
         AND e.deleted_at IS NULL
         AND e.published_at IS NOT NULL
+        AND e.visibility = 'PUBLIC'
+        AND s.visibility = 'PUBLIC'
         AND s.deleted_at IS NULL
         AND creator.deleted_at IS NULL
         AND creator.status = 'ACTIVE'::"UserStatus"

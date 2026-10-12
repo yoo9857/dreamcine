@@ -76,19 +76,18 @@ async function createSeriesAndEpisode(
   userId: string,
   title: string,
 ): Promise<void> {
-  // 시리즈 생성은 `/studio/new` 의 1단계로 흡수됐다. 예전 경로도 여기로 넘어온다.
-  await page.goto('/studio/new')
-  await page.getByLabel('시리즈 제목').fill(title)
-  await page.getByRole('button', { name: '시리즈 만들고 계속' }).click()
-
-  // NOTE: 아래 회차 등록 부분은 이 파일이 작성된 뒤 CreateEpisodeForm 이
-  // 자산 라디오 선택 UI 로 바뀌면서 이미 낡았다 (`준비된 영상 자산 ID`·
-  // `에피소드 제목` 라벨이 현재 UI 에 없다). 통합 등록 흐름에 맞춘 재작성이
-  // 필요하다 — E2E 는 Docker 가 있는 환경에서만 돌릴 수 있다.
   const assetId = await readyAsset(userId)
-  await page.getByLabel('회차').fill('1')
-  await page.getByLabel('에피소드 제목').fill('첫 번째 꿈')
-  await page.getByLabel('준비된 영상 자산 ID').fill(assetId)
+  await page.goto('/studio/new')
+  const newSeries = page.getByRole('radio', { name: /새 시리즈 만들기/u })
+  if (await newSeries.count()) await newSeries.check()
+  await page.getByLabel('시리즈 제목').fill(title)
+  await page.getByRole('button', { name: '이 시리즈로 등록 준비' }).click()
+  await expect(
+    page.getByRole('button', { name: new RegExp(title, 'u') }),
+  ).toHaveAttribute('aria-pressed', 'true')
+  await page.getByLabel('회차', { exact: true }).fill('1')
+  await page.getByLabel('회차 제목').fill('첫 번째 꿈')
+  await page.locator(`input[name="assetId"][value="${assetId}"]`).check()
   await page
     .getByLabel('AI 제작 표기')
     .fill('생성형 AI로 배경과 음향을 제작했습니다.')
@@ -97,9 +96,12 @@ async function createSeriesAndEpisode(
       response.url().endsWith('/api/episodes') &&
       response.request().method() === 'POST',
   )
-  await page.getByRole('button', { name: '회차 추가' }).click()
+  await page.getByRole('button', { name: /초안으로 등록/u }).click()
   expect((await created).status()).toBe(201)
-  await page.reload()
+  await expect(
+    page.getByRole('heading', { name: '초안으로 안전하게 저장했습니다' }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: '시리즈 관리로', exact: true }).click()
   await expect(
     page.getByRole('row').filter({ hasText: '첫 번째 꿈' }),
   ).toBeVisible()

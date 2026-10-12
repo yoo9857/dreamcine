@@ -119,6 +119,29 @@ describe('AiDisclosureField', () => {
 })
 
 describe('CreateEpisodeForm', () => {
+  it('preserves the draft and unlocks submission after a network failure', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('offline'))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<CreateEpisodeForm seriesId="series_1" />)
+    const title = screen.getByRole('textbox', { name: '회차 제목' })
+    fireEvent.change(title, { target: { value: '저장할 이야기' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'AI 제작 표기' }), {
+      target: { value: 'AI 배경 사용' },
+    })
+    const form = title.closest('form')
+    if (form === null) throw new Error('missing episode form')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+    await screen.findByRole('alert')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(title).toHaveProperty('value', '저장할 이야기')
+    expect(form.getAttribute('aria-busy')).toBe('false')
+    fireEvent.submit(form)
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('blocks submission before the API when AI disclosure is empty', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

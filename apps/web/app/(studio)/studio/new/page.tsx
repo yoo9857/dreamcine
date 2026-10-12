@@ -27,8 +27,8 @@ export default async function StudioCreatePage(): Promise<ReactNode> {
           <span>CREATE</span>
           <h1>시리즈 등록</h1>
           <p>
-            시리즈를 고르고, 영상을 올리고, 회차 정보를 채우는 세 단계로
-            끝납니다. 업로드한 영상은 이 화면을 닫아도 변환이 계속됩니다.
+            시리즈, 영상, 공개 정보를 한곳에서 준비하세요. 등록 내용은 초안으로
+            저장되며, 확인 후 공개할 수 있습니다.
           </p>
         </div>
       </header>
