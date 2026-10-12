@@ -392,7 +392,24 @@
   max-height: 240px;
 }
 .studio-registration-layout .studio-work-picker button {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 8px;
+  padding: 10px;
   border-radius: 8px;
+}
+.studio-registration-layout .studio-work-picker .studio-series-poster {
+  width: 32px;
+  height: 40px;
+}
+.studio-registration-layout .studio-work-picker-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+.studio-registration-layout .studio-work-picker-flag {
+  display: none;
 }
 .studio-registration-layout .studio-work-picker button[aria-pressed='true'] {
   border-color: var(--aidream-accent);

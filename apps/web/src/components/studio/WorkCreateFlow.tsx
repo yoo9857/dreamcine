@@ -85,7 +85,7 @@ function WorkRow({
         </span>
         <span className="studio-work-picker-text">
           {/* 제목이 먼저다. 크리에이터는 형식이 아니라 이름으로 찾는다. */}
-          <strong>{work.title}</strong>
+          <strong title={work.title}>{work.title}</strong>
           <small>
             {workTypeLabel(work.workType)} ·{' '}
             {empty ? '아직 영상 없음' : `${String(work.episodeCount)}편`}
