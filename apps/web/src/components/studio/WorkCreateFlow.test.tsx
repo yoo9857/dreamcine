@@ -150,6 +150,24 @@ describe('WorkCreateFlow wizard', () => {
       screen.getByRole('button', { name: /초안으로 등록/u }),
     ).toHaveProperty('disabled', true)
   })
+
+  it('keeps the clicked continue button separate from the submit button when returning to completed details', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    prepare()
+    fillDetails()
+    fireEvent.click(screen.getByRole('button', { name: /^2\. 영상 준비/u }))
+    const next = screen.getByRole<HTMLButtonElement>('button', {
+      name: '다음 · 정보 입력',
+    })
+    expect(next.type).toBe('button')
+    fireEvent.click(next)
+    expect(document.contains(next)).toBe(false)
+    expect(next.type).toBe('button')
+    expect(next.hasAttribute('form')).toBe(false)
+    expect(screen.getByRole('button', { name: /초안으로 등록/u })).not.toBe(
+      next,
+    )
+  })
   it('preserves title, tools, media selection and mounted upload when going back and forward', () => {
     render(
       <WorkCreateFlow

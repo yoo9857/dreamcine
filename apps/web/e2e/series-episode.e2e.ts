@@ -77,6 +77,11 @@ async function createSeriesAndEpisode(
   title: string,
 ): Promise<void> {
   const assetId = await readyAsset(userId)
+  let createRequests = 0
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/episodes') && request.method() === 'POST')
+      createRequests += 1
+  })
   await page.goto('/studio/new')
   const newSeries = page.getByRole('radio', { name: /새 시리즈 만들기/u })
   if (await newSeries.count())
@@ -93,6 +98,21 @@ async function createSeriesAndEpisode(
   await page
     .getByLabel('AI 제작 표기')
     .fill('생성형 AI로 배경과 음향을 제작했습니다.')
+  await page.getByRole('button', { name: '2. 영상 준비', exact: true }).click()
+  await page.getByRole('button', { name: '다음 · 정보 입력' }).click()
+  await expect(page.getByLabel('회차 제목')).toHaveValue('첫 번째 꿈')
+  await expect(page.getByLabel('AI 제작 표기')).toHaveValue(
+    '생성형 AI로 배경과 음향을 제작했습니다.',
+  )
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => {
+          resolve()
+        }),
+      ),
+  )
+  expect(createRequests).toBe(0)
   const created = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/episodes') &&
@@ -100,6 +120,7 @@ async function createSeriesAndEpisode(
   )
   await page.getByRole('button', { name: /초안으로 등록/u }).click()
   expect((await created).status()).toBe(201)
+  expect(createRequests).toBe(1)
   await expect(
     page.getByRole('heading', { name: '초안으로 안전하게 저장했습니다' }),
   ).toBeVisible()

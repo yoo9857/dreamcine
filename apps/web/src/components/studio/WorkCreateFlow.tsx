@@ -587,6 +587,7 @@ export function WorkCreateFlow({
                 </Button>
               )}
               <Button
+                type="button"
                 variant="ghost"
                 disabled={publishing}
                 onClick={() => {
@@ -621,6 +622,8 @@ export function WorkCreateFlow({
           <div className="studio-wizard-footer-actions">
             {step === 1 ? null : (
               <Button
+                key="previous"
+                type="button"
                 variant="ghost"
                 disabled={locked}
                 onClick={() => {
@@ -632,6 +635,7 @@ export function WorkCreateFlow({
             )}
             {step === 3 ? (
               <Button
+                key="register"
                 form="studio-registration-episode"
                 type="submit"
                 disabled={!canRegister || locked}
@@ -641,8 +645,11 @@ export function WorkCreateFlow({
               </Button>
             ) : (
               <Button
+                key="continue"
+                type="button"
                 disabled={!canContinue || locked}
-                onClick={() => {
+                onClick={(event) => {
+                  event.preventDefault()
                   setStep(step === 1 ? 2 : 3)
                 }}
               >
