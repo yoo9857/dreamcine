@@ -1,0 +1,348 @@
+/* 단계 이동은 DOM을 유지한다. 숨긴 입력·업로더를 CSS가 다시 노출하지 않는다. */
+.studio-task-page:has(.studio-wizard) {
+  min-width: 0;
+}
+.studio-task-page:has(.studio-wizard) > .studio-page-header {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+}
+.studio-registration-layout.studio-wizard {
+  display: block;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  min-width: 0;
+}
+.studio-wizard [hidden] {
+  display: none !important;
+}
+.studio-wizard-steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.studio-wizard-steps button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 76px;
+  padding: 14px 18px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 12px;
+  text-align: left;
+  color: var(--aidream-fg-secondary);
+  background: var(--aidream-bg-elevated);
+  cursor: pointer;
+  transition:
+    border-color 180ms,
+    background 180ms;
+}
+.studio-wizard-steps button[aria-current='step'] {
+  border-color: var(--aidream-accent);
+  background: var(--aidream-accent-subtle);
+  color: var(--aidream-fg);
+}
+.studio-wizard-steps button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.studio-wizard-step-number {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--aidream-border);
+  border-radius: 50%;
+  font-size: 12px;
+}
+[aria-current='step'] .studio-wizard-step-number {
+  background: var(--aidream-accent);
+  border-color: var(--aidream-accent);
+  color: white;
+}
+.studio-wizard-step-number svg {
+  width: 18px;
+  color: var(--aidream-success);
+}
+.studio-wizard-steps strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.studio-wizard-steps small {
+  display: block;
+  margin-top: 4px;
+  color: var(--aidream-fg-muted);
+  font-size: 11px;
+}
+.studio-wizard-heading {
+  margin: 32px 0 24px;
+}
+.studio-wizard-heading > span {
+  color: var(--aidream-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.studio-wizard-heading h2 {
+  margin: 10px 0;
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  scroll-margin-top: 100px;
+  overflow-wrap: anywhere;
+}
+.studio-wizard-heading h2:focus {
+  outline: none;
+}
+.studio-wizard-heading p {
+  margin: 0;
+  color: var(--aidream-fg-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.studio-wizard-context {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--aidream-border-subtle);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.studio-wizard-context > span {
+  color: var(--aidream-fg-muted);
+}
+.studio-wizard-context strong {
+  min-width: 0;
+  max-width: 35%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.studio-wizard-context button {
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--aidream-bg-overlay);
+  color: var(--aidream-fg-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.studio-wizard .studio-registration-main > div:not([hidden]) {
+  display: block;
+}
+.studio-wizard #registration-series.studio-registration-panel,
+.studio-wizard #registration-content.studio-registration-panel {
+  margin: 0;
+  padding: 28px;
+}
+.studio-wizard .studio-registration-panel-heading,
+.studio-wizard .studio-episode-form-heading {
+  display: none;
+}
+.studio-wizard #registration-series .studio-work-mode small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.6;
+}
+.studio-wizard #registration-series .studio-work-mode span {
+  padding: 18px;
+}
+.studio-wizard #registration-series .studio-work-mode strong {
+  font-size: 14px;
+}
+.studio-wizard #registration-series .studio-series-form {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.studio-wizard #registration-series .studio-series-primary {
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 20px;
+}
+.studio-wizard #registration-series .studio-series-form > button {
+  width: auto;
+  justify-self: end;
+}
+.studio-wizard .studio-work-picker {
+  max-height: 350px;
+}
+.studio-wizard .studio-work-picker button {
+  grid-template-columns: 40px minmax(0, 1fr) 20px;
+  gap: 14px;
+  padding: 14px;
+}
+.studio-wizard .studio-work-picker-text strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.studio-wizard .studio-work-picker-text small {
+  font-size: 12px;
+}
+.studio-wizard .studio-episode-form {
+  display: block;
+}
+.studio-wizard .studio-episode-form-main,
+.studio-wizard .studio-episode-media-workspace {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+.studio-wizard .studio-episode-identity-grid {
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 20px;
+}
+.studio-wizard .studio-episode-identity-grid > :last-child {
+  grid-column: auto;
+}
+.studio-wizard .studio-registration-upload {
+  margin-bottom: 20px;
+}
+.studio-wizard .studio-asset-choice-list {
+  max-height: 300px;
+}
+.studio-wizard .studio-ai-tool-options {
+  gap: 8px;
+}
+.studio-wizard .studio-ai-tool-options button {
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 12px;
+}
+.studio-wizard .studio-ai-tools legend {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.studio-wizard-footer {
+  position: sticky;
+  bottom: 16px;
+  z-index: 30;
+  background: var(--aidream-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--aidream-border-subtle);
+}
+.studio-wizard-footer-note strong,
+.studio-wizard-footer-note span {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+.studio-wizard-footer-note span {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--aidream-fg-muted);
+}
+.studio-wizard-footer-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.studio-wizard-footer-actions button {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .studio-wizard .studio-registration-panel:not([hidden]) {
+    animation: studio-step-enter 180ms ease-out;
+  }
+  @keyframes studio-step-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+@media (max-width: 600px) {
+  .studio-wizard-steps ol {
+    gap: 6px;
+  }
+  .studio-wizard-steps button {
+    min-height: 68px;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 4px;
+    border-radius: 8px;
+  }
+  .studio-wizard-step-number {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  .studio-wizard-steps strong {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .studio-wizard-steps small {
+    display: none;
+  }
+  .studio-wizard-heading {
+    margin: 24px 0 20px;
+  }
+  .studio-wizard #registration-series.studio-registration-panel,
+  .studio-wizard #registration-content.studio-registration-panel {
+    padding: 20px 16px;
+  }
+  .studio-wizard #registration-series .studio-series-primary,
+  .studio-wizard .studio-episode-identity-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .studio-wizard #registration-series .studio-work-mode span {
+    padding: 12px;
+  }
+  .studio-wizard #registration-series .studio-work-mode strong {
+    font-size: 12px;
+  }
+  .studio-wizard #registration-series .studio-work-mode small {
+    display: none;
+  }
+  .studio-wizard .studio-work-picker button {
+    padding: 12px 8px;
+    gap: 10px;
+  }
+  .studio-wizard-context {
+    padding: 10px;
+    gap: 6px 8px;
+  }
+  .studio-wizard-context strong {
+    max-width: 50%;
+  }
+  .studio-wizard-footer {
+    position: fixed;
+    bottom: calc(62px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    z-index: 40;
+    margin: 0;
+    padding: 12px 16px;
+    background: var(--aidream-bg-elevated);
+    border-top: 1px solid var(--aidream-border);
+  }
+  .studio-wizard-footer-note {
+    display: none;
+  }
+  .studio-wizard-footer-actions {
+    width: 100%;
+  }
+  .studio-wizard-footer-actions button:last-child {
+    flex: 1;
+  }
+}

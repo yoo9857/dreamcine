@@ -15,6 +15,7 @@ import '@/src/styles/studio/dashboard.css'
 import '@/src/styles/studio/series.css'
 import '@/src/styles/studio/media.css'
 import '@/src/styles/studio/create-flow.css'
+import '@/src/styles/studio/create-wizard.css'
 
 /**
  * 스튜디오 전 화면의 권한 경계.

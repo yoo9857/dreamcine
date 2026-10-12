@@ -27,8 +27,8 @@ export default async function StudioCreatePage(): Promise<ReactNode> {
           <span>CREATE</span>
           <h1>시리즈 등록</h1>
           <p>
-            시리즈, 영상, 공개 정보를 한곳에서 준비하세요. 등록 내용은 초안으로
-            저장되며, 확인 후 공개할 수 있습니다.
+            작품 선택부터 영상 등록까지, 세 단계로 간결하게. 등록 후 확인하고
+            공개할 수 있습니다.
           </p>
         </div>
       </header>

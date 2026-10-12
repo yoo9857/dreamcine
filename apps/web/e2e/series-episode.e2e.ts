@@ -84,11 +84,12 @@ async function createSeriesAndEpisode(
   await page.getByLabel('시리즈 제목').fill(title)
   await page.getByRole('button', { name: '이 시리즈로 등록 준비' }).click()
   await expect(
-    page.getByRole('button', { name: new RegExp(title, 'u') }),
-  ).toHaveAttribute('aria-pressed', 'true')
+    page.getByRole('heading', { name: '이야기를 담은 영상을 준비하세요' }),
+  ).toBeVisible()
+  await page.locator(`input[name="assetId"][value="${assetId}"]`).check()
+  await page.getByRole('button', { name: '다음 · 정보 입력' }).click()
   await page.getByLabel('회차', { exact: true }).fill('1')
   await page.getByLabel('회차 제목').fill('첫 번째 꿈')
-  await page.locator(`input[name="assetId"][value="${assetId}"]`).check()
   await page
     .getByLabel('AI 제작 표기')
     .fill('생성형 AI로 배경과 음향을 제작했습니다.')

@@ -63,25 +63,82 @@ const ASSET: StudioAssetOption = {
 }
 
 beforeEach(() => {
+  Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  })
   router.refresh.mockReset()
   router.push.mockReset()
   uploaderLifecycle.unmount.mockReset()
 })
 
 afterEach(() => {
+  Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
   cleanup()
   vi.unstubAllGlobals()
 })
 
-describe('WorkCreateFlow', () => {
-  it('accepts a selected AI tool without requiring a narrative and synchronizes the summary', () => {
+function nextMedia(): void {
+  fireEvent.click(screen.getByRole('button', { name: /다음 · 영상 준비/u }))
+}
+function nextDetails(): void {
+  fireEvent.click(screen.getByRole('radio', { name: /episode.mp4/u }))
+  fireEvent.click(screen.getByRole('button', { name: /다음 · 정보 입력/u }))
+}
+function prepare(): void {
+  fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+  nextMedia()
+  nextDetails()
+}
+function fillDetails(): void {
+  fireEvent.change(screen.getByRole('textbox', { name: '회차 제목' }), {
+    target: { value: '새로운 회차' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+}
+describe('WorkCreateFlow wizard', () => {
+  it('starts with only the first step visible and guards future steps', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    expect(
+      screen.getByRole('navigation', { name: '시리즈 등록 단계' }),
+    ).toBeTruthy()
+    expect(
+      screen
+        .getByRole('button', { name: /작품 선택/u })
+        .getAttribute('aria-current'),
+    ).toBe('step')
+    expect(
+      screen.getByRole('button', { name: /다음 · 영상 준비/u }),
+    ).toHaveProperty('disabled', true)
+    expect(
+      screen.getByRole('button', { name: /^2\. 영상 준비/u }),
+    ).toHaveProperty('disabled', true)
+    expect(screen.queryByRole('textbox', { name: '회차 제목' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: /episode.mp4/u })).toBeNull()
+    expect(screen.queryByRole('button', { name: /초안으로 등록/u })).toBeNull()
+  })
+  it('moves through three guarded steps and focuses the new heading', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
-    fireEvent.click(screen.getByRole('radio', { name: /episode.mp4/u }))
-    fireEvent.change(screen.getByRole('textbox', { name: '회차 제목' }), {
-      target: { value: '도구로 제작한 회차' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+    nextMedia()
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: '이야기를 담은 영상을 준비하세요' }),
+    )
+    expect(
+      screen.getByRole('button', { name: /다음 · 정보 입력/u }),
+    ).toHaveProperty('disabled', true)
+    expect(screen.queryByRole('textbox', { name: '회차 제목' })).toBeNull()
+    nextDetails()
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: '작품을 소개해 주세요' }),
+    )
+    expect(screen.queryByRole('radio', { name: /episode.mp4/u })).toBeNull()
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
+  })
+  it('accepts AI tool selection without narrative and updates submission eligibility', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    prepare()
+    fillDetails()
     expect(
       screen.getByRole('button', { name: /초안으로 등록/u }),
     ).toHaveProperty('disabled', false)
@@ -93,10 +150,50 @@ describe('WorkCreateFlow', () => {
       screen.getByRole('button', { name: /초안으로 등록/u }),
     ).toHaveProperty('disabled', true)
   })
-
-  it('locks the destination and draft fields while saving, then restores them after failure', async () => {
+  it('preserves title, tools, media selection and mounted upload when going back and forward', () => {
+    render(
+      <WorkCreateFlow
+        works={[WORK, { ...WORK, id: 'other', title: '다른 꿈' }]}
+        availableAssets={[ASSET]}
+      />,
+    )
+    prepare()
+    fillDetails()
+    fireEvent.click(screen.getByRole('button', { name: /작품 선택/u }))
+    fireEvent.click(screen.getByRole('button', { name: /다른 꿈/u }))
+    nextMedia()
+    expect(screen.getByRole('radio', { name: /episode.mp4/u })).toHaveProperty(
+      'checked',
+      true,
+    )
+    nextDetails()
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toHaveProperty(
+      'value',
+      '새로운 회차',
+    )
+    expect(
+      screen
+        .getByRole('button', { name: 'Runway' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
+  })
+  it('does not submit an episode through Enter while on the media step', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    nextMedia()
+    const form = screen
+      .getByRole('radio', { name: /episode.mp4/u })
+      .closest('form')
+    if (form === null) throw Error('missing form')
+    fireEvent.submit(form)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+  it('locks navigation and inputs while saving then restores the draft and focus on failure', async () => {
     let fail: (reason: Error) => void = () => {
-      throw new Error('missing request')
+      throw Error('missing request')
     }
     const fetchMock = vi.fn(
       () =>
@@ -105,205 +202,76 @@ describe('WorkCreateFlow', () => {
         }),
     )
     vi.stubGlobal('fetch', fetchMock)
-    render(
-      <WorkCreateFlow
-        works={[WORK, { ...WORK, id: 'other', title: '다른 꿈' }]}
-        availableAssets={[ASSET]}
-      />,
-    )
-    const destination = screen.getByRole('button', { name: /다른 꿈/u })
-    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    prepare()
+    fillDetails()
     const title = screen.getByRole('textbox', { name: '회차 제목' })
-    fireEvent.change(title, { target: { value: '저장 중인 회차' } })
-    fireEvent.change(screen.getByRole('textbox', { name: 'AI 제작 표기' }), {
-      target: { value: 'AI 배경 생성' },
-    })
-    fireEvent.click(screen.getByRole('radio', { name: /episode.mp4/u }))
     const form = title.closest('form')
-    if (form === null) throw new Error('missing episode form')
+    if (form === null) throw Error('missing form')
     fireEvent.submit(form)
     fireEvent.submit(form)
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(destination.closest('fieldset')).toHaveProperty('disabled', true)
-    expect(title.closest('fieldset')).toHaveProperty('disabled', true)
-    expect(screen.getByRole('radio', { name: /episode.mp4/u })).toHaveProperty(
+    expect(screen.getByRole('button', { name: /작품 선택/u })).toHaveProperty(
       'disabled',
       true,
     )
+    expect(screen.getByRole('button', { name: /이전/u })).toHaveProperty(
+      'disabled',
+      true,
+    )
+    expect(title.closest('fieldset')).toHaveProperty('disabled', true)
     fail(new TypeError('offline'))
     const alert = await screen.findByRole('alert')
     expect(document.activeElement).toBe(alert)
-    expect(title).toHaveProperty('value', '저장 중인 회차')
-    expect(destination.closest('fieldset')).toHaveProperty('disabled', false)
-    expect(title.closest('fieldset')).toHaveProperty('disabled', false)
+    expect(title).toHaveProperty('value', '새로운 회차')
     expect(
       screen.getByRole('button', { name: /초안으로 등록/u }),
     ).toHaveProperty('disabled', false)
+    expect(title.closest('fieldset')).toHaveProperty('disabled', false)
   })
-
-  it('preserves the new series draft and its format when switching destinations', () => {
+  it('keeps the new series draft and format when switching modes', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     fireEvent.click(screen.getByRole('radio', { name: /새 시리즈 만들기/u }))
     fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
-      target: { value: '작성 중인 새 작품' },
+      target: { value: '작성 중인 작품' },
     })
     fireEvent.change(screen.getByRole('combobox', { name: '시리즈 형식' }), {
       target: { value: 'FILM' },
     })
-    expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
     fireEvent.click(screen.getByRole('radio', { name: /기존 시리즈에 추가/u }))
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
-    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
     fireEvent.click(screen.getByRole('radio', { name: /새 시리즈 만들기/u }))
     expect(screen.getByRole('textbox', { name: '시리즈 제목' })).toHaveProperty(
       'value',
-      '작성 중인 새 작품',
+      '작성 중인 작품',
     )
     expect(
       screen.getByRole('combobox', { name: '시리즈 형식' }),
     ).toHaveProperty('value', 'FILM')
-    expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /다음 · 영상 준비/u }),
+    ).toHaveProperty('disabled', true)
     expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
   })
-
-  it('clears the previous destination when starting a new series without losing episode inputs', () => {
+  it('clears the old destination for a new series and guards completed steps again', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
-    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
-    const title = screen.getByRole('textbox', { name: '회차 제목' })
-    fireEvent.change(title, { target: { value: '입력 유지' } })
+    prepare()
+    fillDetails()
+    fireEvent.click(screen.getByRole('button', { name: /작품 선택/u }))
     fireEvent.click(screen.getByRole('radio', { name: /새 시리즈 만들기/u }))
-    expect(screen.queryByLabelText('시리즈 선택 완료')).toBeNull()
-    expect(title).toHaveProperty('value', '입력 유지')
     expect(
-      screen.getByRole('button', { name: /초안으로 등록/u }),
+      screen.getByRole('button', { name: /^2\. 영상 준비/u }),
+    ).toHaveProperty('disabled', true)
+    expect(
+      screen.getByRole('button', { name: /^3\. 정보 입력/u }),
     ).toHaveProperty('disabled', true)
   })
-
-  it('shows the entire registration page and keeps submission locked until ready', () => {
-    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
-
-    expect(
-      screen.getByRole('heading', { name: '어떤 시리즈에 등록할까요?' }),
-    ).toBeTruthy()
-    expect(
-      screen.getByRole('heading', { name: '영상과 정보를 준비해 주세요' }),
-    ).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
-    expect(screen.getByRole('radio', { name: /episode.mp4/u })).toBeTruthy()
-    expect(
-      screen
-        .getByRole('button', { name: /초안으로 등록/u })
-        .hasAttribute('disabled'),
-    ).toBe(true)
-    expect(
-      screen.queryByRole('navigation', { name: '시리즈 등록 단계' }),
-    ).toBeNull()
-  })
-
-  it('offers an existing work as the default target when the creator has one', () => {
-    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
-
-    expect(screen.getByRole('button', { name: /첫 번째 꿈/u })).not.toBeNull()
-    expect(screen.getByText('시리즈 · 2편')).not.toBeNull()
-  })
-
-  it('selects a work inline while keeping ready videos and details available', () => {
-    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
-
-    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
-
-    expect(
-      screen
-        .getByRole('button', { name: /첫 번째 꿈/u })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
-    expect(screen.getByTestId('uploader')).toBeTruthy()
-  })
-
-  it('opens upload inline when no video is ready without hiding the fields', () => {
-    render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
-
-    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
-
-    expect(screen.getByTestId('uploader').closest('details')?.open).toBe(true)
-    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
-  })
-
-  it('opens the create form directly for a creator with no works', () => {
+  it('opens creation directly when the creator has no series', () => {
     render(<WorkCreateFlow works={[]} availableAssets={[]} />)
-
-    // 고를 시리즈가 없으면 빈 목록 대신 만들기를 바로 연다.
     expect(screen.queryByRole('radiogroup', { name: '등록할 위치' })).toBeNull()
-    expect(
-      screen.getByRole('button', { name: '이 시리즈로 등록 준비' }),
-    ).not.toBeNull()
+    expect(screen.getByRole('combobox', { name: '시리즈 형식' })).toBeTruthy()
   })
-
-  it('flags a series with no videos, since that is what needs filling', () => {
-    const empty: SeriesResponse = {
-      ...WORK,
-      id: 'series_2',
-      title: '빈 시리즈',
-      episodeCount: 0,
-    }
-    render(<WorkCreateFlow works={[WORK, empty]} availableAssets={[ASSET]} />)
-
-    expect(screen.getByText('비어 있음')).not.toBeNull()
-    expect(screen.getByText('시리즈 · 아직 영상 없음')).not.toBeNull()
-  })
-
-  it('puts the most recently updated series first', () => {
-    const older: SeriesResponse = {
-      ...WORK,
-      id: 'series_old',
-      title: '오래된 시리즈',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    }
-    render(<WorkCreateFlow works={[older, WORK]} availableAssets={[ASSET]} />)
-
-    const rows = screen.getAllByRole('listitem')
-    expect(rows[0]?.textContent).toContain('첫 번째 꿈')
-  })
-
-  it('offers search only once the list is long enough to need it', () => {
-    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
-    expect(screen.queryByLabelText('시리즈 검색')).toBeNull()
-
-    cleanup()
-    const many = Array.from({ length: 7 }, (_, index) => ({
-      ...WORK,
-      id: `series_${String(index)}`,
-      title: `시리즈 ${String(index)}`,
-    }))
-    render(<WorkCreateFlow works={many} availableAssets={[ASSET]} />)
-    expect(screen.getByLabelText('시리즈 검색')).not.toBeNull()
-  })
-
-  it('keeps upload and entered episode details when switching the series', () => {
-    render(
-      <WorkCreateFlow
-        works={[WORK, { ...WORK, id: 'other', title: '다른 꿈' }]}
-        availableAssets={[]}
-      />,
-    )
-    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
-    expect(screen.getByTestId('uploader')).not.toBeNull()
-
-    fireEvent.change(screen.getByRole('textbox', { name: '회차 제목' }), {
-      target: { value: '작성 중인 제목' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /다른 꿈/u }))
-
-    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
-    expect(screen.getByTestId('uploader').closest('[hidden]')).toBeNull()
-    expect(
-      screen.getByRole<HTMLInputElement>('textbox', { name: '회차 제목' })
-        .value,
-    ).toBe('작성 중인 제목')
-  })
-
-  it('selects a newly created series inline without offering accidental recreation', async () => {
+  it('advances after successful series creation without exposing recreation', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() =>
@@ -311,66 +279,85 @@ describe('WorkCreateFlow', () => {
           new Response(
             JSON.stringify({
               ...WORK,
-              id: 'series_new',
+              id: 'new',
               title: '로봇 마을',
-              episodeCount: 0,
+              workType: 'FILM',
             }),
-            { status: 201, headers: { 'content-type': 'application/json' } },
+            { status: 201 },
           ),
         ),
       ),
     )
-    const { container } = render(
-      <WorkCreateFlow works={[]} availableAssets={[ASSET]} />,
-    )
-    const title = container.querySelector('input[name="title"]')
-    const form = title?.closest('form')
-    if (title === null || form === null || form === undefined) {
-      throw new Error('series form is missing')
-    }
+    render(<WorkCreateFlow works={[]} availableAssets={[ASSET]} />)
+    const title = screen.getByRole('textbox', { name: '시리즈 제목' })
     fireEvent.change(title, { target: { value: '로봇 마을' } })
+    const form = title.closest('form')
+    if (form === null) throw Error('missing form')
     fireEvent.submit(form)
-
     await waitFor(() => {
       expect(
-        screen
-          .getByRole('button', { name: /로봇 마을/u })
-          .getAttribute('aria-pressed'),
-      ).toBe('true')
+        screen.getByRole('heading', {
+          name: '이야기를 담은 영상을 준비하세요',
+        }),
+      ).toBeTruthy()
     })
-
-    // 빈 생성 폼이 다시 열리면 같은 이름의 시리즈를 또 만들게 된다.
+    expect(screen.queryByRole('textbox', { name: '시리즈 제목' })).toBeNull()
     expect(
-      screen.queryByRole('button', { name: '이 시리즈로 등록 준비' }),
-    ).toBeNull()
-    expect(screen.getByRole('button', { name: /로봇 마을/u })).not.toBeNull()
+      screen.getByText('로봇 마을', {
+        selector: '.studio-wizard-context strong',
+      }),
+    ).toBeTruthy()
+    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
+    nextDetails()
+    expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
   })
-
-  it('updates the summary and enables one draft submission after all required choices', () => {
-    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
-    fireEvent.change(screen.getByRole('textbox', { name: '회차 제목' }), {
-      target: { value: '신규 회차' },
-    })
-    fireEvent.change(screen.getByRole('textbox', { name: 'AI 제작 표기' }), {
-      target: { value: 'AI로 배경 제작' },
-    })
-    fireEvent.click(screen.getByRole('radio', { name: /episode.mp4/u }))
-    expect(
-      screen
-        .getByRole('button', { name: /초안으로 등록/u })
-        .hasAttribute('disabled'),
-    ).toBe(true)
+  it('shows the upload tools when no video is ready and keeps the next step guarded', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    nextMedia()
+    expect(screen.getByTestId('uploader').closest('details')?.open).toBe(true)
+    expect(
+      screen.getByRole('button', { name: /다음 · 정보 입력/u }),
+    ).toHaveProperty('disabled', true)
+  })
+  it('sorts recent series first and retains long titles in the selection list', () => {
+    render(
+      <WorkCreateFlow
+        works={[
+          {
+            ...WORK,
+            id: 'older',
+            title: '아주 긴 작품 제목을 끝까지 확인합니다',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+          WORK,
+        ]}
+        availableAssets={[]}
+      />,
+    )
+    expect(screen.getAllByRole('listitem')[3]?.textContent).toContain(
+      '첫 번째 꿈',
+    )
     expect(
       screen
-        .getByRole('button', { name: /초안으로 등록/u })
-        .hasAttribute('disabled'),
-    ).toBe(false)
-    expect(screen.getByRole('progressbar').getAttribute('value')).toBe('4')
+        .getByText('아주 긴 작품 제목을 끝까지 확인합니다')
+        .getAttribute('title'),
+    ).toContain('끝까지')
+  })
+  it('filters long series lists without discarding selection', () => {
+    const many = Array.from({ length: 7 }, (_, index) => ({
+      ...WORK,
+      id: 'series_' + String(index),
+      title: '작품 ' + String(index),
+    }))
+    render(<WorkCreateFlow works={many} availableAssets={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /작품 2/u }))
+    fireEvent.change(screen.getByRole('searchbox', { name: '시리즈 검색' }), {
+      target: { value: '작품 6' },
+    })
+    expect(screen.queryByRole('button', { name: /작품 2/u })).toBeNull()
     expect(
-      screen
-        .getByRole('button', { name: /초안으로 등록/u })
-        .getAttribute('form'),
-    ).toBe('studio-registration-episode')
+      screen.getByRole('button', { name: /다음 · 영상 준비/u }),
+    ).toHaveProperty('disabled', false)
   })
 })

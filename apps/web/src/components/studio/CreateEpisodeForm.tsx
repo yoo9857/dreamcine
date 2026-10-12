@@ -69,6 +69,7 @@ export function CreateEpisodeForm({
   hideFooter = false,
   onDraftChange,
   onBusyChange,
+  activeSection,
 }: {
   readonly availableAssets?: readonly StudioAssetOption[]
   readonly onCreated?: (episode: EpisodeResponse) => void
@@ -80,6 +81,7 @@ export function CreateEpisodeForm({
   readonly hideFooter?: boolean
   readonly onDraftChange?: (draft: EpisodeDraftSummary) => void
   readonly onBusyChange?: (busy: boolean) => void
+  readonly activeSection?: 'media' | 'details'
 }): ReactNode {
   const router = useRouter()
   const [aiDisclosure, setAiDisclosure] = useState('')
@@ -134,6 +136,7 @@ export function CreateEpisodeForm({
     event: SyntheticEvent<HTMLFormElement>,
   ): Promise<void> => {
     event.preventDefault()
+    if (activeSection === 'media') return
     if (submitting.current) return
     if (seriesId === '') {
       setError('등록할 시리즈를 먼저 선택하거나 만들어 주세요.')
@@ -214,7 +217,11 @@ export function CreateEpisodeForm({
       onSubmit={(event) => void submit(event)}
       className="studio-episode-form"
     >
-      <fieldset className="studio-episode-form-main" disabled={busy}>
+      <fieldset
+        className="studio-episode-form-main"
+        disabled={busy}
+        hidden={activeSection === 'media'}
+      >
         <section className="studio-episode-form-section">
           <header className="studio-episode-form-heading">
             <span>01</span>
@@ -295,7 +302,10 @@ export function CreateEpisodeForm({
         </details>
       </fieldset>
 
-      <aside className="studio-episode-media-workspace">
+      <aside
+        className="studio-episode-media-workspace"
+        hidden={activeSection === 'details'}
+      >
         <header className="studio-episode-form-heading">
           <span>03</span>
           <div>

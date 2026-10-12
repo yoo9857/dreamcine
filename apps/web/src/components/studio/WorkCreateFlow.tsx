@@ -5,7 +5,7 @@ import { Button } from '@aidream/ui'
 import {
   ArrowRight,
   CheckCircle2,
-  Clapperboard,
+  ArrowLeft,
   Film,
   FolderOpen,
   Plus,
@@ -35,8 +35,7 @@ import { workTypeLabel } from './work-types'
 /**
  * 스튜디오의 단일 등록 진입점.
  *
- * 시리즈 선택, 영상 연결, 상세 입력을 한 페이지에 두고
- * 필수 항목이 준비되면 초안으로 저장한다. 업로더는 선택 변경 중에도 유지한다.
+ * 단계별로 넓은 입력 공간을 제공하고 이전 단계의 DOM과 업로더를 유지한다.
  */
 interface SelectedWork {
   readonly id: string
@@ -245,6 +244,15 @@ export function WorkCreateFlow({
   readonly works: readonly SeriesResponse[]
   readonly availableAssets: readonly StudioAssetOption[]
 }): ReactNode {
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null)
+  const previousStep = useRef(step)
+  useEffect(() => {
+    if (previousStep.current === step) return
+    previousStep.current = step
+    stepHeadingRef.current?.focus({ preventScroll: true })
+    stepHeadingRef.current?.scrollIntoView({ block: 'start' })
+  }, [step])
   const [work, setWork] = useState<SelectedWork>()
   const [newWorkType, setNewWorkType] = useState<WorkType>('SERIES')
   const [workOptions, setWorkOptions] = useState<readonly WorkOption[]>(works)
@@ -272,32 +280,34 @@ export function WorkCreateFlow({
     if (createdEpisode !== undefined) completeHeadingRef.current?.focus()
   }, [createdEpisode])
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId)
-  const checks = [
+  const canContinue =
+    step === 1 ? work !== undefined : selectedAsset !== undefined
+  const canRegister =
+    work !== undefined &&
+    selectedAsset !== undefined &&
+    draft.title.trim() !== '' &&
+    draft.aiDisclosure.trim() !== ''
+  const locked = registering || creatingSeries
+  const steps = [
     {
-      label: '등록할 시리즈',
-      done: work !== undefined,
-      value: work?.title ?? '선택해 주세요',
+      title: '작품 선택',
+      description: '어디에 담을까요?',
+      heading: '어떤 작품에 등록할까요?',
+      hint: '기존 시리즈를 선택하거나 새 작품의 형식과 이름을 정하세요.',
     },
     {
-      label: '재생 영상',
-      done: selectedAsset !== undefined,
-      value: selectedAsset?.fileName ?? '준비된 영상을 선택해 주세요',
+      title: '영상 준비',
+      description: '영상을 연결해요',
+      heading: '이야기를 담은 영상을 준비하세요',
+      hint: '새 영상을 업로드하거나 변환이 완료된 영상을 선택하세요.',
     },
     {
-      label: '영상 제목',
-      done: draft.title.trim() !== '',
-      value: draft.title.trim() || '제목을 입력해 주세요',
+      title: '정보 입력',
+      description: '마지막으로 다듬어요',
+      heading: '작품을 소개해 주세요',
+      hint: '제목과 사용한 AI 도구를 알려주세요. 저장 후 공개할 수 있습니다.',
     },
-    {
-      label: 'AI 제작 표기',
-      done: draft.aiDisclosure.trim() !== '',
-      value:
-        draft.aiDisclosure.trim() !== ''
-          ? draft.aiDisclosure.trim().split('\n')[0]
-          : '도구를 선택하거나 직접 입력해 주세요',
-    },
-  ]
-  const completeCount = checks.filter((check) => check.done).length
+  ] as const
   const useUploadedAsset = async (assetId: string): Promise<void> => {
     const response = await fetch('/api/studio/assets/available', {
       cache: 'no-store',
@@ -343,12 +353,98 @@ export function WorkCreateFlow({
   }
   return (
     <section
-      className="studio-registration-layout"
+      className="studio-registration-layout studio-wizard"
       aria-label="시리즈와 영상 등록"
     >
+      {createdEpisode === undefined ? (
+        <>
+          <nav className="studio-wizard-steps" aria-label="시리즈 등록 단계">
+            <ol>
+              {steps.map((item, index) => {
+                const number = (index + 1) as 1 | 2 | 3
+                const accessible =
+                  number === 1 ||
+                  (work !== undefined &&
+                    (number === 2 || selectedAsset !== undefined))
+                const done =
+                  number === 1
+                    ? work !== undefined
+                    : number === 2
+                      ? selectedAsset !== undefined
+                      : false
+                return (
+                  <li key={item.title}>
+                    <button
+                      type="button"
+                      aria-label={`${String(number)}. ${item.title}`}
+                      aria-current={step === number ? 'step' : undefined}
+                      disabled={locked || !accessible}
+                      onClick={() => {
+                        setStep(number)
+                      }}
+                    >
+                      <span className="studio-wizard-step-number">
+                        {done && step !== number ? (
+                          <CheckCircle2 aria-hidden="true" />
+                        ) : (
+                          number
+                        )}
+                      </span>
+                      <span>
+                        <strong>{item.title}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+          </nav>
+          <header className="studio-wizard-heading">
+            <span>STEP 0{step} / 03</span>
+            <h2 ref={stepHeadingRef} tabIndex={-1}>
+              {steps[step - 1]?.heading}
+            </h2>
+            <p>{steps[step - 1]?.hint}</p>
+          </header>
+          {step === 1 || work === undefined ? null : (
+            <div className="studio-wizard-context">
+              <span>{workTypeLabel(work.workType)}</span>
+              <strong title={work.title}>{work.title}</strong>
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => {
+                  setStep(1)
+                }}
+              >
+                변경
+              </button>
+              {step !== 3 || selectedAsset === undefined ? null : (
+                <>
+                  <span>영상</span>
+                  <strong title={selectedAsset.fileName}>
+                    {selectedAsset.fileName}
+                  </strong>
+                  <button
+                    type="button"
+                    disabled={locked}
+                    onClick={() => {
+                      setStep(2)
+                    }}
+                  >
+                    변경
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      ) : null}
       <div className="studio-registration-main">
         <div hidden={createdEpisode !== undefined}>
           <section
+            hidden={step !== 1}
             id="registration-series"
             className="studio-registration-panel"
             aria-labelledby="registration-series-heading"
@@ -390,11 +486,13 @@ export function WorkCreateFlow({
                     ...current.filter((option) => option.id !== created.id),
                   ])
                   setWork(created)
+                  setStep(2)
                 }}
               />
             </fieldset>
           </section>
           <section
+            hidden={step === 1}
             id="registration-content"
             className="studio-registration-panel"
             aria-labelledby="registration-content-heading"
@@ -409,6 +507,7 @@ export function WorkCreateFlow({
               </div>
             </header>
             <CreateEpisodeForm
+              activeSection={step === 2 ? 'media' : 'details'}
               formId="studio-registration-episode"
               seriesId={work?.id ?? ''}
               workType={work?.workType ?? newWorkType}
@@ -492,6 +591,7 @@ export function WorkCreateFlow({
                 disabled={publishing}
                 onClick={() => {
                   setCreatedEpisode(undefined)
+                  setStep(2)
                   setPublished(false)
                   setPublishError(undefined)
                 }}
@@ -502,84 +602,57 @@ export function WorkCreateFlow({
           </section>
         )}
       </div>
-      <aside
-        className="studio-registration-summary"
-        aria-labelledby="registration-summary-heading"
-      >
-        <span className="studio-registration-eyebrow">REGISTRATION</span>
-        <h2 id="registration-summary-heading">등록 내용 확인</h2>
-        <p>공개 전까지 초안으로 보관됩니다.</p>
-        <div className="studio-registration-progress">
-          <span>
-            {createdEpisode === undefined ? completeCount : 4} / 4 준비 완료
-          </span>
-          <progress
-            max={4}
-            value={createdEpisode === undefined ? completeCount : 4}
-            aria-label="등록 준비 상태"
-          />
-        </div>
-        <details className="studio-registration-review">
-          <summary>선택 내용 상세 보기</summary>
-          <ol>
-            {checks.map((check) => (
-              <li
-                key={check.label}
-                data-complete={check.done || createdEpisode !== undefined}
+      {createdEpisode === undefined ? (
+        <footer className="studio-wizard-footer">
+          <div className="studio-wizard-footer-note">
+            <strong>
+              {step === 3
+                ? '먼저 초안으로 안전하게 저장'
+                : '입력 내용은 단계 이동 중 유지됩니다'}
+            </strong>
+            <span>
+              {step === 1
+                ? '작품을 선택하면 다음 단계로 갈 수 있어요'
+                : step === 2
+                  ? '변환 완료 영상을 선택해 주세요'
+                  : '확인 후 원하는 시점에 공개할 수 있어요'}
+            </span>
+          </div>
+          <div className="studio-wizard-footer-actions">
+            {step === 1 ? null : (
+              <Button
+                variant="ghost"
+                disabled={locked}
+                onClick={() => {
+                  setStep(step === 3 ? 2 : 1)
+                }}
               >
-                <CheckCircle2 aria-hidden="true" />
-                <div>
-                  <strong>{check.label}</strong>
-                  <span>
-                    {createdEpisode === undefined
-                      ? check.value
-                      : check.label === '영상 제목'
-                        ? createdEpisode.title
-                        : '확인 완료'}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ol>
-          {work === undefined ? null : (
-            <div className="studio-registration-format">
-              <Clapperboard aria-hidden="true" />
-              {workTypeLabel(work.workType)}
-              <span>
-                {(createdEpisode?.ageRating ?? draft.ageRating) === 'ALL'
-                  ? '전체 관람가'
-                  : (createdEpisode?.ageRating ?? draft.ageRating).slice(1) +
-                    '세 이상'}
-              </span>
-            </div>
-          )}
-        </details>
-        {createdEpisode === undefined ? (
-          <>
-            <div className="studio-registration-submit-bar">
-              <span>{completeCount} / 4 준비 완료</span>
+                <ArrowLeft aria-hidden="true" /> 이전
+              </Button>
+            )}
+            {step === 3 ? (
               <Button
                 form="studio-registration-episode"
                 type="submit"
-                disabled={completeCount < 4 || registering || creatingSeries}
+                disabled={!canRegister || locked}
                 loading={registering}
-                fullWidth
               >
                 초안으로 등록 <ArrowRight aria-hidden="true" />
               </Button>
-            </div>
-            <p className="studio-registration-help">
-              시리즈 생성과 영상 등록은 별도로 저장됩니다. 등록 버튼을 눌러도
-              바로 공개되지 않습니다.
-            </p>
-          </>
-        ) : (
-          <p role="status" className="studio-registration-saved">
-            <CheckCircle2 aria-hidden="true" />
-            {published ? '공개 완료' : '초안 저장 완료'}
-          </p>
-        )}
-      </aside>
+            ) : (
+              <Button
+                disabled={!canContinue || locked}
+                onClick={() => {
+                  setStep(step === 1 ? 2 : 3)
+                }}
+              >
+                {step === 1 ? '다음 · 영상 준비' : '다음 · 정보 입력'}{' '}
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+        </footer>
+      ) : null}
     </section>
   )
 }
