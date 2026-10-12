@@ -108,6 +108,54 @@ describe('StudioShell', () => {
 })
 
 describe('AiDisclosureField', () => {
+  it('combines selected tools and custom details and preserves them when removing tools', () => {
+    const onChange = vi.fn<(value: string) => void>()
+    const { rerender } = render(
+      <AiDisclosureField value="" onChange={onChange} />,
+    )
+    const refresh = (): void => {
+      rerender(
+        <AiDisclosureField
+          value={onChange.mock.calls.at(-1)?.[0] ?? ''}
+          onChange={onChange}
+        />,
+      )
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+    expect(onChange).toHaveBeenLastCalledWith('사용 도구: Runway')
+    refresh()
+    expect(
+      screen.getByRole('textbox', { name: 'AI 제작 표기' }),
+    ).toHaveProperty('required', false)
+    fireEvent.click(screen.getByRole('button', { name: 'Kling' }))
+    refresh()
+    fireEvent.change(screen.getByRole('textbox', { name: 'AI 제작 표기' }), {
+      target: { value: '직접 만든 도구로 배경 보정' },
+    })
+    expect(onChange).toHaveBeenLastCalledWith(
+      '사용 도구: Runway, Kling\n제작 설명: 직접 만든 도구로 배경 보정',
+    )
+    refresh()
+    fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+    refresh()
+    expect(
+      screen.getByRole('textbox', { name: 'AI 제작 표기' }),
+    ).toHaveProperty('value', '직접 만든 도구로 배경 보정')
+    fireEvent.click(screen.getByRole('button', { name: 'Kling' }))
+    expect(onChange).toHaveBeenLastCalledWith('직접 만든 도구로 배경 보정')
+  })
+
+  it('does not truncate an existing disclosure when adding tools exceeds 500 characters', () => {
+    const onChange = vi.fn()
+    render(<AiDisclosureField value={'가'.repeat(500)} onChange={onChange} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+    expect(screen.getByRole('alert').textContent).toContain('500자')
+    expect(onChange).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('textbox', { name: 'AI 제작 표기' }),
+    ).toHaveProperty('value', '가'.repeat(500))
+  })
+
   it('is required and reports edits to its owner', () => {
     const onChange = vi.fn()
     render(<AiDisclosureField value="" onChange={onChange} />)
@@ -183,6 +231,83 @@ describe('CreateEpisodeForm', () => {
 })
 
 describe('CreateSeriesForm', () => {
+  it('describes the selected format and notifies the single-page editor', () => {
+    const onWorkTypeChange = vi.fn()
+    render(<CreateSeriesForm onWorkTypeChange={onWorkTypeChange} />)
+    const format = screen.getByRole('combobox', { name: '시리즈 형식' })
+    expect(format.querySelectorAll('option')).toHaveLength(6)
+    fireEvent.change(format, { target: { value: 'COMMERCIAL' } })
+    expect(onWorkTypeChange).toHaveBeenCalledWith('COMMERCIAL')
+    expect(
+      document.getElementById(format.getAttribute('aria-describedby') ?? '')
+        ?.textContent,
+    ).toContain('브랜드 필름')
+  })
+
+  it('rejects whitespace-only titles and focuses the explanation', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<CreateSeriesForm />)
+    const title = screen.getByRole('textbox', { name: '시리즈 제목' })
+    fireEvent.change(title, { target: { value: '   ' } })
+    const form = title.closest('form')
+    if (form === null) throw new Error('missing series form')
+    fireEvent.submit(form)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(screen.getByRole('alert'))
+  })
+
+  it('shows the server error and preserves title and format for retry', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'E_AUTH_SESSION_EXPIRED',
+              message: '로그인이 만료되었습니다. 다시 로그인해 주세요.',
+            },
+          }),
+          { status: 401 },
+        ),
+      ),
+    )
+    render(<CreateSeriesForm />)
+    const title = screen.getByRole('textbox', { name: '시리즈 제목' })
+    const format = screen.getByRole('combobox', { name: '시리즈 형식' })
+    fireEvent.change(title, { target: { value: '보존할 제목' } })
+    fireEvent.change(format, { target: { value: 'SHORT_FORM' } })
+    fireEvent.click(screen.getByRole('button', { name: '시리즈 만들기' }))
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      '로그인이 만료',
+    )
+    expect(title).toHaveProperty('value', '보존할 제목')
+    expect(format).toHaveProperty('value', 'SHORT_FORM')
+    expect(format).toHaveProperty('disabled', false)
+  })
+
+  it('rejects a malformed success response without navigating or erasing the draft', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ id: 12, workType: 'UNKNOWN' }), {
+          status: 201,
+        }),
+      ),
+    )
+    const onCreated = vi.fn()
+    render(<CreateSeriesForm onCreated={onCreated} />)
+    const title = screen.getByRole('textbox', { name: '시리즈 제목' })
+    fireEvent.change(title, { target: { value: '보존할 제목' } })
+    fireEvent.click(screen.getByRole('button', { name: '시리즈 만들기' }))
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      '저장 여부',
+    )
+    expect(onCreated).not.toHaveBeenCalled()
+    expect(router.push).not.toHaveBeenCalled()
+    expect(title).toHaveProperty('value', '보존할 제목')
+  })
+
   it('creates a work with the selected film format', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -191,7 +316,9 @@ describe('CreateSeriesForm', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<CreateSeriesForm />)
 
-    fireEvent.click(screen.getByRole('radio', { name: /영화·단편/u }))
+    fireEvent.change(screen.getByRole('combobox', { name: '시리즈 형식' }), {
+      target: { value: 'FILM' },
+    })
     fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
       target: { value: '여름의 마지막 밤' },
     })

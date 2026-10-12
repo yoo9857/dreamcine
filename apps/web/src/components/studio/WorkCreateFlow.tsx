@@ -14,6 +14,7 @@ import {
 import Link from 'next/link'
 import React, {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -111,6 +112,7 @@ function WorkStep({
   selectedId,
   onWorkTypeChange,
   onChooseNew,
+  onBusyChange,
 }: {
   readonly works: readonly WorkOption[]
   readonly onSelect: (work: SelectedWork) => void
@@ -118,6 +120,7 @@ function WorkStep({
   readonly selectedId: string | undefined
   readonly onWorkTypeChange: (workType: WorkType) => void
   readonly onChooseNew: () => void
+  readonly onBusyChange: (busy: boolean) => void
 }): ReactNode {
   // 시리즈가 하나도 없으면 고를 것이 없다. 선택지를 보여주는 대신 바로
   // 만들기로 연다 — 첫 크리에이터에게 빈 목록은 막다른 길로 읽힌다.
@@ -184,55 +187,53 @@ function WorkStep({
         </div>
       )}
 
-      {mode === 'EXISTING' ? (
-        <div className="studio-work-browse">
-          {works.length > SEARCH_THRESHOLD ? (
-            <label className="studio-work-search">
-              <Search aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                placeholder="시리즈 검색"
-                aria-label="시리즈 검색"
-                onChange={(event) => {
-                  setQuery(event.currentTarget.value)
-                }}
+      <div className="studio-work-browse" hidden={mode !== 'EXISTING'}>
+        {works.length > SEARCH_THRESHOLD ? (
+          <label className="studio-work-search">
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              placeholder="시리즈 검색"
+              aria-label="시리즈 검색"
+              onChange={(event) => {
+                setQuery(event.currentTarget.value)
+              }}
+            />
+          </label>
+        ) : null}
+        {visible.length === 0 ? (
+          <p className="studio-work-picker-empty" role="status">
+            “{query}”와 일치하는 시리즈가 없습니다.
+          </p>
+        ) : (
+          <ul className="studio-work-picker" aria-label="내 시리즈">
+            {visible.map((work) => (
+              <WorkRow
+                key={work.id}
+                work={work}
+                onSelect={onSelect}
+                selected={work.id === selectedId}
               />
-            </label>
-          ) : null}
-          {visible.length === 0 ? (
-            <p className="studio-work-picker-empty" role="status">
-              “{query}”와 일치하는 시리즈가 없습니다.
-            </p>
-          ) : (
-            <ul className="studio-work-picker" aria-label="내 시리즈">
-              {visible.map((work) => (
-                <WorkRow
-                  key={work.id}
-                  work={work}
-                  onSelect={onSelect}
-                  selected={work.id === selectedId}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : (
-        <div className="studio-work-new">
-          <CreateSeriesForm
-            submitLabel="이 시리즈로 등록 준비"
-            onWorkTypeChange={onWorkTypeChange}
-            onCreated={(series) => {
-              onCreated({
-                id: series.id,
-                title: series.title,
-                workType: series.workType,
-              })
-              setMode('EXISTING')
-            }}
-          />
-        </div>
-      )}
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="studio-work-new" hidden={mode !== 'NEW'}>
+        <CreateSeriesForm
+          submitLabel="이 시리즈로 등록 준비"
+          onWorkTypeChange={onWorkTypeChange}
+          onBusyChange={onBusyChange}
+          onCreated={(series) => {
+            onCreated({
+              id: series.id,
+              title: series.title,
+              workType: series.workType,
+            })
+            setMode('EXISTING')
+          }}
+        />
+      </div>
     </div>
   )
 }
@@ -260,11 +261,16 @@ export function WorkCreateFlow({
     setDraft(value)
   }, [])
   const [registering, setRegistering] = useState(false)
+  const [creatingSeries, setCreatingSeries] = useState(false)
   const [createdEpisode, setCreatedEpisode] = useState<EpisodeResponse>()
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [publishError, setPublishError] = useState<string>()
   const publishLock = useRef(false)
+  const completeHeadingRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (createdEpisode !== undefined) completeHeadingRef.current?.focus()
+  }, [createdEpisode])
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId)
   const checks = [
     {
@@ -286,9 +292,9 @@ export function WorkCreateFlow({
       label: 'AI 제작 표기',
       done: draft.aiDisclosure.trim() !== '',
       value:
-        draft.aiDisclosure.trim() === ''
-          ? '도구와 제작 범위를 알려주세요'
-          : '입력 완료',
+        draft.aiDisclosure.trim() !== ''
+          ? draft.aiDisclosure.trim().split('\n')[0]
+          : '도구를 선택하거나 직접 입력해 주세요',
     },
   ]
   const completeCount = checks.filter((check) => check.done).length
@@ -361,27 +367,32 @@ export function WorkCreateFlow({
                 <CheckCircle2 aria-label="시리즈 선택 완료" />
               )}
             </header>
-            <WorkStep
-              works={workOptions}
-              onSelect={setWork}
-              selectedId={work?.id}
-              onWorkTypeChange={setNewWorkType}
-              onChooseNew={() => {
-                setWork(undefined)
-                setNewWorkType('SERIES')
-              }}
-              onCreated={(created) => {
-                setWorkOptions((current) => [
-                  {
-                    ...created,
-                    episodeCount: 0,
-                    updatedAt: new Date().toISOString(),
-                  },
-                  ...current.filter((option) => option.id !== created.id),
-                ])
-                setWork(created)
-              }}
-            />
+            <fieldset
+              className="studio-registration-controls"
+              disabled={registering || creatingSeries}
+            >
+              <WorkStep
+                works={workOptions}
+                onSelect={setWork}
+                selectedId={work?.id}
+                onWorkTypeChange={setNewWorkType}
+                onBusyChange={setCreatingSeries}
+                onChooseNew={() => {
+                  setWork(undefined)
+                }}
+                onCreated={(created) => {
+                  setWorkOptions((current) => [
+                    {
+                      ...created,
+                      episodeCount: 0,
+                      updatedAt: new Date().toISOString(),
+                    },
+                    ...current.filter((option) => option.id !== created.id),
+                  ])
+                  setWork(created)
+                }}
+              />
+            </fieldset>
           </section>
           <section
             id="registration-content"
@@ -422,7 +433,7 @@ export function WorkCreateFlow({
                 setPublished(false)
                 setPublishError(undefined)
                 setAssets((current) =>
-                  current.filter((asset) => asset.id !== draft.assetId),
+                  current.filter((asset) => asset.id !== episode.assetId),
                 )
                 setPreferredAssetId(undefined)
               }}
@@ -436,7 +447,11 @@ export function WorkCreateFlow({
           >
             <CheckCircle2 aria-hidden="true" />
             <span>{published ? 'PUBLISHED' : 'DRAFT SAVED'}</span>
-            <h2 id="registration-complete-heading">
+            <h2
+              id="registration-complete-heading"
+              ref={completeHeadingRef}
+              tabIndex={-1}
+            >
               {published
                 ? '영상 공개가 완료되었습니다'
                 : '초안으로 안전하게 저장했습니다'}
@@ -504,48 +519,55 @@ export function WorkCreateFlow({
             aria-label="등록 준비 상태"
           />
         </div>
-        <ol>
-          {checks.map((check) => (
-            <li
-              key={check.label}
-              data-complete={check.done || createdEpisode !== undefined}
-            >
-              <CheckCircle2 aria-hidden="true" />
-              <div>
-                <strong>{check.label}</strong>
-                <span>
-                  {createdEpisode === undefined
-                    ? check.value
-                    : check.label === '영상 제목'
-                      ? createdEpisode.title
-                      : '확인 완료'}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ol>
-        {work === undefined ? null : (
-          <div className="studio-registration-format">
-            <Clapperboard aria-hidden="true" />
-            {workTypeLabel(work.workType)}
-            <span>
-              {draft.ageRating === 'ALL'
-                ? '전체 관람가'
-                : draft.ageRating.slice(1) + '세 이상'}
-            </span>
-          </div>
-        )}
+        <details className="studio-registration-review">
+          <summary>선택 내용 상세 보기</summary>
+          <ol>
+            {checks.map((check) => (
+              <li
+                key={check.label}
+                data-complete={check.done || createdEpisode !== undefined}
+              >
+                <CheckCircle2 aria-hidden="true" />
+                <div>
+                  <strong>{check.label}</strong>
+                  <span>
+                    {createdEpisode === undefined
+                      ? check.value
+                      : check.label === '영상 제목'
+                        ? createdEpisode.title
+                        : '확인 완료'}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {work === undefined ? null : (
+            <div className="studio-registration-format">
+              <Clapperboard aria-hidden="true" />
+              {workTypeLabel(work.workType)}
+              <span>
+                {(createdEpisode?.ageRating ?? draft.ageRating) === 'ALL'
+                  ? '전체 관람가'
+                  : (createdEpisode?.ageRating ?? draft.ageRating).slice(1) +
+                    '세 이상'}
+              </span>
+            </div>
+          )}
+        </details>
         {createdEpisode === undefined ? (
           <>
-            <Button
-              form="studio-registration-episode"
-              type="submit"
-              disabled={completeCount < 4 || registering}
-              loading={registering}
-              fullWidth
-            >
-              초안으로 등록 <ArrowRight aria-hidden="true" />
-            </Button>
+            <div className="studio-registration-submit-bar">
+              <span>{completeCount} / 4 준비 완료</span>
+              <Button
+                form="studio-registration-episode"
+                type="submit"
+                disabled={completeCount < 4 || registering || creatingSeries}
+                loading={registering}
+                fullWidth
+              >
+                초안으로 등록 <ArrowRight aria-hidden="true" />
+              </Button>
+            </div>
             <p className="studio-registration-help">
               시리즈 생성과 영상 등록은 별도로 저장됩니다. 등록 버튼을 눌러도
               바로 공개되지 않습니다.

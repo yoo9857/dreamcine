@@ -1,31 +1,36 @@
 'use client'
 
-import type { WorkType } from '@aidream/core'
+import { SeriesResponseSchema, type WorkType } from '@aidream/core'
 import { Button, Input, Textarea } from '@aidream/ui'
+import { ChevronDown, Clapperboard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, {
   useRef,
+  useId,
+  useEffect,
   useState,
   type ReactNode,
   type SyntheticEvent,
 } from 'react'
 
 import { WORK_TYPE_OPTIONS } from './work-types'
+import { readApiError } from '@/src/lib/error-messages'
 
-/** 폼 값은 문자열이다. 서버 응답에 형식이 없을 때만 쓰는 좁힘 helper. */
-function readWorkType(value: FormDataEntryValue | null): WorkType {
-  const match = WORK_TYPE_OPTIONS.find((option) => option.value === value)
-  return match?.value ?? 'SERIES'
-}
+/** 식별자는 검증하고 기존 최소 응답의 제목·형식은 제출 값으로 보완한다. */
+const createdSeriesSchema = SeriesResponseSchema.pick({
+  id: true,
+  title: true,
+  workType: true,
+}).partial({ title: true, workType: true })
 
 export function CreateSeriesForm({
   onCreated,
   submitLabel = '시리즈 만들기',
   onWorkTypeChange,
+  onBusyChange,
 }: {
   /**
-   * 시리즈를 만든 뒤 이동 대신 호출할 콜백. `/studio/new` 의 단계형 흐름은
-   * 화면을 떠나지 않고 다음 단계로 이어가야 하므로 이 경로를 쓴다.
+   * 시리즈를 만든 뒤 이동 대신 호출할 콜백. 단일 페이지 편집기를 유지한다.
    */
   readonly onCreated?: (series: {
     id: string
@@ -34,118 +39,173 @@ export function CreateSeriesForm({
   }) => void
   readonly submitLabel?: string
   readonly onWorkTypeChange?: (workType: WorkType) => void
+  readonly onBusyChange?: (busy: boolean) => void
 } = {}): ReactNode {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const submitting = useRef(false)
+  const [workType, setWorkType] = useState<WorkType>('SERIES')
+  const formatHintId = useId()
+  const errorRef = useRef<HTMLParagraphElement>(null)
+  const selectedFormat = WORK_TYPE_OPTIONS.find(
+    (option) => option.value === workType,
+  )
+  useEffect(() => {
+    if (error !== null) errorRef.current?.focus()
+  }, [error])
 
   const submit = async (
     event: SyntheticEvent<HTMLFormElement>,
   ): Promise<void> => {
     event.preventDefault()
     if (submitting.current) return
+    const form = event.currentTarget
+    const data = new FormData(form)
+    const submittedTitle = data.get('title')
+    const title =
+      typeof submittedTitle === 'string' ? submittedTitle.trim() : ''
+    if (title === '') {
+      setError('시리즈 제목을 입력해 주세요. 공백만으로는 만들 수 없습니다.')
+      return
+    }
     submitting.current = true
     setBusy(true)
+    onBusyChange?.(true)
     setError(null)
-    const data = new FormData(event.currentTarget)
     const synopsis = data.get('synopsis')
-    let response: Response
     try {
-      response = await fetch('/api/series', {
+      const response = await fetch('/api/series', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          title: data.get('title'),
-          workType: data.get('workType'),
+          title,
+          workType,
           ...(typeof synopsis === 'string' && synopsis !== ''
             ? { synopsis }
             : {}),
           ageRating: data.get('ageRating'),
         }),
       })
+      const payload: unknown = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(
+          readApiError(payload)?.message ??
+            '시리즈를 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
+        )
+        return
+      }
+      const parsed = createdSeriesSchema.safeParse(payload)
+      if (!parsed.success) {
+        setError(
+          '등록 결과를 확인하지 못했습니다. 입력은 유지됩니다. 콘텐츠 목록에서 저장 여부를 확인해 주세요.',
+        )
+        return
+      }
+      const series = parsed.data
+      if (onCreated !== undefined) {
+        onCreated({
+          id: series.id,
+          title: series.title ?? title,
+          workType: series.workType ?? workType,
+        })
+        form.reset()
+        setWorkType('SERIES')
+        onWorkTypeChange?.('SERIES')
+        return
+      }
+      router.push(`/studio/series/${series.id}`)
+      router.refresh()
     } catch {
-      // 잡지 않으면 버튼이 "만드는 중…" 에서 멈추고 아무 안내도 뜨지 않는다.
-      setError('네트워크 연결을 확인한 뒤 다시 시도해 주세요.')
-      setBusy(false)
-      submitting.current = false
-      return
-    }
-    // 게이트웨이 오류는 HTML 로 온다. JSON 이 아니면 실패로 다룬다.
-    const payload = ((await response.json().catch(() => null)) ?? {}) as {
-      id?: string
-      title?: string
-      workType?: WorkType
-    }
-    if (!response.ok || payload.id === undefined) {
       setError(
-        '시리즈를 만들지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
+        '네트워크 연결을 확인해 주세요. 입력은 유지됩니다. 콘텐츠 목록에서 저장 여부를 확인한 뒤 다시 시도해 주세요.',
       )
+    } finally {
       setBusy(false)
       submitting.current = false
-      return
+      onBusyChange?.(false)
     }
-    if (onCreated !== undefined) {
-      const workType = payload.workType ?? readWorkType(data.get('workType'))
-      // 방금 입력한 제목을 그대로 넘긴다. 다음 단계가 "어느 시리즈에 넣는지"
-      // 를 확인시켜 주는 자리라, 형식 이름으로 대신하면 확인이 되지 않는다.
-      const submitted = data.get('title')
-      const title =
-        payload.title ?? (typeof submitted === 'string' ? submitted : '')
-      onCreated({ id: payload.id, title, workType })
-      setBusy(false)
-      submitting.current = false
-      return
-    }
-    router.push(`/studio/series/${payload.id}`)
-    router.refresh()
   }
 
   return (
     <form
       onSubmit={(event) => void submit(event)}
       className="studio-series-form"
+      aria-busy={busy}
     >
-      <fieldset className="studio-work-type-fieldset">
-        <legend>시리즈 형식</legend>
-        <p>영상의 성격에 맞는 관리 구조와 용어를 적용합니다.</p>
-        <div className="studio-work-type-grid">
-          {WORK_TYPE_OPTIONS.map((option) => (
-            <label key={option.value}>
-              <input
-                type="radio"
+      <div className="studio-series-primary">
+        <div className="studio-format-field">
+          <label className="studio-field-label">
+            <span>시리즈 형식</span>
+            <span className="studio-format-select">
+              <Clapperboard aria-hidden="true" />
+              <select
                 name="workType"
-                value={option.value}
-                defaultChecked={option.value === 'SERIES'}
-                onChange={() => {
+                value={workType}
+                disabled={busy}
+                aria-describedby={formatHintId}
+                onChange={(event) => {
+                  const option = WORK_TYPE_OPTIONS.find(
+                    (item) => item.value === event.target.value,
+                  )
+                  if (option === undefined) return
+                  setWorkType(option.value)
                   onWorkTypeChange?.(option.value)
                 }}
-              />
-              <span>
-                <strong>{option.label}</strong>
-                <small>{option.description}</small>
-              </span>
-            </label>
-          ))}
+              >
+                {WORK_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" />
+            </span>
+          </label>
+          <p id={formatHintId} className="studio-format-hint">
+            {selectedFormat?.description}
+          </p>
         </div>
-      </fieldset>
-      <Input label="시리즈 제목" name="title" required maxLength={120} />
-      <Textarea label="시리즈 소개" name="synopsis" maxLength={2000} />
-      <label className="studio-field-label">
-        관람 등급
-        <select
-          name="ageRating"
-          defaultValue="ALL"
-          className="h-10 rounded-md border border-border bg-bg-elevated px-3 text-fg"
-        >
-          <option value="ALL">전체 관람가</option>
-          <option value="A12">12세 이상</option>
-          <option value="A15">15세 이상</option>
-          <option value="A19">19세 이상</option>
-        </select>
-      </label>
+        <Input
+          label="시리즈 제목"
+          name="title"
+          required
+          maxLength={120}
+          disabled={busy}
+        />
+      </div>
+      <details className="studio-series-options">
+        <summary>
+          소개·기본 관람 등급 <span>선택 사항</span>
+        </summary>
+        <Textarea
+          label="시리즈 소개"
+          name="synopsis"
+          maxLength={2000}
+          disabled={busy}
+        />
+        <label className="studio-field-label">
+          관람 등급
+          <select
+            name="ageRating"
+            defaultValue="ALL"
+            disabled={busy}
+            className="h-10 rounded-md border border-border bg-bg-elevated px-3 text-fg"
+          >
+            <option value="ALL">전체 관람가</option>
+            <option value="A12">12세 이상</option>
+            <option value="A15">15세 이상</option>
+            <option value="A19">19세 이상</option>
+          </select>
+        </label>
+      </details>
       {error === null ? null : (
-        <p role="alert" className="text-sm text-danger">
+        <p
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="studio-registration-error"
+        >
           {error}
         </p>
       )}

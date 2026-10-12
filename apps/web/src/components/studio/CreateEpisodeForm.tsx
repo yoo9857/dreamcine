@@ -88,9 +88,13 @@ export function CreateEpisodeForm({
   const [busy, setBusy] = useState(false)
   const submitting = useRef(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const errorRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (error !== null) errorRef.current?.focus()
+  }, [error])
   const reportDraft = useCallback(
-    (assetId?: string): void => {
-      if (formRef.current === null) return
+    (assetId?: string, disclosure?: string): void => {
+      if (formRef.current === null || submitting.current) return
       const values = new FormData(formRef.current)
       const read = (name: string, fallback = ''): string => {
         const value = values.get(name)
@@ -99,7 +103,7 @@ export function CreateEpisodeForm({
       onDraftChange?.({
         title: read('title'),
         assetId: assetId ?? read('assetId'),
-        aiDisclosure: read('aiDisclosure'),
+        aiDisclosure: disclosure ?? read('aiDisclosure'),
         ageRating: read('ageRating', 'ALL'),
       })
     },
@@ -107,6 +111,7 @@ export function CreateEpisodeForm({
   )
   useEffect(() => {
     if (
+      submitting.current ||
       preferredAssetId === undefined ||
       !availableAssets.some((asset) => asset.id === preferredAssetId)
     )
@@ -138,14 +143,14 @@ export function CreateEpisodeForm({
       setError('AI 제작 표기를 입력해 주세요.')
       return
     }
-    setBusy(true)
-    submitting.current = true
-    onBusyChange?.(true)
-    setError(null)
     const form = event.currentTarget
     const data = new FormData(form)
     const description = data.get('description')
     const tagsValue = data.get('tags')
+    setBusy(true)
+    submitting.current = true
+    onBusyChange?.(true)
+    setError(null)
     try {
       const response = await fetch('/api/episodes', {
         method: 'POST',
@@ -181,7 +186,12 @@ export function CreateEpisodeForm({
       setAiDisclosure('')
       router.refresh()
       onCreated?.(episode)
-      reportDraft('')
+      onDraftChange?.({
+        title: '',
+        assetId: '',
+        aiDisclosure: '',
+        ageRating: 'ALL',
+      })
     } catch {
       setError(
         '등록 결과를 확인하지 못했습니다. 입력 내용은 유지됩니다. 연결을 확인하고 콘텐츠 목록에서 저장 여부를 확인해 주세요.',
@@ -204,7 +214,7 @@ export function CreateEpisodeForm({
       onSubmit={(event) => void submit(event)}
       className="studio-episode-form"
     >
-      <div className="studio-episode-form-main">
+      <fieldset className="studio-episode-form-main" disabled={busy}>
         <section className="studio-episode-form-section">
           <header className="studio-episode-form-heading">
             <span>01</span>
@@ -243,23 +253,28 @@ export function CreateEpisodeForm({
               maxLength={160}
               placeholder={episodic ? '예: 첫 번째 여정' : '예: 메인 필름'}
             />
-            <Textarea
-              label="설명"
-              name="description"
-              maxLength={2000}
-              placeholder="내용을 짧고 명확하게 소개해 주세요."
-            />
           </div>
         </section>
 
         <section className="studio-episode-form-section">
-          <header className="studio-episode-form-heading">
-            <span>02</span>
-            <div>
-              <h3>분류와 공개 정보</h3>
-              <p>검색과 관람 안내에 사용되는 정보입니다.</p>
-            </div>
-          </header>
+          <AiDisclosureField
+            value={aiDisclosure}
+            onChange={(value) => {
+              setAiDisclosure(value)
+              reportDraft(undefined, value)
+            }}
+          />
+        </section>
+        <details className="studio-episode-extra">
+          <summary>
+            설명·태그·관람 등급 <span>선택 사항</span>
+          </summary>
+          <Textarea
+            label="설명"
+            name="description"
+            maxLength={2000}
+            placeholder="내용을 짧고 명확하게 소개해 주세요."
+          />
           <div className="studio-episode-meta-grid">
             <Input
               label="태그"
@@ -276,15 +291,9 @@ export function CreateEpisodeForm({
                 <option value="A19">19세 이상</option>
               </select>
             </label>
-            <div className="studio-episode-ai-field">
-              <AiDisclosureField
-                value={aiDisclosure}
-                onChange={setAiDisclosure}
-              />
-            </div>
           </div>
-        </section>
-      </div>
+        </details>
+      </fieldset>
 
       <aside className="studio-episode-media-workspace">
         <header className="studio-episode-form-heading">
@@ -314,6 +323,7 @@ export function CreateEpisodeForm({
                   name="assetId"
                   value={asset.id}
                   required
+                  disabled={busy}
                   checked={selectedAssetId === asset.id}
                   onChange={() => {
                     setSelectedAssetId(asset.id)
@@ -360,7 +370,12 @@ export function CreateEpisodeForm({
       </aside>
 
       {error === null ? null : (
-        <p role="alert" className="studio-registration-error">
+        <p
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="studio-registration-error"
+        >
           {error}
         </p>
       )}

@@ -253,9 +253,66 @@
 }
 
 /* 등록 항목을 같은 페이지에 유지한다. 업로더는 성공 화면에서도 해제하지 않는다. */
+.studio-registration-controls {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.studio-format-field {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+.studio-format-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.studio-field-label .studio-format-select select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 42px;
+  appearance: none;
+  border: 1px solid var(--aidream-border);
+  border-radius: 8px;
+  background: var(--aidream-bg);
+  color: var(--aidream-fg);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.studio-format-select > svg {
+  position: absolute;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  color: var(--aidream-fg-muted);
+  pointer-events: none;
+}
+.studio-format-select > svg:last-child {
+  left: auto;
+  right: 14px;
+  width: 14px;
+}
+.studio-format-select:focus-within select {
+  outline: 2px solid var(--aidream-accent);
+  outline-offset: 2px;
+}
+.studio-format-field .studio-format-hint {
+  margin: 0;
+  color: var(--aidream-fg-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.studio-format-select select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 .studio-registration-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 288px;
+  grid-template-columns: minmax(0, 1fr) 240px;
   align-items: start;
   gap: 24px;
 }
@@ -366,21 +423,24 @@
   line-height: 1.6;
 }
 .studio-registration-layout .studio-episode-form {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
   padding: 0;
   border: 0;
   border-radius: 0;
-  gap: 24px;
+  gap: 20px;
   background: transparent;
 }
 .studio-registration-layout .studio-episode-media-workspace {
   grid-row: 1;
+  grid-column: 1;
   margin: 0;
-  padding: 0 0 24px;
+  padding: 0 20px 0 0;
   border: 0;
-  border-bottom: 1px solid var(--aidream-border-subtle);
+  border-right: 1px solid var(--aidream-border-subtle);
 }
 .studio-registration-layout .studio-episode-form-main {
+  grid-column: 2;
+  grid-row: 1;
   padding: 0;
   min-width: 0;
 }
@@ -395,7 +455,7 @@
   line-height: 1.6;
 }
 .studio-registration-layout .studio-episode-identity-grid {
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 .studio-registration-layout .studio-episode-identity-grid > :last-child {
   grid-column: 1 / -1;
@@ -407,7 +467,7 @@
   grid-column: 1 / -1;
 }
 .studio-registration-layout textarea {
-  min-height: 90px;
+  min-height: 62px;
 }
 .studio-registration-upload {
   margin-bottom: 16px;
@@ -540,6 +600,143 @@
   font-size: 12px;
   border-radius: 8px;
 }
+.studio-registration-submit-bar > span {
+  display: none;
+}
+.studio-registration-submit-bar button {
+  margin-top: 16px;
+  min-height: 44px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.studio-registration-review summary {
+  margin-bottom: 14px;
+  color: var(--aidream-fg-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.studio-registration-summary .studio-registration-progress {
+  margin: 16px 0;
+}
+.studio-series-primary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 16px;
+}
+.studio-registration-layout .studio-series-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+}
+.studio-registration-layout .studio-series-primary,
+.studio-registration-layout .studio-series-form > [role='alert'] {
+  grid-column: 1 / -1;
+}
+.studio-registration-layout .studio-series-form > button {
+  font-size: 11px;
+  min-height: 36px;
+  align-self: start;
+}
+.studio-series-options summary,
+.studio-episode-extra summary {
+  color: var(--aidream-fg-secondary);
+  font-size: 11px;
+  line-height: 1.8;
+  cursor: pointer;
+}
+.studio-series-options summary > span,
+.studio-episode-extra summary > span {
+  margin-left: 6px;
+  color: var(--aidream-fg-muted);
+  font-size: 10px;
+}
+.studio-series-options > :not(summary),
+.studio-episode-extra > :not(summary) {
+  margin-top: 12px;
+}
+.studio-episode-extra {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--aidream-border-subtle);
+}
+.studio-ai-disclosure {
+  display: grid;
+  gap: 12px;
+}
+.studio-ai-tools {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.studio-ai-tools legend {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--aidream-fg);
+}
+.studio-ai-tools legend span {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--aidream-fg-muted);
+}
+.studio-ai-tool-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.studio-ai-tool-options button {
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid var(--aidream-border);
+  border-radius: 6px;
+  background: var(--aidream-bg);
+  color: var(--aidream-fg-secondary);
+  font-size: 11px;
+}
+.studio-ai-tool-options button[aria-pressed='true'] {
+  border-color: var(--aidream-accent);
+  background: var(--aidream-accent-subtle);
+  color: var(--aidream-fg);
+}
+.studio-ai-tools > p {
+  margin: 8px 0 0;
+  color: var(--aidream-fg-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.studio-ai-tool-options button:focus-visible {
+  outline: 2px solid var(--aidream-accent);
+  outline-offset: 2px;
+}
+.studio-task-page:has(.studio-registration-layout) .studio-page-header {
+  margin-bottom: 0;
+}
+.studio-task-page:has(.studio-registration-layout) {
+  gap: 16px;
+}
+.studio-task-page:has(.studio-registration-layout) .studio-page-header h1 {
+  font-size: 32px;
+}
+.studio-task-page:has(.studio-registration-layout) .studio-page-header p {
+  font-size: 12px;
+}
+.studio-registration-layout .studio-registration-panel {
+  padding: 20px;
+}
+.studio-registration-layout .studio-registration-panel-heading {
+  margin-bottom: 16px;
+}
+.studio-registration-layout .studio-work-step {
+  gap: 16px;
+}
+.studio-registration-layout
+  .studio-episode-form-section
+  + .studio-episode-form-section {
+  margin-top: 16px;
+  padding-top: 16px;
+}
 .studio-registration-summary .studio-registration-help {
   margin-top: 12px;
   font-size: 10px;
@@ -570,7 +767,85 @@
   outline: 2px solid var(--aidream-accent);
   outline-offset: 3px;
 }
+@media (min-width: 1360px) {
+  .studio-registration-main > div:not([hidden]) {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+  }
+  .studio-registration-main
+    .studio-registration-panel
+    + .studio-registration-panel {
+    margin-top: 0;
+  }
+  #registration-series.studio-registration-panel {
+    padding: 16px;
+  }
+  #registration-series .studio-registration-panel-heading > span,
+  #registration-series .studio-work-mode small {
+    display: none;
+  }
+  #registration-series .studio-registration-panel-heading h2 {
+    font-size: 15px;
+  }
+  #registration-series .studio-work-mode span {
+    padding: 10px;
+  }
+  #registration-series .studio-series-form,
+  #registration-series .studio-series-primary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #registration-series .studio-series-form > button {
+    width: 100%;
+  }
+  .studio-registration-layout .studio-episode-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .studio-registration-layout .studio-episode-form-main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .studio-registration-layout .studio-episode-media-workspace {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 10px;
+    padding: 0 0 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--aidream-border-subtle);
+  }
+  .studio-registration-layout .studio-episode-media-workspace > header,
+  .studio-registration-layout .studio-episode-media-workspace > p,
+  .studio-registration-layout .studio-frame-preview,
+  .studio-registration-layout .studio-asset-picker-empty {
+    grid-column: 1 / -1;
+  }
+  .studio-registration-layout .studio-episode-media-workspace > header {
+    margin-bottom: 0;
+  }
+  .studio-registration-layout .studio-registration-upload {
+    margin-bottom: 0;
+  }
+  .studio-registration-layout .studio-episode-identity-grid {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+  .studio-registration-layout .studio-episode-identity-grid > :last-child {
+    grid-column: auto;
+  }
+  .studio-registration-layout
+    .studio-episode-position-fields:has(input[type='hidden']) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-registration-layout .studio-registration-panel-heading > span {
+    display: none;
+  }
+}
 @media (max-width: 1150px) {
+  .studio-registration-main > div:not([hidden]) {
+    display: block;
+  }
   .studio-registration-layout {
     grid-template-columns: minmax(0, 1fr) 250px;
     gap: 16px;
@@ -580,6 +855,18 @@
   }
   .studio-registration-summary {
     padding: 18px;
+  }
+  .studio-registration-layout .studio-episode-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-registration-layout .studio-episode-form-main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .studio-registration-layout .studio-episode-media-workspace {
+    padding: 0 0 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--aidream-border-subtle);
   }
 }
 @media (max-width: 980px) {
@@ -594,6 +881,45 @@
   }
 }
 @media (max-width: 600px) {
+  .studio-task-page:has(.studio-registration-layout) .studio-page-header h1 {
+    font-size: 26px;
+  }
+  .studio-registration-panel-heading p {
+    display: none;
+  }
+  .studio-series-primary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .studio-registration-submit-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(62px + env(safe-area-inset-bottom));
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--aidream-border);
+    background: var(--aidream-bg-elevated);
+  }
+  .studio-registration-submit-bar > span {
+    display: block;
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--aidream-fg-secondary);
+  }
+  .studio-registration-submit-bar button {
+    margin: 0;
+    flex: 1;
+  }
+  body:has(.studio-registration-layout) .help-chat:not([data-open='true']) {
+    bottom: calc(140px + env(safe-area-inset-bottom));
+  }
+  body:has(.studio-registration-layout) .studio-task-page {
+    padding-bottom: 160px;
+  }
   .studio-registration-panel {
     padding: 17px 14px;
   }

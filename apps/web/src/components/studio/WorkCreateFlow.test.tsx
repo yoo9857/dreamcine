@@ -74,6 +74,98 @@ afterEach(() => {
 })
 
 describe('WorkCreateFlow', () => {
+  it('accepts a selected AI tool without requiring a narrative and synchronizes the summary', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    fireEvent.click(screen.getByRole('radio', { name: /episode.mp4/u }))
+    fireEvent.change(screen.getByRole('textbox', { name: '회차 제목' }), {
+      target: { value: '도구로 제작한 회차' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+    expect(
+      screen.getByRole('button', { name: /초안으로 등록/u }),
+    ).toHaveProperty('disabled', false)
+    expect(
+      screen.getByRole('textbox', { name: 'AI 제작 표기' }),
+    ).toHaveProperty('required', false)
+    fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
+    expect(
+      screen.getByRole('button', { name: /초안으로 등록/u }),
+    ).toHaveProperty('disabled', true)
+  })
+
+  it('locks the destination and draft fields while saving, then restores them after failure', async () => {
+    let fail: (reason: Error) => void = () => {
+      throw new Error('missing request')
+    }
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((_resolve, reject) => {
+          fail = reject
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(
+      <WorkCreateFlow
+        works={[WORK, { ...WORK, id: 'other', title: '다른 꿈' }]}
+        availableAssets={[ASSET]}
+      />,
+    )
+    const destination = screen.getByRole('button', { name: /다른 꿈/u })
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    const title = screen.getByRole('textbox', { name: '회차 제목' })
+    fireEvent.change(title, { target: { value: '저장 중인 회차' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'AI 제작 표기' }), {
+      target: { value: 'AI 배경 생성' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /episode.mp4/u }))
+    const form = title.closest('form')
+    if (form === null) throw new Error('missing episode form')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(destination.closest('fieldset')).toHaveProperty('disabled', true)
+    expect(title.closest('fieldset')).toHaveProperty('disabled', true)
+    expect(screen.getByRole('radio', { name: /episode.mp4/u })).toHaveProperty(
+      'disabled',
+      true,
+    )
+    fail(new TypeError('offline'))
+    const alert = await screen.findByRole('alert')
+    expect(document.activeElement).toBe(alert)
+    expect(title).toHaveProperty('value', '저장 중인 회차')
+    expect(destination.closest('fieldset')).toHaveProperty('disabled', false)
+    expect(title.closest('fieldset')).toHaveProperty('disabled', false)
+    expect(
+      screen.getByRole('button', { name: /초안으로 등록/u }),
+    ).toHaveProperty('disabled', false)
+  })
+
+  it('preserves the new series draft and its format when switching destinations', () => {
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    fireEvent.click(screen.getByRole('radio', { name: /새 시리즈 만들기/u }))
+    fireEvent.change(screen.getByRole('textbox', { name: '시리즈 제목' }), {
+      target: { value: '작성 중인 새 작품' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: '시리즈 형식' }), {
+      target: { value: 'FILM' },
+    })
+    expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: /기존 시리즈에 추가/u }))
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: /새 시리즈 만들기/u }))
+    expect(screen.getByRole('textbox', { name: '시리즈 제목' })).toHaveProperty(
+      'value',
+      '작성 중인 새 작품',
+    )
+    expect(
+      screen.getByRole('combobox', { name: '시리즈 형식' }),
+    ).toHaveProperty('value', 'FILM')
+    expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
+    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
+  })
+
   it('clears the previous destination when starting a new series without losing episode inputs', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
