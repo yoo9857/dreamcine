@@ -53,6 +53,18 @@ const user = {
 } satisfies User
 
 describe('comment mutations', () => {
+  it('does not save an edit when the session user no longer exists', async () => {
+    const deps: UpdateCommentDependencies = {
+      findComment: vi.fn().mockResolvedValue(comment),
+      findUser: vi.fn().mockResolvedValue(null),
+      update: vi.fn(),
+      now: () => createdAt,
+    }
+    await expect(
+      updateComment(session, 'comment', { body: 'new' }, deps),
+    ).rejects.toMatchObject({ code: 'E_USER_NOT_FOUND' })
+    expect(deps.update).not.toHaveBeenCalled()
+  })
   it('updates an owned comment inside the 15 minute window', async () => {
     const deps: UpdateCommentDependencies = {
       findComment: vi.fn().mockResolvedValue(comment),

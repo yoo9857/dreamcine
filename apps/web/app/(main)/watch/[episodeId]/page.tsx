@@ -165,10 +165,12 @@ function PreviewWatchPage(): ReactNode {
         shortItems={previewRecommendations.slice(0, 3)}
         longItems={previewRecommendations.slice(3)}
         comments={
-          <div className="watch-preview-comments">
-            <h2>댓글</h2>
-            <p>로그인하면 작품에 대한 이야기를 나눌 수 있습니다.</p>
-          </div>
+          <CommentThread
+            episodeId="preview"
+            initialItems={[]}
+            authenticated
+            viewerHandle={previewUser.handle}
+          />
         }
       />
     </div>
@@ -226,7 +228,9 @@ export default async function WatchPage(
     })
     const [comments, social, episode, recommendations, metaView, production] =
       await Promise.all([
-        listComments(episodeId, { limit: 20 }),
+        listComments(episodeId, { limit: 20 })
+          .then((page) => ({ ...page, failed: false }))
+          .catch(() => ({ items: [], nextCursor: null, failed: true })),
         getEpisodeSocialState(episodeId, session?.userId),
         findEpisodeById(episodeId),
         getFeed({ type: 'latest', limit: 18 }, session),
@@ -333,9 +337,18 @@ export default async function WatchPage(
           longItems={longs}
           comments={
             <CommentThread
+              key={episodeId}
               episodeId={episodeId}
               initialItems={comments.items}
+              initialCursor={comments.nextCursor}
+              initialError={comments.failed}
               authenticated={session !== null}
+              viewerHandle={session?.user.handle ?? null}
+              canModerate={
+                session?.user.role === 'ADMIN' ||
+                session?.user.role === 'MODERATOR'
+              }
+              commentsOff={seriesDetail.series.commentsOff}
             />
           }
         />

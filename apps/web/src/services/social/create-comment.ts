@@ -57,37 +57,47 @@ async function runCreateComment(
   if (await dependencies.blocked(session.userId, episode.ownerId))
     throw new AppError('E_SOCIAL_BLOCKED')
 
+  const recipients = new Set([episode.ownerId])
   if (input.parentId !== undefined) {
     const parent = await dependencies.findParent(input.parentId)
     if (parent === null || parent.episodeId !== episodeId)
       throw new AppError('E_COMMENT_NOT_FOUND')
     if (parent.parentId !== null) throw new AppError('E_COMMENT_DEPTH_EXCEEDED')
+    if (parent.isHidden) throw new AppError('E_COMMENT_NOT_FOUND')
+    if (await dependencies.blocked(session.userId, parent.userId))
+      throw new AppError('E_SOCIAL_BLOCKED')
+    recipients.add(parent.userId)
   }
 
-  const [comment, user] = await Promise.all([
-    dependencies.insert({
-      episodeId,
-      userId: session.userId,
-      body,
-      parentId: input.parentId ?? null,
-    }),
-    dependencies.findUser(session.userId),
-  ])
+  const user = await dependencies.findUser(session.userId)
   if (user === null) throw new AppError('E_USER_NOT_FOUND')
+  const comment = await dependencies.insert({
+    episodeId,
+    userId: session.userId,
+    body,
+    parentId: input.parentId ?? null,
+  })
 
-  try {
-    await dependencies.notify({
-      type: 'NEW_COMMENT',
-      to: episode.ownerId,
-      actorId: session.userId,
-      episodeId,
-      commentId: comment.id,
-    })
-  } catch (error: unknown) {
-    getLogger().error(
-      { err: error, actorId: session.userId, episodeId, commentId: comment.id },
-      'comment notification failed',
-    )
+  for (const recipient of recipients) {
+    try {
+      await dependencies.notify({
+        type: 'NEW_COMMENT',
+        to: recipient,
+        actorId: session.userId,
+        episodeId,
+        commentId: comment.id,
+      })
+    } catch (error: unknown) {
+      getLogger().error(
+        {
+          err: error,
+          actorId: session.userId,
+          episodeId,
+          commentId: comment.id,
+        },
+        'comment notification failed',
+      )
+    }
   }
 
   return {

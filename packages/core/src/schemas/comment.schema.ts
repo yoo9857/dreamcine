@@ -18,7 +18,9 @@ export const CreateCommentSchema = z.object({
 
 export const UpdateCommentSchema = z.object({ body: CommentBodySchema })
 
-export const CommentListQuerySchema = PaginationSchema
+export const CommentListQuerySchema = PaginationSchema.extend({
+  parentId: z.string().min(1).optional(),
+})
 
 /**
  * 댓글 작성자. 피드 크리에이터와 같은 모양이어야 한다 — 같은 배지를 같은

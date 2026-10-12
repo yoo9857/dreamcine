@@ -29,6 +29,7 @@ async function runListComments(
     episodeId,
     limit: query.limit,
     ...(query.cursor === undefined ? {} : { cursor: query.cursor }),
+    ...(query.parentId === undefined ? {} : { parentId: query.parentId }),
   })
   return {
     items: page.items.map((row) => ({

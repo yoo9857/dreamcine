@@ -50,11 +50,9 @@ async function runUpdateComment(
   if (body.length > LIMITS.COMMENT_MAX_LEN)
     throw new AppError('E_COMMENT_TOO_LONG')
 
-  const [updated, user] = await Promise.all([
-    dependencies.update(commentId, body),
-    dependencies.findUser(session.userId),
-  ])
+  const user = await dependencies.findUser(session.userId)
   if (user === null) throw new AppError('E_USER_NOT_FOUND')
+  const updated = await dependencies.update(commentId, body)
   return {
     id: updated.id,
     episodeId: updated.episodeId,

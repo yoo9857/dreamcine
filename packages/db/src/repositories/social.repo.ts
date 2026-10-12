@@ -305,6 +305,7 @@ export function listCommentThreadsByEpisode(options: {
   readonly episodeId: string
   readonly limit: number
   readonly cursor?: string
+  readonly parentId?: string
 }): Promise<Page<CommentThreadRow>> {
   return executeDb(async () => {
     const cursor =
@@ -312,16 +313,38 @@ export function listCommentThreadsByEpisode(options: {
     const rows = await db.comment.findMany({
       where: {
         episodeId: options.episodeId,
-        parentId: null,
+        parentId: options.parentId ?? null,
+        episode: {
+          status: 'PUBLISHED',
+          deletedAt: null,
+          series: { deletedAt: null },
+        },
         isHidden: false,
-        OR: [{ deletedAt: null }, { replies: { some: { deletedAt: null } } }],
+        OR: [
+          { deletedAt: null },
+          { replies: { some: { deletedAt: null, isHidden: false } } },
+        ],
+        ...(options.parentId === undefined
+          ? {}
+          : { parent: { episodeId: options.episodeId, isHidden: false } }),
         ...(cursor === null
           ? {}
           : {
               AND: {
                 OR: [
-                  { createdAt: { lt: cursor.createdAt } },
-                  { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+                  {
+                    createdAt:
+                      options.parentId === undefined
+                        ? { lt: cursor.createdAt }
+                        : { gt: cursor.createdAt },
+                  },
+                  {
+                    createdAt: cursor.createdAt,
+                    id:
+                      options.parentId === undefined
+                        ? { lt: cursor.id }
+                        : { gt: cursor.id },
+                  },
                 ],
               },
             }),
@@ -335,7 +358,10 @@ export function listCommentThreadsByEpisode(options: {
           include: { user: { select: COMMENT_AUTHOR_SELECT } },
         },
       },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy:
+        options.parentId === undefined
+          ? [{ createdAt: 'desc' }, { id: 'desc' }]
+          : [{ createdAt: 'asc' }, { id: 'asc' }],
       take: options.limit + 1,
     })
     const hasNext = rows.length > options.limit

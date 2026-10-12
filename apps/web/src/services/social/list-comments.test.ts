@@ -5,6 +5,22 @@ import { listComments, type ListCommentsDependencies } from './list-comments'
 const now = new Date('2026-08-25T00:00:00.000Z')
 
 describe('listComments', () => {
+  it('scopes full reply pagination to the requested parent', async () => {
+    const deps: ListCommentsDependencies = {
+      list: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    }
+    await listComments(
+      'ep',
+      { limit: 20, parentId: 'root', cursor: 'after-reply' },
+      deps,
+    )
+    expect(deps.list).toHaveBeenCalledWith({
+      episodeId: 'ep',
+      limit: 20,
+      parentId: 'root',
+      cursor: 'after-reply',
+    })
+  })
   it('keeps replies under a deleted parent and renders the placeholder', async () => {
     const deps: ListCommentsDependencies = {
       list: vi.fn().mockResolvedValue({

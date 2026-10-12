@@ -3130,6 +3130,14 @@
         { "name": "cursor", "in": "query", "schema": { "type": "string" } }
       ],
       "get": {
+        "parameters": [
+          {
+            "name": "parentId",
+            "in": "query",
+            "description": "부모 댓글 ID. 생략하면 최신순 스레드, 지정하면 해당 부모의 답글을 작성순 커서 페이지로 조회합니다.",
+            "schema": { "type": "string", "minLength": 1 }
+          }
+        ],
         "tags": ["social"],
         "summary": "댓글 목록",
         "security": [],
