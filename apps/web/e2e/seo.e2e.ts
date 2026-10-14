@@ -21,6 +21,9 @@ test('home serves canonical identity and useful content before JavaScript', asyn
   expect(html).toContain('rel="canonical"')
   expect(html).toContain(`${baseURL ?? 'http://127.0.0.1:3000'}/`)
   expect(html).toContain('application/ld+json')
+  expect(html.split('</head>')[0]).toContain(
+    '<meta name="naver-site-verification" content="11bc2d88416b0daf74f2d77993bddeff9b94bb92"',
+  )
   expect(html).toContain('https://schema.org')
   expect(html).toContain('#organization')
   expect(html).toContain('href="/works"')

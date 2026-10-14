@@ -45,6 +45,9 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: 'ilog',
+  other: {
+    'naver-site-verification': '11bc2d88416b0daf74f2d77993bddeff9b94bb92',
+  },
   // 전화번호 자동 링크는 모바일에서 제목·설명을 링크로 깨뜨린다.
   formatDetection: { telephone: false, address: false, email: false },
   robots: {
