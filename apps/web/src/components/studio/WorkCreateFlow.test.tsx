@@ -3,6 +3,7 @@
 import type { SeriesResponse } from '@aidream/core'
 import {
   cleanup,
+  act,
   fireEvent,
   render,
   screen,
@@ -12,6 +13,7 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
+import type { UploadState } from '@/src/hooks/use-upload'
 
 import { WorkCreateFlow } from './WorkCreateFlow'
 
@@ -24,12 +26,24 @@ vi.mock('next/navigation', () => ({
 
 // 업로더가 떼어지면 use-upload 가 전송 중인 업로드를 끊는다. 실제 업로더 대신
 // 붙고 떼어지는 시점만 기록한다.
-const uploaderLifecycle = vi.hoisted(() => ({ unmount: vi.fn() }))
+const uploaderLifecycle = vi.hoisted(() => ({
+  unmount: vi.fn(),
+  onReady: undefined as ((id: string) => Promise<void>) | undefined,
+  onStateChange: undefined as ((state: UploadState) => void) | undefined,
+}))
 
 vi.mock('@/src/components/upload/Uploader', async () => {
   const { useEffect } = await import('react')
   return {
-    Uploader: () => {
+    Uploader: ({
+      onReady,
+      onStateChange,
+    }: {
+      onReady?: (id: string) => Promise<void>
+      onStateChange?: (state: UploadState) => void
+    }) => {
+      uploaderLifecycle.onReady = onReady
+      uploaderLifecycle.onStateChange = onStateChange
       useEffect(() => uploaderLifecycle.unmount, [])
       return <div data-testid="uploader" />
     },
@@ -63,6 +77,7 @@ const ASSET: StudioAssetOption = {
 }
 
 beforeEach(() => {
+  window.sessionStorage.clear()
   Object.defineProperty(Element.prototype, 'scrollIntoView', {
     configurable: true,
     value: vi.fn(),
@@ -97,6 +112,103 @@ function fillDetails(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Runway' }))
 }
 describe('WorkCreateFlow wizard', () => {
+  it('restores written information when returning to the same series in this tab', () => {
+    const first = render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    fireEvent.click(screen.getByRole('button', { name: '3. 정보 입력' }))
+    fillDetails()
+    first.unmount()
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    fireEvent.click(screen.getByRole('button', { name: '3. 정보 입력' }))
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toHaveProperty(
+      'value',
+      '새로운 회차',
+    )
+    expect(
+      screen
+        .getByRole('button', { name: 'Runway' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+  it('keeps the draft editable during upload and connects completion without clearing entered information', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json([ASSET]))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
+    nextMedia()
+    act(() =>
+      uploaderLifecycle.onStateChange?.({
+        phase: 'uploading',
+        uploadId: 'upload_1',
+        assetId: null,
+        bytesSent: 50,
+        bytesTotal: 100,
+        progress: 50,
+        etaSec: 10,
+        transcodeProgress: 0,
+        errorCode: null,
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '정보 먼저 입력하기' }))
+    fillDetails()
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
+      '50',
+    )
+    expect(screen.queryByRole('button', { name: '초안으로 등록' })).toBeNull()
+    const form = screen
+      .getByRole('textbox', { name: '회차 제목' })
+      .closest('form')
+    if (form === null) throw new Error('missing episode form')
+    fireEvent.submit(form)
+    expect(fetchMock).not.toHaveBeenCalled()
+    await act(async () => {
+      await uploaderLifecycle.onReady?.(ASSET.id)
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '초안으로 등록' })).toBeTruthy()
+    })
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toHaveProperty(
+      'value',
+      '새로운 회차',
+    )
+    expect(
+      screen
+        .getByRole('button', { name: 'Runway' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
+  })
+
+  it('does not replace an explicitly selected video when another upload completes', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json([
+            ASSET,
+            { ...ASSET, id: 'new_upload', fileName: 'new.mp4' },
+          ]),
+        ),
+    )
+    render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
+    prepare()
+    fillDetails()
+    await act(async () => {
+      await uploaderLifecycle.onReady?.('new_upload')
+    })
+    fireEvent.click(screen.getByRole('button', { name: '2. 영상 준비' }))
+    expect(screen.getByRole('radio', { name: /episode.mp4/u })).toHaveProperty(
+      'checked',
+      true,
+    )
+    expect(screen.getByRole('radio', { name: /new.mp4/u })).toHaveProperty(
+      'checked',
+      false,
+    )
+  })
   it('shows actionable guidance instead of a disabled next button', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     expect(
@@ -127,7 +239,7 @@ describe('WorkCreateFlow wizard', () => {
       screen.getByRole('heading', { name: '이야기를 담은 영상을 준비하세요' }),
     )
     expect(
-      screen.getByRole('button', { name: '영상 선택하기' }),
+      screen.getByRole('button', { name: '정보 먼저 입력하기' }),
     ).toHaveProperty('disabled', false)
     expect(screen.queryByRole('textbox', { name: '회차 제목' })).toBeNull()
     nextDetails()
@@ -340,16 +452,25 @@ describe('WorkCreateFlow wizard', () => {
     nextDetails()
     expect(screen.getByRole('textbox', { name: '영상 제목' })).toBeTruthy()
   })
-  it('opens upload guidance instead of a disabled next button when no video is ready', () => {
+  it('lets creators write details before a video is ready without unmounting the uploader', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[]} />)
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
     nextMedia()
     expect(screen.getByTestId('uploader').closest('details')?.open).toBe(true)
     expect(
-      screen.getByRole('button', { name: '영상 업로드하기' }),
+      screen.getByRole('button', { name: '정보 먼저 입력하기' }),
     ).toHaveProperty('disabled', false)
-    fireEvent.click(screen.getByRole('button', { name: '영상 업로드하기' }))
-    expect(screen.getByRole('status').textContent).toContain('파일을 올리고')
+    fireEvent.click(screen.getByRole('button', { name: '정보 먼저 입력하기' }))
+    fillDetails()
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toHaveProperty(
+      'value',
+      '새로운 회차',
+    )
+    expect(screen.queryByRole('button', { name: '초안으로 등록' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: '영상 준비 확인하기' }),
+    ).toHaveProperty('disabled', false)
+    expect(uploaderLifecycle.unmount).not.toHaveBeenCalled()
   })
   it('sorts recent series first and retains long titles in the selection list', () => {
     render(
@@ -409,13 +530,13 @@ describe('WorkCreateFlow wizard', () => {
       screen.getByRole('button', { name: 'ChatGPT' }),
     )
   })
-  it('takes users to the video choice when clicking a future step too early', () => {
+  it('allows the information step before selecting media', () => {
     render(<WorkCreateFlow works={[WORK]} availableAssets={[ASSET]} />)
     fireEvent.click(screen.getByRole('button', { name: /첫 번째 꿈/u }))
     fireEvent.click(screen.getByRole('button', { name: '3. 정보 입력' }))
     expect(document.activeElement).toBe(
-      screen.getByRole('radio', { name: /episode.mp4/u }),
+      screen.getByRole('heading', { name: '작품을 소개해 주세요' }),
     )
-    expect(screen.getByRole('status').textContent).toContain('선택 버튼')
+    expect(screen.getByRole('textbox', { name: '회차 제목' })).toBeTruthy()
   })
 })

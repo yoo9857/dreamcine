@@ -12,6 +12,7 @@ import {
   UploadPartError,
   useUpload,
   UPLOAD_STORAGE_KEY,
+  TRANSCODE_STORAGE_KEY,
   type ResumableSession,
 } from './use-upload'
 
@@ -205,6 +206,56 @@ describe('uploadPart', () => {
 })
 
 describe('useUpload', () => {
+  it('restores server processing after returning without uploading the original again', async () => {
+    window.localStorage.setItem(TRANSCODE_STORAGE_KEY, 'asset_1')
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        status: 'READY',
+        progress: 100,
+        renditions: [{ name: '480p' }, { name: '720p' }],
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useUpload())
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('ready')
+    })
+    expect(result.current.state.renditions).toEqual(['480p', '720p'])
+    expect(window.localStorage.getItem(TRANSCODE_STORAGE_KEY)).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/assets/asset_1')
+  })
+
+  it('retries a failed server conversion without completing or re-uploading the source', async () => {
+    window.localStorage.setItem(TRANSCODE_STORAGE_KEY, 'asset_1')
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ status: 'FAILED' }))
+      .mockResolvedValueOnce(Response.json({}, { status: 202 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          status: 'READY',
+          progress: 100,
+          renditions: [{ name: '360p' }],
+        }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useUpload())
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('error')
+    })
+    await act(async () => {
+      await result.current.retry()
+    })
+    expect(result.current.state.phase).toBe('ready')
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/assets/asset_1/retry')
+    expect(
+      fetchMock.mock.calls
+        .map((call: readonly unknown[]) => call[0])
+        .some((url) => String(url).includes('/api/uploads')),
+    ).toBe(false)
+  })
   beforeEach(() => {
     window.localStorage.clear()
     FakeXMLHttpRequest.latest = null
@@ -471,6 +522,17 @@ describe('useUpload', () => {
 })
 
 describe('pollTranscode', () => {
+  it('does not declare readiness at encoding 100 before asset publication', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ status: 'TRANSCODING', progress: 100 }),
+        ),
+    )
+    await expect(pollTranscode('asset_1')).resolves.toBe(99)
+  })
   it('진행률을 읽고 READY는 100으로 정규화한다', async () => {
     const fetchMock = vi
       .fn()

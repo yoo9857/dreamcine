@@ -8,6 +8,7 @@ import { EpisodeCreateWorkspace } from '@/src/components/studio/EpisodeCreateWor
 import { EpisodeTable } from '@/src/components/studio/EpisodeTable'
 import { SeriesPosterUploader } from '@/src/components/studio/SeriesPosterUploader'
 import { StudioShell } from '@/src/components/studio/StudioShell'
+import { WorkCreateFlow } from '@/src/components/studio/WorkCreateFlow'
 
 // 스타일은 스튜디오 라우트에서만 받는다. 예전에는 루트 레이아웃이 들고 있어
 // 스튜디오를 열지 않는 방문자도 3,257줄을 내려받았다. `(admin)` 이 이미
@@ -21,6 +22,7 @@ import '@/src/styles/studio/dashboard.css'
 import '@/src/styles/studio/series.css'
 import '@/src/styles/studio/media.css'
 import '@/src/styles/studio/create-flow.css'
+import '@/src/styles/studio/create-wizard.css'
 
 export default async function StudioPreviewPage({
   searchParams,
@@ -28,7 +30,41 @@ export default async function StudioPreviewPage({
   readonly searchParams: Promise<{ state?: string }>
 }): Promise<ReactNode> {
   if (process.env.NODE_ENV === 'production') notFound()
-  const filled = (await searchParams).state === 'filled'
+  const state = (await searchParams).state
+  if (state === 'create') {
+    return (
+      <StudioShell displayName="Preview Creator" handle="preview">
+        <main className="studio-task-page">
+          <header className="studio-page-header">
+            <div>
+              <h1>시리즈 등록</h1>
+            </div>
+          </header>
+          <WorkCreateFlow
+            availableAssets={[]}
+            works={[
+              {
+                id: 'preview_series',
+                ownerId: 'preview_user',
+                slug: 'preview-series',
+                title: '새로운 이야기',
+                synopsis: null,
+                workType: 'SERIES',
+                ageRating: 'ALL',
+                isCompleted: false,
+                commentsOff: false,
+                episodeCount: 0,
+                totalViews: '0',
+                createdAt: '2026-10-14T00:00:00.000Z',
+                updatedAt: '2026-10-14T00:00:00.000Z',
+              },
+            ]}
+          />
+        </main>
+      </StudioShell>
+    )
+  }
+  const filled = state === 'filled'
 
   const assets = [
     {

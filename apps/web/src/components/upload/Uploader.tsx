@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import {
   useEffect,
+  useCallback,
   useRef,
   useState,
   type ChangeEvent,
@@ -22,6 +23,7 @@ import {
 } from 'react'
 
 import { useUpload } from '@/src/hooks/use-upload'
+import type { UploadState } from '@/src/hooks/use-upload'
 import { staticMessageFor } from '@/src/lib/error-messages'
 
 import { UploadProgress } from './UploadProgress'
@@ -38,9 +40,13 @@ function knownErrorCode(value: string | null): ErrorCode {
 export function Uploader({
   context = 'library',
   onReady,
+  onStateChange,
+  autoConnect = false,
 }: {
   readonly context?: 'library' | 'episode'
   readonly onReady?: (assetId: string) => Promise<void> | void
+  readonly onStateChange?: (state: UploadState) => void
+  readonly autoConnect?: boolean
 } = {}): ReactNode {
   const upload = useUpload()
   const router = useRouter()
@@ -48,6 +54,12 @@ export function Uploader({
   const [file, setFile] = useState<File | null>(null)
   const [advancing, setAdvancing] = useState(false)
   const [handoffError, setHandoffError] = useState<string | null>(null)
+  const connectedAsset = useRef<string | undefined>(undefined)
+  const connectingAsset = useRef<string | undefined>(undefined)
+  const autoAttemptedAsset = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    onStateChange?.(upload.state)
+  }, [onStateChange, upload.state])
   const isBusy = [
     'validating',
     'creating',
@@ -62,19 +74,38 @@ export function Uploader({
     }
   }, [router, upload.state.phase])
 
-  const openDetails = async (): Promise<void> => {
+  const openDetails = useCallback(async (): Promise<void> => {
     if (upload.state.assetId === null || onReady === undefined) return
+    const assetId = upload.state.assetId
+    if (connectingAsset.current === assetId) return
+    connectingAsset.current = assetId
     setAdvancing(true)
     setHandoffError(null)
     try {
-      await onReady(upload.state.assetId)
+      await onReady(assetId)
+      connectedAsset.current = assetId
     } catch {
       setHandoffError(
         '업로드한 영상을 정보 입력 화면과 연결하지 못했습니다. 다시 시도해 주세요.',
       )
+    } finally {
+      connectingAsset.current = undefined
       setAdvancing(false)
     }
-  }
+  }, [onReady, upload.state.assetId])
+
+  useEffect(() => {
+    if (
+      autoConnect &&
+      upload.state.phase === 'ready' &&
+      upload.state.assetId !== null &&
+      connectedAsset.current !== upload.state.assetId &&
+      autoAttemptedAsset.current !== upload.state.assetId
+    ) {
+      autoAttemptedAsset.current = upload.state.assetId
+      void openDetails()
+    }
+  }, [autoConnect, upload.state.phase, upload.state.assetId, openDetails])
 
   const choose = (next: File | null): void => {
     if (next === null || isBusy) return
@@ -105,7 +136,7 @@ export function Uploader({
         <div>
           <p className="font-semibold text-fg">영상 파일을 놓아주세요</p>
           <p className="mt-1 text-sm text-fg-muted">
-            MP4, MOV, MKV, WebM · 파일은 앱 서버를 거치지 않고 바로 저장됩니다.
+            MP4, MOV, MKV, WebM · 업로드하면서 제목과 설명을 작성할 수 있습니다.
           </p>
         </div>
         <input
@@ -172,17 +203,23 @@ export function Uploader({
           <CheckCircle2 aria-hidden="true" />
           <div>
             <strong>영상 업로드가 완료되었습니다</strong>
-            <p>이제 제목과 공개 정보를 입력해 작품에 영상을 등록해 주세요.</p>
+            <p>
+              {autoConnect
+                ? '준비된 영상을 자동으로 연결합니다. 작성한 정보는 유지됩니다.'
+                : '이제 제목과 공개 정보를 입력해 작품에 영상을 등록해 주세요.'}
+            </p>
             {handoffError === null ? null : (
               <small role="alert">{handoffError}</small>
             )}
-            <Button
-              type="button"
-              loading={advancing}
-              onClick={() => void openDetails()}
-            >
-              영상 정보 입력하기 <ArrowRight aria-hidden="true" />
-            </Button>
+            {autoConnect && handoffError === null ? null : (
+              <Button
+                type="button"
+                loading={advancing}
+                onClick={() => void openDetails()}
+              >
+                영상 정보 입력하기 <ArrowRight aria-hidden="true" />
+              </Button>
+            )}
           </div>
         </section>
       ) : null}
@@ -210,6 +247,7 @@ export function Uploader({
           </Button>
         ) : null}
         {upload.state.uploadId === null ||
+        upload.state.assetId !== null ||
         upload.state.phase === 'ready' ? null : (
           <Button
             variant="danger"

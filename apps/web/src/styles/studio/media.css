@@ -692,3 +692,34 @@
     justify-content: flex-end;
   }
 }
+.studio-upload-quality {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studio-upload-quality > span {
+  padding: 7px 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 8px;
+  color: #a9b5bf;
+  font-size: 12px;
+}
+
+.studio-upload-quality > span[data-ready='true'] {
+  border-color: rgb(90 200 145 / 35%);
+  color: #9ae0b8;
+}
+
+.studio-registration-background-upload {
+  margin: 0 0 24px;
+  padding: 18px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+}
+
+.studio-registration-background-upload > p {
+  margin: 0 0 12px;
+  color: #a9b5bf;
+  font-size: 13px;
+}

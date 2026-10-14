@@ -31,6 +31,15 @@ export interface EpisodeDraftSummary {
   readonly ageRating: string
 }
 
+function discardLocalDraft(seriesId: string): void {
+  try {
+    window.sessionStorage.removeItem(`ilog:episode-draft:${seriesId}`)
+  } catch {
+    // Server saving succeeds even when browser storage is unavailable.
+    return
+  }
+}
+
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '길이 확인 중'
   const minutes = Math.floor(seconds / 60)
@@ -90,6 +99,8 @@ export function CreateEpisodeForm({
   const [busy, setBusy] = useState(false)
   const submitting = useRef(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const appliedPreferredAsset = useRef<string | undefined>(undefined)
+  const restoredDraft = useRef(false)
   const errorRef = useRef<HTMLParagraphElement>(null)
   useEffect(() => {
     if (error !== null) errorRef.current?.focus()
@@ -108,16 +119,90 @@ export function CreateEpisodeForm({
         aiDisclosure: disclosure ?? read('aiDisclosure'),
         ageRating: read('ageRating', 'ALL'),
       })
+      if (seriesId !== '') {
+        try {
+          window.sessionStorage.setItem(
+            `ilog:episode-draft:${seriesId}`,
+            JSON.stringify({
+              title: read('title'),
+              description: read('description'),
+              tags: read('tags'),
+              seasonNumber: read('seasonNumber', '1'),
+              number: read('number', '1'),
+              ageRating: read('ageRating', 'ALL'),
+              assetId: assetId ?? read('assetId'),
+              aiDisclosure: disclosure ?? read('aiDisclosure'),
+            }),
+          )
+        } catch {
+          /* Writing remains available when browser storage is disabled. */
+          return
+        }
+      }
     },
-    [onDraftChange],
+    [onDraftChange, seriesId],
   )
+  useEffect(() => {
+    if (seriesId === '' || restoredDraft.current || formRef.current === null)
+      return
+    restoredDraft.current = true
+    const form = formRef.current
+    // Switching series within the flow keeps the current inputs.
+    if (new FormData(form).get('title') !== '') return
+    try {
+      const raw = window.sessionStorage.getItem(
+        `ilog:episode-draft:${seriesId}`,
+      )
+      if (raw === null) return
+      const saved: unknown = JSON.parse(raw)
+      if (typeof saved !== 'object' || saved === null) return
+      for (const name of [
+        'title',
+        'description',
+        'tags',
+        'seasonNumber',
+        'number',
+        'ageRating',
+      ]) {
+        const element = form.elements.namedItem(name)
+        if (
+          (element instanceof HTMLInputElement ||
+            element instanceof HTMLTextAreaElement ||
+            element instanceof HTMLSelectElement) &&
+          name in saved
+        ) {
+          const value: unknown = Reflect.get(saved, name)
+          if (typeof value === 'string') element.value = value
+        }
+      }
+      const disclosure =
+        'aiDisclosure' in saved && typeof saved.aiDisclosure === 'string'
+          ? saved.aiDisclosure
+          : ''
+      const assetId =
+        'assetId' in saved &&
+        typeof saved.assetId === 'string' &&
+        availableAssets.some((asset) => asset.id === saved.assetId)
+          ? saved.assetId
+          : ''
+      setAiDisclosure(disclosure)
+      setSelectedAssetId(assetId)
+      reportDraft(assetId, disclosure)
+    } catch {
+      /* A missing or malformed local draft must not block creation. */
+      return
+    }
+  }, [seriesId, availableAssets, reportDraft])
   useEffect(() => {
     if (
       submitting.current ||
       preferredAssetId === undefined ||
+      appliedPreferredAsset.current === preferredAssetId ||
       !availableAssets.some((asset) => asset.id === preferredAssetId)
     )
       return
+    appliedPreferredAsset.current = preferredAssetId
+    setError(null)
     setSelectedAssetId(preferredAssetId)
     reportDraft(preferredAssetId)
   }, [preferredAssetId, availableAssets, reportDraft])
@@ -140,6 +225,12 @@ export function CreateEpisodeForm({
     if (submitting.current) return
     if (seriesId === '') {
       setError('등록할 시리즈를 먼저 선택하거나 만들어 주세요.')
+      return
+    }
+    if (selectedAsset === undefined) {
+      setError(
+        '영상이 아직 준비되지 않았습니다. 작성 내용은 유지되며, 준비가 끝나면 등록할 수 있습니다.',
+      )
       return
     }
     if (aiDisclosure.trim() === '') {
@@ -184,6 +275,7 @@ export function CreateEpisodeForm({
         return
       }
       const episode = EpisodeResponseSchema.parse(await response.json())
+      discardLocalDraft(seriesId)
       form.reset()
       setSelectedAssetId('')
       setAiDisclosure('')

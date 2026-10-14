@@ -23,6 +23,8 @@ import React, {
 } from 'react'
 
 import { Uploader } from '@/src/components/upload/Uploader'
+import { UploadProgress } from '@/src/components/upload/UploadProgress'
+import type { UploadState } from '@/src/hooks/use-upload'
 import { readApiError } from '@/src/lib/error-messages'
 import type { StudioAssetOption } from '@/src/services/studio/get-studio-dashboard'
 
@@ -285,6 +287,7 @@ export function WorkCreateFlow({
   const [assets, setAssets] =
     useState<readonly StudioAssetOption[]>(availableAssets)
   const [preferredAssetId, setPreferredAssetId] = useState<string>()
+  const [uploadState, setUploadState] = useState<UploadState>()
   const [draft, setDraft] = useState<EpisodeDraftSummary>({
     title: '',
     assetId: '',
@@ -347,10 +350,6 @@ export function WorkCreateFlow({
       guideWork()
       return
     }
-    if (nextStep === 3 && selectedAsset === undefined) {
-      guideMedia()
-      return
-    }
     setNotice(undefined)
     setStep(nextStep)
   }
@@ -375,8 +374,8 @@ export function WorkCreateFlow({
       : step === 2
         ? selectedAsset === undefined
           ? assets.length === 0
-            ? '업로드 → 변환 완료 → 영상 선택'
-            : '아래 준비된 영상 중 하나를 선택하세요'
+            ? '정보를 먼저 입력해도 됩니다 · 영상은 준비되면 자동 연결됩니다'
+            : '준비된 영상을 선택하거나 정보를 먼저 입력하세요'
           : '영상 선택 완료 · 다음은 제목과 AI 도구 입력'
         : !titleReady
           ? aiReady
@@ -384,7 +383,9 @@ export function WorkCreateFlow({
             : '남은 필수 입력: 영상 제목 · AI 도구'
           : !aiReady
             ? '남은 필수 입력: AI 도구 선택 또는 직접 입력'
-            : '필수 입력 완료 · 초안 저장 후 공개할 수 있습니다'
+            : selectedAsset === undefined
+              ? '정보 입력 완료 · 영상이 준비되면 초안으로 등록할 수 있습니다'
+              : '필수 입력 완료 · 초안 저장 후 공개할 수 있습니다'
   const steps = [
     {
       title: '작품 선택',
@@ -396,7 +397,7 @@ export function WorkCreateFlow({
       title: '영상 준비',
       description: '영상을 연결해요',
       heading: '이야기를 담은 영상을 준비하세요',
-      hint: '새 영상을 업로드하거나 변환이 완료된 영상을 선택하세요.',
+      hint: '업로드를 시작하고 다음 단계에서 정보를 작성하세요. 준비가 끝나면 영상이 자동 연결됩니다.',
     },
     {
       title: '정보 입력',
@@ -405,17 +406,20 @@ export function WorkCreateFlow({
       hint: '제목과 사용한 AI 도구를 알려주세요. 저장 후 공개할 수 있습니다.',
     },
   ] as const
-  const useUploadedAsset = async (assetId: string): Promise<void> => {
-    const response = await fetch('/api/studio/assets/available', {
-      cache: 'no-store',
-    })
-    if (!response.ok) throw new Error('asset-sync-failed')
-    const nextAssets = (await response.json()) as StudioAssetOption[]
-    if (!nextAssets.some((asset) => asset.id === assetId))
-      throw new Error('uploaded-asset-missing')
-    setAssets(nextAssets)
-    setPreferredAssetId(assetId)
-  }
+  const useUploadedAsset = useCallback(
+    async (assetId: string): Promise<void> => {
+      const response = await fetch('/api/studio/assets/available', {
+        cache: 'no-store',
+      })
+      if (!response.ok) throw new Error('asset-sync-failed')
+      const nextAssets = (await response.json()) as StudioAssetOption[]
+      if (!nextAssets.some((asset) => asset.id === assetId))
+        throw new Error('uploaded-asset-missing')
+      setAssets(nextAssets)
+      if (draft.assetId === '') setPreferredAssetId(assetId)
+    },
+    [draft.assetId],
+  )
   async function publishCreatedEpisode(): Promise<void> {
     if (createdEpisode === undefined || publishLock.current) return
     publishLock.current = true
@@ -658,6 +662,29 @@ export function WorkCreateFlow({
                 <p>입력 중 시리즈를 바꿔도 작성 내용과 업로드는 유지됩니다.</p>
               </div>
             </header>
+            {step !== 3 ||
+            uploadState === undefined ||
+            uploadState.phase === 'idle' ? null : (
+              <div className="studio-registration-background-upload">
+                <p>
+                  {uploadState.phase === 'ready'
+                    ? '영상 준비가 끝났습니다. 연결 상태를 확인한 뒤 초안으로 등록하세요.'
+                    : uploadState.phase === 'error'
+                      ? '영상 준비가 중단되었습니다. 작성 내용은 유지되니 업로드 상태에서 다시 시도하세요.'
+                      : '제목과 설명을 먼저 작성하세요. 파일 업로드 중에는 이 페이지를 열어 두고, 서버 변환이 시작되면 페이지를 떠나도 됩니다.'}
+                </p>
+                <UploadProgress state={uploadState} />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    navigate(2)
+                  }}
+                >
+                  업로드 상태·재시도 보기
+                </Button>
+              </div>
+            )}
             <CreateEpisodeForm
               activeSection={step === 2 ? 'media' : 'details'}
               formId="studio-registration-episode"
@@ -676,7 +703,12 @@ export function WorkCreateFlow({
                   <summary>
                     새 영상 업로드 <span>기존 영상을 선택해도 됩니다</span>
                   </summary>
-                  <Uploader context="episode" onReady={useUploadedAsset} />
+                  <Uploader
+                    context="episode"
+                    autoConnect
+                    onReady={useUploadedAsset}
+                    onStateChange={setUploadState}
+                  />
                 </details>
               }
               onCreated={(episode) => {
@@ -805,11 +837,11 @@ export function WorkCreateFlow({
                     guideWork()
                     return
                   }
-                  if (step === 2 && selectedAsset === undefined) {
-                    guideMedia()
-                    return
-                  }
                   if (step === 3) {
+                    if (titleReady && aiReady && selectedAsset === undefined) {
+                      guideMedia()
+                      return
+                    }
                     guideDetails()
                     return
                   }
@@ -822,13 +854,13 @@ export function WorkCreateFlow({
                     : '다음 · 영상 준비'
                   : step === 2
                     ? selectedAsset === undefined
-                      ? assets.length === 0
-                        ? '영상 업로드하기'
-                        : '영상 선택하기'
+                      ? '정보 먼저 입력하기'
                       : '다음 · 정보 입력'
                     : !titleReady
                       ? '제목 입력하기'
-                      : 'AI 도구 선택하기'}{' '}
+                      : !aiReady
+                        ? 'AI 도구 선택하기'
+                        : '영상 준비 확인하기'}{' '}
                 <ArrowRight aria-hidden="true" />
               </Button>
             )}

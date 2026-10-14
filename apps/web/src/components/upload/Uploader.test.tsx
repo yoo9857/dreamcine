@@ -79,6 +79,52 @@ afterEach(() => {
 })
 
 describe('Uploader', () => {
+  it('connects a completed episode upload automatically exactly once', async () => {
+    const onReady = vi.fn().mockResolvedValue(undefined)
+    const onStateChange = vi.fn()
+    mocks.state = initialState({
+      phase: 'ready',
+      assetId: 'asset_1',
+      renditions: ['360p', '720p'],
+    })
+    const view = render(
+      <Uploader
+        context="episode"
+        autoConnect
+        onReady={onReady}
+        onStateChange={onStateChange}
+      />,
+    )
+    await waitFor(() => {
+      expect(onReady).toHaveBeenCalledOnce()
+    })
+    view.rerender(
+      <Uploader
+        context="episode"
+        autoConnect
+        onReady={onReady}
+        onStateChange={onStateChange}
+      />,
+    )
+    expect(onReady).toHaveBeenCalledWith('asset_1')
+    expect(onStateChange).toHaveBeenCalledWith(mocks.state)
+  })
+
+  it('offers a retry when automatic media connection fails', async () => {
+    const onReady = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue(undefined)
+    mocks.state = initialState({ phase: 'ready', assetId: 'asset_1' })
+    render(<Uploader context="episode" autoConnect onReady={onReady} />)
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /영상 정보 입력하기/u }))
+    await waitFor(() => {
+      expect(onReady).toHaveBeenCalledTimes(2)
+    })
+  })
   it('선택한 파일로 업로드를 시작한다', () => {
     render(<Uploader />)
     const file = new File(['video'], 'episode.mp4', { type: 'video/mp4' })
@@ -145,6 +191,16 @@ describe('Uploader', () => {
 })
 
 describe('UploadProgress', () => {
+  it('reports only generated qualities and never labels HD ready for an SD-only asset', () => {
+    render(
+      <UploadProgress
+        state={initialState({ phase: 'ready', renditions: ['360p', '480p'] })}
+      />,
+    )
+    const badges = screen.getByLabelText('영상 화질 준비 상태')
+    expect(badges.textContent).toContain('SD 준비 완료')
+    expect(badges.textContent).toContain('HD 원본·설정에 따라 제공하지 않음')
+  })
   it('업로드 바이트와 ETA를 표시한다', () => {
     render(
       <UploadProgress

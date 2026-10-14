@@ -42,6 +42,8 @@ export interface UploadState {
   /** 최근 파트들의 이동평균 속도 기반. 초기에는 null. */
   readonly etaSec: number | null
   readonly transcodeProgress: number
+  /** Completed renditions reported by the asset API, never inferred from percent. */
+  readonly renditions?: readonly string[]
   /** 사용자 문구는 `error-messages.ts` 가 코드로부터 만든다. */
   readonly errorCode: string | null
 }
@@ -68,6 +70,25 @@ export const ETA_SAMPLE_SIZE = 10
 
 /** 재개를 위해 브라우저에 남기는 것. */
 export const UPLOAD_STORAGE_KEY = 'aidream:upload'
+export const TRANSCODE_STORAGE_KEY = 'aidream:processing-asset'
+
+function processingAsset(): string | null {
+  try {
+    const id = window.localStorage.getItem(TRANSCODE_STORAGE_KEY)
+    return id !== null && /^[A-Za-z0-9_-]+$/u.test(id) ? id : null
+  } catch {
+    return null
+  }
+}
+
+function rememberProcessing(assetId: string | null): void {
+  try {
+    if (assetId === null) window.localStorage.removeItem(TRANSCODE_STORAGE_KEY)
+    else window.localStorage.setItem(TRANSCODE_STORAGE_KEY, assetId)
+  } catch {
+    return
+  }
+}
 
 const TRANSCODE_POLL_MS = 2_000
 
@@ -360,7 +381,9 @@ export function uploadPart(input: UploadPartInput): Promise<string> {
  * react-query 의 기본값(`staleTime` 60초)은 여기에 맞지 않는다 — 트랜스코드
  * 진행률은 초 단위로 바뀐다. 이 훅이 자기 간격을 정한다.
  */
-export async function pollTranscode(assetId: string): Promise<number> {
+async function readTranscodeStatus(
+  assetId: string,
+): Promise<{ progress: number; renditions: readonly string[] }> {
   const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}`, {
     method: 'GET',
     credentials: 'same-origin',
@@ -375,7 +398,18 @@ export async function pollTranscode(assetId: string): Promise<number> {
     throw new Error('asset status response is invalid')
   }
   if (body.status === 'READY') {
-    return 100
+    const renditions =
+      'renditions' in body && Array.isArray(body.renditions)
+        ? body.renditions.flatMap((item: unknown) =>
+            typeof item === 'object' &&
+            item !== null &&
+            'name' in item &&
+            typeof item.name === 'string'
+              ? [item.name]
+              : [],
+          )
+        : []
+    return { progress: 100, renditions }
   }
   if (body.status === 'FAILED') {
     const code =
@@ -393,7 +427,12 @@ export async function pollTranscode(assetId: string): Promise<number> {
   ) {
     throw new Error('asset progress response is invalid')
   }
-  return body.progress
+  // Encoding can reach 100 before storage publication/finalization finishes.
+  return { progress: Math.min(99, body.progress), renditions: [] }
+}
+
+export async function pollTranscode(assetId: string): Promise<number> {
+  return (await readTranscodeStatus(assetId)).progress
 }
 
 export function useUpload(): UploadApi {
@@ -512,10 +551,15 @@ export function useUpload(): UploadApi {
   const pollUntilReady = useCallback(
     async (assetId: string, runId: number): Promise<void> => {
       while (runRef.current === runId) {
-        const progress = await pollTranscode(assetId)
+        const { progress, renditions } = await readTranscodeStatus(assetId)
         if (runRef.current !== runId) return
         if (progress >= 100) {
-          setPhase('ready', { transcodeProgress: 100, progress: 100 })
+          if (processingAsset() === assetId) rememberProcessing(null)
+          setPhase('ready', {
+            transcodeProgress: 100,
+            progress: 100,
+            renditions,
+          })
           return
         }
         updateState((current) => ({
@@ -619,6 +663,7 @@ export function useUpload(): UploadApi {
           },
         )
         clearSavedSession()
+        rememberProcessing(completed.assetId)
         setPhase('transcoding', {
           assetId: completed.assetId,
           transcodeProgress: 0,
@@ -702,8 +747,10 @@ export function useUpload(): UploadApi {
         etaSec: null,
         assetId: null,
         transcodeProgress: 0,
+        renditions: [],
       })
       try {
+        rememberProcessing(null)
         const saved = readSavedSession()
         setPhase(saved === null ? 'creating' : 'resumable')
         const active =
@@ -774,16 +821,36 @@ export function useUpload(): UploadApi {
   }, [fail, updateState])
 
   const retry = useCallback(async (): Promise<void> => {
+    if (state.assetId !== null) {
+      const runId = ++runRef.current
+      setPhase('transcoding')
+      try {
+        const current = await requestJson<{ status: string }>(
+          `/api/assets/${encodeURIComponent(state.assetId)}`,
+          { method: 'GET' },
+        )
+        if (current.status === 'FAILED') {
+          await requestJson<unknown>(
+            `/api/assets/${encodeURIComponent(state.assetId)}/retry`,
+            { method: 'POST', body: JSON.stringify({}) },
+          )
+        }
+        await pollUntilReady(state.assetId, runId)
+      } catch (error: unknown) {
+        if (runRef.current === runId) fail(error, false)
+      }
+      return
+    }
     const file = fileRef.current
     if (activeRef.current === null && file !== null) {
       await start(file)
       return
     }
     await resume()
-  }, [resume, start])
+  }, [resume, start, state.assetId, setPhase, pollUntilReady, fail])
 
   useEffect(() => {
-    if (state.phase !== 'uploading') return
+    if (state.phase !== 'uploading' && state.phase !== 'completing') return
     const warn = (event: BeforeUnloadEvent): void => {
       event.preventDefault()
     }
@@ -792,6 +859,16 @@ export function useUpload(): UploadApi {
       window.removeEventListener('beforeunload', warn)
     }
   }, [state.phase])
+
+  useEffect(() => {
+    const assetId = processingAsset()
+    if (assetId === null) return
+    const runId = ++runRef.current
+    setPhase('transcoding', { assetId })
+    void pollUntilReady(assetId, runId).catch((error: unknown) => {
+      if (runRef.current === runId) fail(error, false)
+    })
+  }, [setPhase, pollUntilReady, fail])
 
   useEffect(
     () => () => {
