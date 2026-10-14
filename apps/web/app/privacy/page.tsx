@@ -1,10 +1,15 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { PRIVACY_VERSION } from '@/src/lib/policies'
+import { publicPageMetadata } from '@/src/lib/seo/site'
 
-export const metadata: Metadata = { title: '개인정보 처리방침' }
+export const metadata = publicPageMetadata({
+  title: '개인정보 처리방침',
+  description:
+    'ilog 개인정보 처리방침. 수집 항목, 이용 목적, 보관과 이용자 권리를 설명합니다.',
+  path: '/privacy',
+})
 
 export default function PrivacyPage(): ReactNode {
   return (

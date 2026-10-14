@@ -1,10 +1,15 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { TERMS_VERSION } from '@/src/lib/policies'
+import { publicPageMetadata } from '@/src/lib/seo/site'
 
-export const metadata: Metadata = { title: '이용약관' }
+export const metadata = publicPageMetadata({
+  title: '이용약관',
+  description:
+    'ilog 이용약관. 계정, 콘텐츠 권리, 서비스 이용 조건을 설명합니다.',
+  path: '/terms',
+})
 
 export default function TermsPage(): ReactNode {
   return (
