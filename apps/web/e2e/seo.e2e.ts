@@ -46,6 +46,9 @@ test('private redirects carry noindex while robots permits public discovery', as
   expect(text).toContain('Allow: /')
   expect(text).toContain('Disallow: /messages')
   expect(text).toContain('Sitemap:')
+  expect(text.trimEnd()).toMatch(
+    /#DaumWebMasterTool:440c59dff907fafe824210048b3154959ef635d762f58fbe99196210dcb94c33:98GztZ5EvdKnUPTh2E62HA==$/u,
+  )
   expect(text).not.toContain('Disallow: /works')
 })
 

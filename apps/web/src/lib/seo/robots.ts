@@ -2,8 +2,27 @@ import type { MetadataRoute } from 'next'
 
 import { absoluteUrlOrNull } from '@/src/lib/site-url'
 
-// APP_URL is supplied at runtime; do not freeze a build without APP_URL.
-export const dynamic = 'force-dynamic'
+const DISALLOWED_PATHS = [
+  '/api/',
+  '/studio',
+  '/admin',
+  '/browse',
+  '/following',
+  '/messages',
+  '/tier-preview',
+  '/dev-media/',
+  '/account',
+  '/notifications',
+  '/search',
+  '/embed/',
+  '/verify',
+  '/password/',
+  '/deletion/',
+  '/unsubscribe',
+]
+
+export const DAUM_VERIFICATION =
+  '#DaumWebMasterTool:440c59dff907fafe824210048b3154959ef635d762f58fbe99196210dcb94c33:98GztZ5EvdKnUPTh2E62HA=='
 
 /**
  * `12_GLOBAL_EXPANSION.md` §4 SEO 게이트가 요구하는 크롤러 계약.
@@ -26,27 +45,27 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: [
-          '/api/',
-          '/studio',
-          '/admin',
-          '/browse',
-          '/following',
-          '/messages',
-          '/tier-preview',
-          '/dev-media/',
-          '/account',
-          '/notifications',
-          '/search',
-          '/embed/',
-          '/verify',
-          '/password/',
-          '/deletion/',
-          '/unsubscribe',
-        ],
+        disallow: DISALLOWED_PATHS,
       },
     ],
     ...(sitemap === null ? {} : { sitemap }),
     ...(host === null ? {} : { host }),
   }
+}
+
+/** A text route keeps webmaster comments out of robots directives. */
+export function robotsTxt(): string {
+  const policy = robots()
+  return [
+    'User-Agent: *',
+    'Allow: /',
+    ...DISALLOWED_PATHS.map((path) => `Disallow: ${path}`),
+    ...(typeof policy.host === 'string' ? [`Host: ${policy.host}`] : []),
+    ...(typeof policy.sitemap === 'string'
+      ? [`Sitemap: ${policy.sitemap}`]
+      : []),
+    '',
+    DAUM_VERIFICATION,
+    '',
+  ].join('\n')
 }

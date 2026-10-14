@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import robots from '@/app/robots'
+import robots, { robotsTxt, DAUM_VERIFICATION } from './robots'
 import sitemap from '@/app/sitemap'
 import { absoluteUrl, absoluteUrlOrNull, siteOrigin } from '@/src/lib/site-url'
 
@@ -29,6 +29,14 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('public discovery contracts', () => {
+  it('keeps Daum verification last without changing crawl rules or sitemap', () => {
+    const text = robotsTxt()
+    expect(text.trimEnd().endsWith(DAUM_VERIFICATION)).toBe(true)
+    expect(text).toContain('Allow: /\n')
+    expect(text).toContain('Disallow: /studio\n')
+    expect(text).toContain('Sitemap: https://ilog.info/sitemap.xml\n')
+    expect(text.match(/#DaumWebMasterTool:/gu)).toHaveLength(1)
+  })
   it('uses one origin for canonical URLs, social cards, brand identity and sitemap', async () => {
     expect(siteOrigin()).toBe('https://ilog.info')
     expect(homeMetadata().alternates?.canonical).toBe('https://ilog.info/')
