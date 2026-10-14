@@ -270,7 +270,11 @@ export async function generateMetadata({
   }
 
   const series = await findSeriesById(seriesId).catch(() => null)
-  if (series === null) {
+  if (
+    series === null ||
+    series.visibility !== 'PUBLIC' ||
+    series.deletedAt !== null
+  ) {
     return { title: '작품', robots: { index: false, follow: false } }
   }
   const [creator, episodes] = await Promise.all([
@@ -278,6 +282,7 @@ export async function generateMetadata({
     listEpisodesBySeries({
       seriesId,
       status: ['PUBLISHED'],
+      publicOnly: true,
       limit: 1,
     }).catch(() => null),
   ])
@@ -349,16 +354,24 @@ export default async function SeriesPage({
     만든다. `metaTitle` · `keywords` · `visibility` 같은 색인용 필드는 공개
     API 계약에 없기 때문이다. 실패해도 페이지는 그대로 나간다.
   */
-  const seriesEntity = isPortfolioPreview
-    ? null
-    : await findSeriesById(seriesId).catch(() => null)
+  const [seriesEntity, publicEpisodes] = isPortfolioPreview
+    ? [null, null]
+    : await Promise.all([
+        findSeriesById(seriesId).catch(() => null),
+        listEpisodesBySeries({
+          seriesId,
+          status: ['PUBLISHED'],
+          publicOnly: true,
+          limit: 1000,
+        }).catch(() => null),
+      ])
   const jsonLdDocuments =
-    seriesEntity === null
+    seriesEntity === null || publicEpisodes === null
       ? []
       : buildSeriesJsonLd(seriesEntity, {
           creatorHandle: creator.handle,
           creatorDisplayName: creator.displayName,
-          episodes: detail.episodes.map((episode) => ({
+          episodes: publicEpisodes.items.map((episode) => ({
             id: episode.id,
             number: episode.number,
             title: episode.title,

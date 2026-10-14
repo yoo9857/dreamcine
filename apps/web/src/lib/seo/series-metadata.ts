@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { absoluteUrlOrNull } from '../site-url'
 
 import { breadcrumbJsonLd, type JsonLdDocument } from './json-ld'
+import { DEFAULT_OG_IMAGE } from './site'
 
 const META_DESCRIPTION_MAX = 160
 
@@ -44,9 +45,12 @@ export function buildSeriesMetadata(
   const description =
     series.metaDescription ??
     (series.synopsis === null
-      ? `${options.creatorDisplayName}의 ${series.title} — 전 ${String(series.episodeCount)}화`
+      ? `${options.creatorDisplayName}의 ${series.title} — 공개 에피소드를 만나보세요.`
       : clamp(series.synopsis, META_DESCRIPTION_MAX))
-  const image = publicUrl(series.ogImageKey) ?? publicUrl(series.posterKey)
+  const image =
+    publicUrl(series.ogImageKey) ??
+    publicUrl(series.posterKey) ??
+    absoluteUrlOrNull(DEFAULT_OG_IMAGE)
   const indexable =
     series.visibility === 'PUBLIC' &&
     series.deletedAt === null &&
@@ -90,8 +94,8 @@ export interface SeriesEpisodeRef {
 /**
  * `TVSeries` + `BreadcrumbList`.
  *
- * `TVSeries.episode` 로 회차 목록을 노출하면 검색 결과에 회차가 함께 잡힌다 —
- * 시리즈물에서 유입 폭이 가장 크게 달라지는 지점이다.
+ * 공개 회차 목록을 검색엔진이 이해할 수 있도록 제공한다.
+ * 검색 결과의 회차 표시 여부는 검색엔진이 결정한다.
  */
 export function buildSeriesJsonLd(
   series: Series,
@@ -101,6 +105,12 @@ export function buildSeriesJsonLd(
     readonly episodes: readonly SeriesEpisodeRef[]
   },
 ): readonly JsonLdDocument[] {
+  if (
+    series.visibility !== 'PUBLIC' ||
+    series.deletedAt !== null ||
+    options.episodes.length === 0
+  )
+    return []
   const canonicalPath = seriesCanonicalPath(series)
   const image = publicUrl(series.ogImageKey) ?? publicUrl(series.posterKey)
 
@@ -113,8 +123,8 @@ export function buildSeriesJsonLd(
       url: absoluteUrlOrNull(canonicalPath) ?? undefined,
       image: image ?? undefined,
       inLanguage: series.language,
-      numberOfEpisodes: series.episodeCount,
-      isFamilyFriendly: series.madeForKids,
+      numberOfEpisodes: options.episodes.length,
+      isFamilyFriendly: series.ageRating !== 'A19',
       keywords:
         series.keywords.length === 0 ? undefined : series.keywords.join(', '),
       datePublished: series.firstAiredAt?.toISOString(),

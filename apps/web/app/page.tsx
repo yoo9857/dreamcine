@@ -10,6 +10,15 @@ import { DiscoveryBackdrop } from '@/src/components/discovery/DiscoveryBackdrop'
 import { GuestCoverflow } from '@/src/components/discovery/GuestCoverflow'
 import { IndustryPerspectives } from '@/src/components/discovery/IndustryPerspectives'
 import { getFeed } from '@/src/services/feed/get-feed'
+import { JsonLd } from '@/src/components/seo/JsonLd'
+import {
+  HOME_FAQ,
+  SITE_DESCRIPTION,
+  homeMetadata,
+  siteJsonLd,
+} from '@/src/lib/seo/site'
+
+export const metadata = homeMetadata()
 
 const landingPreviewItems = [
   {
@@ -112,12 +121,12 @@ function GuestLanding({
         <div className="guest-hero-copy">
           <p>WATCH · CREATE · CONNECT</p>
           <h1 id="guest-title">
-            이야기가 시작되고,
+            창작은 자유롭게.
             <br />
-            취향이 연결되는 곳.
+            감상은 즐겁게.
           </h1>
           <p>
-            새로운 영상을 발견하고, 크리에이터를 팔로우하고,
+            AI 영화와 드라마를 발견하고, 크리에이터와 연결되는 영상 플랫폼 ilog.
             <br />
             당신만의 이야기도 세상에 공개하세요.
           </p>
@@ -188,6 +197,27 @@ function GuestLanding({
 
       <IndustryPerspectives />
 
+      <section className="guest-faq" aria-labelledby="guest-faq-title">
+        <div className="guest-section-heading">
+          <p>ABOUT ILOG</p>
+          <h2 id="guest-faq-title">ilog 이용 안내</h2>
+          <p>{SITE_DESCRIPTION}</p>
+        </div>
+        <nav aria-label="공개 콘텐츠 둘러보기">
+          <Link href="/works">작품 둘러보기</Link>
+          <Link href="/creators">크리에이터 만나기</Link>
+          <Link href="/about">ilog 소개</Link>
+          <Link href="/creator-apply">크리에이터 참여 안내</Link>
+          <Link href="/ads-plan">멤버십 안내</Link>
+        </nav>
+        {HOME_FAQ.map(({ question, answer }) => (
+          <details key={question}>
+            <summary>{question}</summary>
+            <p>{answer}</p>
+          </details>
+        ))}
+      </section>
+
       <section className="guest-final-cta" aria-labelledby="guest-cta-title">
         <p>YOUR NEXT SCENE STARTS HERE</p>
         <h2 id="guest-cta-title">다음 장면의 주인공은 당신입니다.</h2>
@@ -206,7 +236,7 @@ function GuestLanding({
             <Link href="/" className="guest-wordmark" aria-label="ilog 홈">
               <LeftBrandLogo />
             </Link>
-            <h2>이야기가 스크린이 되는 곳.</h2>
+            <h2>창작은 자유롭게. 감상은 즐겁게.</h2>
             <p>
               새로운 영상을 발견하고, 마음에 남은 장면을 나누고,
               <br />
@@ -218,7 +248,8 @@ function GuestLanding({
           <nav className="guest-footer-links" aria-label="푸터 메뉴">
             <section>
               <h3>둘러보기</h3>
-              <Link href="/">주목받는 이야기</Link>
+              <Link href="/works">작품 둘러보기</Link>
+              <Link href="/creators">크리에이터</Link>
               <Link href="/search">검색</Link>
               <Link href="/following">팔로잉</Link>
             </section>
@@ -261,10 +292,12 @@ export default async function HomePage(): Promise<ReactNode> {
   }
 
   const hero = await getLandingHero()
+  const identity = siteJsonLd()
 
   return (
-    <div className="guest-landing">
+    <main className="guest-landing">
+      {identity === null ? null : <JsonLd document={identity} />}
       <GuestLanding hero={hero} />
-    </div>
+    </main>
   )
 }

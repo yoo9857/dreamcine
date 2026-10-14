@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { SESSION_COOKIE_NAMES } from '@/src/auth/types'
 import { getPlanVariantByRoute } from '@/src/config/plan-markets'
+import { isNonIndexablePath } from '@/src/lib/seo/indexing'
 
 /**
  * 08_UIUX_SPEC.md §1 에서 인증이 필요한 최상위 경로.
@@ -156,6 +157,9 @@ export function middleware(req: NextRequest): NextResponse {
   }
 
   applySecurityHeaders(response.headers, csp)
+  if (isNonIndexablePath(req.nextUrl.pathname)) {
+    response.headers.set('x-robots-tag', 'noindex, follow')
+  }
   return response
 }
 

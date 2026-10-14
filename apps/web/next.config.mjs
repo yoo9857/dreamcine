@@ -10,6 +10,15 @@ const nextConfig = {
   outputFileTracingRoot: join(here, '..', '..'),
   poweredByHeader: false,
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/opengraph-image',
+        destination: '/opengraph-image.png',
+        permanent: true,
+      },
+    ]
+  },
   // workspace 패키지는 TypeScript 소스를 그대로 노출한다.
   transpilePackages: [
     '@aidream/core',

@@ -12,7 +12,7 @@ import { executeDb } from '../errors.js'
 /** sitemap 한 항목. `lastModified` 는 Next `MetadataRoute.Sitemap` 이 요구하는 값이다. */
 export interface SitemapEntry {
   readonly path: string
-  readonly lastModified: Date
+  readonly lastModified?: Date
 }
 
 /** Playback has already checked visibility before requesting production credits. */
@@ -69,6 +69,8 @@ export function findEpisodeMetaView(
             id: true,
             slug: true,
             title: true,
+            visibility: true,
+            deletedAt: true,
             owner: {
               select: {
                 handle: true,
@@ -143,6 +145,9 @@ export function findEpisodeMetaView(
       seriesId: row.series.id,
       seriesSlug: row.series.slug,
       seriesTitle: row.series.title,
+      status: row.status,
+      seriesVisibility: row.series.visibility,
+      seriesDeletedAt: row.series.deletedAt,
       number: row.number,
       title: row.title,
       description: row.description,
@@ -202,7 +207,7 @@ export function listSitemapEpisodes(limit: number): Promise<SitemapEntry[]> {
         status: 'PUBLISHED',
         visibility: 'PUBLIC',
         deletedAt: null,
-        publishedAt: { not: null },
+        publishedAt: { lte: new Date() },
         series: { deletedAt: null, visibility: 'PUBLIC' },
       },
       select: { id: true, updatedAt: true, canonicalPath: true },
@@ -222,7 +227,14 @@ export function listSitemapSeries(limit: number): Promise<SitemapEntry[]> {
       where: {
         deletedAt: null,
         visibility: 'PUBLIC',
-        episodes: { some: { status: 'PUBLISHED', deletedAt: null } },
+        episodes: {
+          some: {
+            status: 'PUBLISHED',
+            visibility: 'PUBLIC',
+            deletedAt: null,
+            publishedAt: { lte: new Date() },
+          },
+        },
       },
       select: { id: true, updatedAt: true, canonicalPath: true },
       orderBy: { updatedAt: 'desc' },
@@ -265,10 +277,8 @@ export function listSitemapTags(limit: number): Promise<SitemapEntry[]> {
       orderBy: { useCount: 'desc' },
       take: limit,
     })
-    const now = new Date()
     return rows.map((row) => ({
       path: `/tags/${encodeURIComponent(row.name)}`,
-      lastModified: now,
     }))
   })
 }

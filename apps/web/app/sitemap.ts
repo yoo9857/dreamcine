@@ -6,14 +6,39 @@ import {
   type SitemapEntry,
 } from '@aidream/db'
 import type { MetadataRoute } from 'next'
+import { unstable_cache } from 'next/cache'
+import { connection } from 'next/server'
 
 import { absoluteUrlOrNull, siteOrigin } from '@/src/lib/site-url'
+import { getLogger } from '@/src/lib/logger'
 
 /**
- * sitemap 은 매 요청 DB 를 4번 때릴 이유가 없다. 크롤러 방문 간격보다 짧게
- * 갱신해도 얻는 것이 없으므로 1시간 캐시한다.
+ * 공개 목록의 성공 응답만 구간별로 1시간 캐시한다. 장애 대체 응답은 캐시 밖에서
+ * 만들고, 빌드 시 DB가 없는 환경의 빈 목록을 배포물에 굳히지 않는다.
  */
 export const revalidate = 3600
+
+const cacheOptions = { revalidate: 3600 }
+const cachedEpisodes = unstable_cache(
+  listSitemapEpisodes,
+  ['public-sitemap-episodes-v2'],
+  cacheOptions,
+)
+const cachedSeries = unstable_cache(
+  listSitemapSeries,
+  ['public-sitemap-series-v2'],
+  cacheOptions,
+)
+const cachedCreators = unstable_cache(
+  listSitemapCreators,
+  ['public-sitemap-creators-v2'],
+  cacheOptions,
+)
+const cachedTags = unstable_cache(
+  listSitemapTags,
+  ['public-sitemap-tags-v2'],
+  cacheOptions,
+)
 
 /**
  * 한 파일당 상한을 sitemaps.org 기준(50,000 URL) 아래로 잡는다. 이 상한에
@@ -33,7 +58,6 @@ interface StaticRoute {
 
 const STATIC_ROUTES: readonly StaticRoute[] = [
   { path: '/', changeFrequency: 'hourly', priority: 1 },
-  { path: '/browse', changeFrequency: 'hourly', priority: 0.9 },
   { path: '/works', changeFrequency: 'daily', priority: 0.8 },
   { path: '/creators', changeFrequency: 'daily', priority: 0.8 },
   { path: '/about', changeFrequency: 'monthly', priority: 0.5 },
@@ -59,7 +83,32 @@ function toSitemapEntries(
   })
 }
 
+async function loadEntries(
+  kind: string,
+  limit: number,
+  query: (limit: number) => Promise<SitemapEntry[]>,
+): Promise<SitemapEntry[]> {
+  try {
+    const entries = await query(limit)
+    if (entries.length >= limit) {
+      getLogger().warn(
+        { kind, limit },
+        'sitemap entry limit reached; partition sitemap before growth',
+      )
+    }
+    return entries
+  } catch {
+    // Report the failed section without leaking database connection details.
+    getLogger().warn(
+      { kind },
+      'sitemap section unavailable; serving remaining public routes',
+    )
+    return []
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  await connection()
   // APP_URL 이 없으면 절대 URL 을 만들 수 없다. 빈 sitemap 은 잘못된 호스트가
   // 박힌 sitemap 보다 낫다 — 후자는 크롤러가 캐시해 오래 남는다.
   try {
@@ -68,7 +117,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return []
   }
 
-  const now = new Date()
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.flatMap(
     (route) => {
       const url = absoluteUrlOrNull(route.path)
@@ -77,7 +125,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         : [
             {
               url,
-              lastModified: now,
               changeFrequency: route.changeFrequency,
               priority: route.priority,
             },
@@ -88,17 +135,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // DB 가 죽어도 정적 경로는 나가야 한다. sitemap 500 은 크롤러가 재시도를
   // 줄이는 신호로 읽는다.
   const [episodes, series, creators, tags] = await Promise.all([
-    listSitemapEpisodes(EPISODE_LIMIT).catch(() => []),
-    listSitemapSeries(SERIES_LIMIT).catch(() => []),
-    listSitemapCreators(CREATOR_LIMIT).catch(() => []),
-    listSitemapTags(TAG_LIMIT).catch(() => []),
+    loadEntries('episodes', EPISODE_LIMIT, cachedEpisodes),
+    loadEntries('series', SERIES_LIMIT, cachedSeries),
+    loadEntries('creators', CREATOR_LIMIT, cachedCreators),
+    loadEntries('tags', TAG_LIMIT, cachedTags),
   ])
 
-  return [
+  const entries = [
     ...staticEntries,
     ...toSitemapEntries(series, 'daily', 0.8),
     ...toSitemapEntries(episodes, 'weekly', 0.7),
     ...toSitemapEntries(creators, 'weekly', 0.6),
     ...toSitemapEntries(tags, 'weekly', 0.4),
   ]
+  return [...new Map(entries.map((entry) => [entry.url, entry])).values()]
 }

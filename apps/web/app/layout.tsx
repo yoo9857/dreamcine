@@ -7,6 +7,12 @@ import { ThemeToggle } from '@/src/components/ThemeToggle'
 import { HelpWidget } from '@/src/components/help/HelpWidget'
 import { THEME_COOKIE, parseTheme } from '@/src/lib/theme'
 import { siteOrigin } from '@/src/lib/site-url'
+import {
+  DEFAULT_OG_IMAGE,
+  DEFAULT_OG_ALT,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+} from '@/src/lib/seo/site'
 
 import './globals.css'
 import '../src/styles/app-shell.css'
@@ -15,12 +21,6 @@ import '../src/styles/cinematic-motion.css'
 import '../src/styles/discovery-home.css'
 import '../src/styles/guest-landing.css'
 import '../src/styles/policy.css'
-
-const SITE_DESCRIPTION =
-  '새로운 이야기와 크리에이터를 발견하는 영상 플랫폼 ilog'
-
-/** 공유 카드 기본 이미지. 썸네일·포스터가 없는 페이지도 회색 카드로 나가지 않게 한다. */
-const DEFAULT_OG_IMAGE = '/brand/ilog-app-icon.png'
 
 /**
  * `metadataBase` 는 하위 페이지가 상대 경로 이미지를 절대 URL 로 승격할 때
@@ -40,7 +40,7 @@ function metadataBase(): URL | undefined {
 export const metadata: Metadata = {
   ...(metadataBase() === undefined ? {} : { metadataBase: metadataBase() }),
   title: {
-    default: 'ilog',
+    default: SITE_TITLE,
     template: '%s | ilog',
   },
   description: SITE_DESCRIPTION,
@@ -65,7 +65,9 @@ export const metadata: Metadata = {
     locale: 'ko_KR',
     title: 'ilog',
     description: SITE_DESCRIPTION,
-    images: [{ url: DEFAULT_OG_IMAGE }],
+    images: [
+      { url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: DEFAULT_OG_ALT },
+    ],
   },
   twitter: {
     card: 'summary_large_image',

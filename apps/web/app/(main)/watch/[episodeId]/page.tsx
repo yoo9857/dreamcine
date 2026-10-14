@@ -32,6 +32,7 @@ import { listComments } from '@/src/services/social/list-comments'
 import {
   buildEpisodeJsonLd,
   buildEpisodeMetadata,
+  isPublicEpisode,
 } from '@/src/lib/seo/episode-metadata'
 
 import '@/src/styles/player.css'
@@ -199,12 +200,11 @@ export async function generateMetadata(
   } catch {
     meta = null
   }
-  if (meta === null) {
+  if (meta === null || !isPublicEpisode(meta)) {
     return { title: '재생', robots: { index: false, follow: false } }
   }
   return buildEpisodeMetadata(meta, {
-    isPubliclyVisible:
-      meta.visibility === 'PUBLIC' && meta.publishedAt !== null,
+    isPubliclyVisible: true,
   })
 }
 

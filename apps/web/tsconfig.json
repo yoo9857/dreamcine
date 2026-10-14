@@ -17,6 +17,7 @@
     "resolveJsonModule": true
   },
   "include": [
+    "src/lib/seo/og-image.json",
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",

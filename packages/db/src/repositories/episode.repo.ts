@@ -34,6 +34,7 @@ export interface EpisodePlacement {
 export interface ListEpisodesOptions {
   seriesId: string
   status?: EpisodeStatus[]
+  publicOnly?: boolean
   includeDeleted?: false
   limit: number
   cursor?: string
@@ -239,6 +240,9 @@ export function listEpisodesBySeries(
       where: {
         seriesId: options.seriesId,
         deletedAt: null,
+        ...(options.publicOnly === true
+          ? { visibility: 'PUBLIC', publishedAt: { lte: new Date() } }
+          : {}),
         ...(options.status === undefined
           ? {}
           : { status: { in: options.status } }),

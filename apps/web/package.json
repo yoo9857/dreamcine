@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "og:generate": "node ./scripts/generate-og.mjs",
     "predev": "node ./scripts/copy-maplibre-worker.mjs",
     "dev": "next dev --port 3000",
     "prebuild": "node ./scripts/copy-maplibre-worker.mjs",

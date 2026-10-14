@@ -9,6 +9,7 @@ import {
   videoObjectJsonLd,
   type JsonLdDocument,
 } from './json-ld'
+import { DEFAULT_OG_IMAGE } from './site'
 
 /** OG 설명 상한. 넘기면 크롤러가 잘라 문장이 중간에 끊긴다. */
 const META_DESCRIPTION_MAX = 160
@@ -57,6 +58,20 @@ export function episodeCanonicalPath(meta: EpisodeMetaView): string {
   return meta.canonicalPath ?? `/watch/${meta.episodeId}`
 }
 
+export function isPublicEpisode(
+  meta: EpisodeMetaView,
+  now: Date = new Date(),
+): boolean {
+  return (
+    meta.status === 'PUBLISHED' &&
+    meta.visibility === 'PUBLIC' &&
+    meta.seriesVisibility === 'PUBLIC' &&
+    meta.seriesDeletedAt === null &&
+    meta.publishedAt !== null &&
+    meta.publishedAt <= now
+  )
+}
+
 /**
  * `watch/[episodeId]` 의 `generateMetadata` 본체.
  *
@@ -82,18 +97,10 @@ export function buildEpisodeMetadata(
     (copy.description === null
       ? `${meta.creator.displayName}의 ${meta.seriesTitle} ${String(meta.number)}화`
       : clamp(copy.description, META_DESCRIPTION_MAX))
-  const image = publicUrl(meta.ogImageKey) ?? publicUrl(meta.thumbKey)
-
-  const languages: Record<string, string> = {}
-  if (canonical !== null) {
-    languages[meta.language] = canonical
-    for (const translation of meta.translations) {
-      const localeUrl = absoluteUrlOrNull(
-        `${canonicalPath}?lang=${translation.locale}`,
-      )
-      if (localeUrl !== null) languages[translation.locale] = localeUrl
-    }
-  }
+  const image =
+    publicUrl(meta.ogImageKey) ??
+    publicUrl(meta.thumbKey) ??
+    absoluteUrlOrNull(DEFAULT_OG_IMAGE)
 
   return {
     title,
@@ -101,11 +108,21 @@ export function buildEpisodeMetadata(
     keywords: meta.keywords.length === 0 ? undefined : [...meta.keywords],
     alternates: {
       ...(canonical === null ? {} : { canonical }),
-      ...(Object.keys(languages).length > 1 ? { languages } : {}),
     },
-    robots: options.isPubliclyVisible
-      ? { index: true, follow: true }
-      : { index: false, follow: false },
+    robots:
+      options.isPubliclyVisible && isPublicEpisode(meta)
+        ? {
+            index: true,
+            follow: true,
+            googleBot: {
+              index: true,
+              follow: true,
+              'max-video-preview': -1,
+              'max-image-preview': 'large',
+              'max-snippet': -1,
+            },
+          }
+        : { index: false, follow: false },
     openGraph: {
       type: 'video.episode',
       title,
@@ -138,6 +155,7 @@ export function buildEpisodeJsonLd(
   meta: EpisodeMetaView,
   options: { readonly locale?: string } = {},
 ): readonly JsonLdDocument[] {
+  if (!isPublicEpisode(meta)) return []
   const copy = localized(meta, options.locale)
   const canonicalPath = episodeCanonicalPath(meta)
   const canonical = absoluteUrlOrNull(canonicalPath)
@@ -149,7 +167,6 @@ export function buildEpisodeJsonLd(
       description: copy.description,
       canonical,
       thumbnailUrl: publicUrl(meta.ogImageKey) ?? publicUrl(meta.thumbKey),
-      embedUrl: absoluteUrlOrNull(`/embed/${meta.episodeId}`),
     }),
     breadcrumbJsonLd([
       { name: 'ilog', path: '/' },

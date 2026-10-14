@@ -1,3 +1,4 @@
+import { publicPageMetadata } from '@/src/lib/seo/site'
 import type { FeedItem, Page } from '@aidream/core'
 import type { ReactNode } from 'react'
 
@@ -6,25 +7,13 @@ import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
 import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
 import { WorksCatalog } from '@/src/components/works/WorksCatalog'
 import { getFeed } from '@/src/services/feed/get-feed'
-import type { Metadata } from 'next'
 
-import { absoluteUrlOrNull } from '@/src/lib/site-url'
-
-const CANONICAL = absoluteUrlOrNull('/works')
-
-export const metadata: Metadata = {
-  title: '작품',
-  description: 'ilog에 공개된 AI 드라마 시리즈 전체 목록.',
-  ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
-  robots: { index: true, follow: true },
-  openGraph: {
-    type: 'website',
-    title: '작품 · ilog',
-    description: 'ilog에 공개된 AI 드라마 시리즈 전체 목록.',
-    siteName: 'ilog',
-    ...(CANONICAL === null ? {} : { url: CANONICAL }),
-  },
-}
+export const metadata = publicPageMetadata({
+  title: 'AI 영화·드라마 작품 목록',
+  description:
+    'ilog에 공개된 AI 영화와 드라마, 영상 시리즈를 둘러보세요. 새로운 작품과 크리에이터를 발견하고 에피소드별로 감상할 수 있습니다.',
+  path: '/works',
+})
 
 import '@/src/styles/works-gallery.css'
 

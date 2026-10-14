@@ -33,10 +33,10 @@ export function isoDuration(seconds: number): string {
  * 구조화 데이터가 갈라진다 — 등급은 번역 대상이 아니다.
  */
 const CONTENT_RATING: Record<string, string> = {
-  ALL: 'KMRB ALL',
-  A12: 'KMRB 12',
-  A15: 'KMRB 15',
-  A19: 'KMRB 19',
+  ALL: '전체 관람가',
+  A12: '12세 이상 관람가',
+  A15: '15세 이상 관람가',
+  A19: '19세 이상 관람가',
 }
 
 interface VideoObjectInput {
@@ -45,12 +45,11 @@ interface VideoObjectInput {
   readonly description: string | null
   readonly canonical: string | null
   readonly thumbnailUrl: string | null
-  readonly embedUrl: string | null
 }
 
 /**
- * `schema.org/VideoObject`. Google 동영상 색인이 요구하는 필수 4종
- * (name · description · thumbnailUrl · uploadDate) 을 항상 채우고, 있으면
+ * `schema.org/VideoObject`. Google 동영상 색인이 요구하는 필수 속성
+ * (name · thumbnailUrl · uploadDate) 는 실제 데이터가 있을 때만 제공하고, 있으면
  * duration · interactionStatistic · contentRating 을 덧붙인다.
  */
 export function videoObjectJsonLd(input: VideoObjectInput): JsonLdDocument {
@@ -61,6 +60,7 @@ export function videoObjectJsonLd(input: VideoObjectInput): JsonLdDocument {
   return {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
+    '@id': input.canonical === null ? undefined : `${input.canonical}#video`,
     name: input.title,
     description: input.description ?? input.title,
     thumbnailUrl: input.thumbnailUrl ?? undefined,
@@ -68,9 +68,8 @@ export function videoObjectJsonLd(input: VideoObjectInput): JsonLdDocument {
     duration:
       meta.durationSec === null ? undefined : isoDuration(meta.durationSec),
     url: input.canonical ?? undefined,
-    embedUrl: meta.allowEmbed ? (input.embedUrl ?? undefined) : undefined,
     inLanguage: meta.language,
-    isFamilyFriendly: meta.madeForKids,
+    isFamilyFriendly: meta.ageRating !== 'A19',
     contentRating: CONTENT_RATING[meta.ageRating],
     genre: meta.category === null ? undefined : meta.category.nameKo,
     keywords: meta.keywords.length === 0 ? undefined : meta.keywords.join(', '),
@@ -84,7 +83,6 @@ export function videoObjectJsonLd(input: VideoObjectInput): JsonLdDocument {
       name: meta.seriesTitle,
       url: seriesUrl,
     },
-    episodeNumber: meta.number,
     interactionStatistic: [
       {
         '@type': 'InteractionCounter',

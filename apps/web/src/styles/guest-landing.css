@@ -237,6 +237,40 @@ body:has(.guest-landing) .aidream-theme-control {
   text-align: center;
 }
 
+.guest-faq {
+  width: min(100% - 48px, 880px);
+  margin-inline: auto;
+  padding-block: clamp(64px, 8vw, 112px);
+}
+
+.guest-faq h2 {
+  font-size: clamp(28px, 4vw, 48px);
+}
+
+.guest-faq nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-block: 32px;
+}
+
+.guest-faq details {
+  border-bottom: 1px solid currentColor;
+  padding-block: 24px;
+}
+
+.guest-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.guest-faq details p {
+  margin-top: 16px;
+  line-height: 1.8;
+}
+
 .guest-section-heading > p:last-child {
   max-width: 650px;
   margin: 22px auto 0;

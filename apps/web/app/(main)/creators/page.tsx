@@ -1,29 +1,19 @@
+import { publicPageMetadata } from '@/src/lib/seo/site'
 import type { ReactNode } from 'react'
 
 import { getServerSession } from '@/src/auth/server-session'
 import { CreatorDirectory } from '@/src/components/creators/CreatorDirectory'
 import { DiscoveryFooter } from '@/src/components/discovery/DiscoveryFooter'
 import { DiscoveryTopbar } from '@/src/components/discovery/DiscoveryTopbar'
-import type { Metadata } from 'next'
 
-import { absoluteUrlOrNull } from '@/src/lib/site-url'
 import { creatorSeasonEditions } from '@/src/content/creator-season-editions'
 
-const CANONICAL = absoluteUrlOrNull('/creators')
-
-export const metadata: Metadata = {
-  title: '이달의 작가와 작품 세계',
-  description: '이달의 추천 작가를 만나고, 작가별 공개 작품을 감상하세요.',
-  ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
-  robots: { index: true, follow: true },
-  openGraph: {
-    type: 'website',
-    title: '이달의 작가와 작품 세계 · ilog',
-    description: '이달의 추천 작가를 만나고, 작가별 공개 작품을 감상하세요.',
-    siteName: 'ilog',
-    ...(CANONICAL === null ? {} : { url: CANONICAL }),
-  },
-}
+export const metadata = publicPageMetadata({
+  title: 'AI 영화·드라마 크리에이터',
+  description:
+    'ilog의 추천 크리에이터와 작품 세계를 만나보세요. 작가별 공개 영상과 시리즈를 둘러보고 새로운 창작자를 발견하세요.',
+  path: '/creators',
+})
 
 import {
   HIGGSFIELD_BIO,

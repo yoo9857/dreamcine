@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: '탐색',
   description: '장르·태그·인기순으로 ilog의 AI 드라마를 찾아보세요.',
   ...(CANONICAL === null ? {} : { alternates: { canonical: CANONICAL } }),
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
   openGraph: {
     type: 'website',
     title: '탐색 · ilog',

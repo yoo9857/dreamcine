@@ -429,6 +429,9 @@ export interface EpisodeMetaView {
   seriesId: string
   seriesSlug: string
   seriesTitle: string
+  status: EpisodeStatus
+  seriesVisibility: Visibility
+  seriesDeletedAt: Date | null
   number: number
   title: string
   description: string | null
