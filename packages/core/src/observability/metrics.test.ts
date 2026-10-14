@@ -24,6 +24,12 @@ describe('observability metric contract', () => {
     expect(normalizeRoutePattern('/api/notifications/read')).toBe(
       '/api/notifications/read',
     )
+    expect(normalizeRoutePattern('/api/conversations/conv_123/messages')).toBe(
+      '/api/conversations/[id]/messages',
+    )
+    expect(
+      normalizeRoutePattern('/api/admin/creator-applications/app_123/status'),
+    ).toBe('/api/admin/creator-applications/[id]/status')
   })
 
   it('groups statuses into bounded classes', () => {

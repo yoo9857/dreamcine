@@ -104,6 +104,26 @@ describe('makeThumbnails', () => {
     )
   })
 
+  it('이미 중단된 신호로는 ffmpeg를 시작하지 않는다', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const outDir = await mkdtemp(join(tmpdir(), 'aidream-thumb-test-'))
+
+    await expect(
+      makeThumbnails({
+        inputPath: 'input.mp4',
+        outDir,
+        durationSec: 10,
+        makeSprite: false,
+        ffmpegPath: 'ffmpeg',
+        signal: controller.signal,
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({ code: 'E_MEDIA_TRANSCODE_FAILED' }),
+    )
+    expect(mocks.spawn).not.toHaveBeenCalled()
+  })
+
   it('잘못된 길이를 프로세스 실행 전에 거부한다', async () => {
     await expect(
       makeThumbnails({

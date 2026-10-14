@@ -32,12 +32,19 @@ function asReadable(body: unknown): Readable {
 export async function getObjectStream(
   bucket: BucketKind,
   key: string,
+  signal?: AbortSignal,
 ): Promise<ObjectStream> {
   const result = await withS3(() =>
     s3Streaming().send(
       new GetObjectCommand({ Bucket: bucketName(bucket), Key: key }),
+      signal === undefined ? undefined : { abortSignal: signal },
     ),
-  )
+  ).catch((error: unknown) => {
+    if (signal?.aborted) {
+      throw new AppError('E_STORAGE_UNAVAILABLE', { reason: 'aborted' }, error)
+    }
+    throw error
+  })
   return {
     body: asReadable(result.Body),
     contentLength: result.ContentLength ?? null,

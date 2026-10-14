@@ -13,8 +13,9 @@ import {
   RecoverStuckJobSchema,
   StorageCleanupJobSchema,
   TranscodeJobSchema,
+  closeQueues,
 } from '@aidream/queue'
-import { listDueAccountDeletionIds } from '@aidream/db'
+import { disconnectDb, listDueAccountDeletionIds } from '@aidream/db'
 import { Worker } from 'bullmq'
 import { pathToFileURL } from 'node:url'
 import pino from 'pino'
@@ -170,6 +171,7 @@ function startWorkers(): Promise<WorkerRuntime> {
             new Promise((resolve) => {
               setTimeout(resolve, 25)
             }),
+          signal: abortController.signal,
         })
       }),
       { connection, concurrency: 1 },
@@ -193,9 +195,11 @@ function startWorkers(): Promise<WorkerRuntime> {
   return Promise.resolve({
     close: () => {
       closing ??= (async () => {
-        await Promise.all(workers.map((worker) => worker.pause()))
         abortController.abort()
+        await Promise.all(workers.map((worker) => worker.pause(true)))
         await Promise.all(workers.map((worker) => worker.close(true)))
+        await closeQueues()
+        await disconnectDb()
       })()
       return closing
     },
@@ -215,14 +219,17 @@ async function main(): Promise<void> {
       : await startMetricsServer(config.env.WORKER_METRICS_PORT)
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal, role: config.processRole }, 'shutdown started')
+    let finished = false
     const timeout = setTimeout(() => {
+      if (finished) return
       logger.error({ signal }, 'shutdown deadline exceeded')
-      process.exitCode = 1
+      process.exit(1)
     }, 30_000)
     timeout.unref()
     try {
       await Promise.all([runtime.close(), metricsServer?.close()])
     } finally {
+      finished = true
       clearTimeout(timeout)
     }
   }

@@ -84,5 +84,37 @@ describe('T10 counter reconciliation', () => {
     // 조회는 회차·작품·작가 합계에 함께 쌓인다
     expect(updatedSeries.totalViews).toBe(5n)
     expect(updatedCreator.totalViews).toBe(5n)
+
+    const token = '11111111-1111-4111-8111-111111111111'
+    await context.repo.applyClaimedEpisodeViews({
+      token,
+      episodeId: episode.id,
+      amount: 4n,
+    })
+    await context.repo.applyClaimedEpisodeViews({
+      token,
+      episodeId: episode.id,
+      amount: 4n,
+    })
+    const [afterEpisode, afterSeries, afterCreator, receipts] =
+      await Promise.all([
+        context.database.episode.findUniqueOrThrow({
+          where: { id: episode.id },
+        }),
+        context.database.series.findUniqueOrThrow({
+          where: { id: series.id },
+        }),
+        context.database.user.findUniqueOrThrow({ where: { id: creator.id } }),
+        context.database.viewFlushReceipt.count(),
+      ])
+    expect(afterEpisode.viewCount).toBe(9n)
+    expect(afterSeries.totalViews).toBe(9n)
+    expect(afterCreator.totalViews).toBe(9n)
+    expect(receipts).toBe(1)
+    await expect(
+      context.repo.purgeViewFlushReceiptsOlderThan(
+        new Date(Date.now() + 60_000),
+      ),
+    ).resolves.toBe(1)
   })
 })

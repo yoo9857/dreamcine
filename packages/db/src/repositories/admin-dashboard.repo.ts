@@ -1,5 +1,6 @@
-import { executeDb } from '../errors.js'
+import { Prisma } from '@prisma/client'
 import { db } from '../client.js'
+import { executeDb } from '../errors.js'
 
 export interface AdminDashboardSnapshot {
   readonly totals: {
@@ -222,14 +223,24 @@ export function getAdminDashboardSnapshot(
  */
 export function getAdminAnalyticsSnapshot(): Promise<AdminAnalyticsSnapshot> {
   return executeDb(async () => {
-    const [metricEpisodes, episodes, uniqueViewers] = await Promise.all([
-      db.episode.findMany({
-        where: { deletedAt: null, status: 'PUBLISHED' },
-        select: {
-          viewCount: true,
-          avgWatchSec: true,
-        },
-      }),
+    const [totals, audience, episodes] = await Promise.all([
+      db.$queryRaw<{ views: unknown; watchSeconds: unknown }[]>(Prisma.sql`
+        SELECT COALESCE(SUM(view_count), 0)::bigint AS views,
+               COALESCE(SUM(view_count * avg_watch_sec), 0)::bigint AS "watchSeconds"
+        FROM episode
+        WHERE deleted_at IS NULL
+          AND status = 'PUBLISHED'::"EpisodeStatus"
+      `),
+      db.$queryRaw<{ uniqueViewers: unknown }[]>(Prisma.sql`
+        SELECT COUNT(DISTINCT wp.user_id)::bigint AS "uniqueViewers"
+        FROM watch_progress wp
+        INNER JOIN episode e ON e.id = wp.episode_id
+        INNER JOIN "user" u ON u.id = wp.user_id
+        WHERE e.deleted_at IS NULL
+          AND e.status = 'PUBLISHED'::"EpisodeStatus"
+          AND u.deleted_at IS NULL
+          AND u.status = 'ACTIVE'::"UserStatus"
+      `),
       db.episode.findMany({
         where: { deletedAt: null, status: 'PUBLISHED' },
         orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
@@ -243,24 +254,10 @@ export function getAdminAnalyticsSnapshot(): Promise<AdminAnalyticsSnapshot> {
           series: { select: { title: true } },
         },
       }),
-      db.watchProgress.findMany({
-        where: {
-          episode: { deletedAt: null, status: 'PUBLISHED' },
-          user: { deletedAt: null, status: 'ACTIVE' },
-        },
-        distinct: ['userId'],
-        select: { userId: true },
-      }),
     ])
 
-    const views = metricEpisodes.reduce(
-      (sum, episode) => sum + episode.viewCount,
-      0n,
-    )
-    const watchSeconds = metricEpisodes.reduce(
-      (sum, episode) => sum + episode.viewCount * BigInt(episode.avgWatchSec),
-      0n,
-    )
+    const views = asBigInt(totals[0]?.views ?? 0)
+    const watchSeconds = asBigInt(totals[0]?.watchSeconds ?? 0)
     const averageViewDurationSec =
       views === 0n ? 0 : Number(watchSeconds / views)
 
@@ -271,7 +268,7 @@ export function getAdminAnalyticsSnapshot(): Promise<AdminAnalyticsSnapshot> {
         views: Number(views),
         watchHours: Number(watchSeconds / 3600n),
         averageViewDurationSec,
-        uniqueViewers: uniqueViewers.length,
+        uniqueViewers: Number(asBigInt(audience[0]?.uniqueViewers ?? 0)),
         viewTrend: 0,
         watchTrend: 0,
         durationTrend: 0,
@@ -301,4 +298,11 @@ export function getAdminAnalyticsSnapshot(): Promise<AdminAnalyticsSnapshot> {
       })),
     }
   })
+}
+
+function asBigInt(value: unknown): bigint {
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'number' && Number.isInteger(value)) return BigInt(value)
+  if (typeof value === 'string' && /^-?\d+$/.test(value)) return BigInt(value)
+  throw new Error('unexpected aggregate')
 }

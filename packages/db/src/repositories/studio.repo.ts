@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 
@@ -266,69 +267,69 @@ export function getStudioSeriesAnalyticsRecord(
     })
     if (series === null) return null
 
-    const [episodes, viewers, completions, seriesViewers, seriesCompletions] =
-      await Promise.all([
-        db.episode.findMany({
-          where: { seriesId, deletedAt: null },
-          orderBy: [
-            { season: { number: 'asc' } },
-            { number: 'asc' },
-            { id: 'asc' },
-          ],
-          select: {
-            id: true,
-            title: true,
-            number: true,
-            status: true,
-            thumbKey: true,
-            durationSec: true,
-            viewCount: true,
-            impressionCount: true,
-            likeCount: true,
-            commentCount: true,
-            shareCount: true,
-            avgWatchSec: true,
-            publishedAt: true,
-            updatedAt: true,
-            season: { select: { number: true, title: true } },
-            asset: { select: { durationSec: true, posterKey: true } },
-          },
-        }),
-        db.watchProgress.groupBy({
-          by: ['episodeId'],
-          where: {
-            episode: { seriesId, deletedAt: null },
-            user: { deletedAt: null, status: 'ACTIVE' },
-          },
-          _count: { _all: true },
-        }),
-        db.watchProgress.groupBy({
-          by: ['episodeId'],
-          where: {
-            completed: true,
-            episode: { seriesId, deletedAt: null },
-            user: { deletedAt: null, status: 'ACTIVE' },
-          },
-          _count: { _all: true },
-        }),
-        db.watchProgress.findMany({
-          where: {
-            episode: { seriesId, deletedAt: null },
-            user: { deletedAt: null, status: 'ACTIVE' },
-          },
-          distinct: ['userId'],
-          select: { userId: true },
-        }),
-        db.watchProgress.findMany({
-          where: {
-            completed: true,
-            episode: { seriesId, deletedAt: null },
-            user: { deletedAt: null, status: 'ACTIVE' },
-          },
-          distinct: ['userId'],
-          select: { userId: true },
-        }),
-      ])
+    const [episodes, viewers, completions, audience] = await Promise.all([
+      db.episode.findMany({
+        where: { seriesId, deletedAt: null },
+        orderBy: [
+          { season: { number: 'asc' } },
+          { number: 'asc' },
+          { id: 'asc' },
+        ],
+        select: {
+          id: true,
+          title: true,
+          number: true,
+          status: true,
+          thumbKey: true,
+          durationSec: true,
+          viewCount: true,
+          impressionCount: true,
+          likeCount: true,
+          commentCount: true,
+          shareCount: true,
+          avgWatchSec: true,
+          publishedAt: true,
+          updatedAt: true,
+          season: { select: { number: true, title: true } },
+          asset: { select: { durationSec: true, posterKey: true } },
+        },
+      }),
+      db.watchProgress.groupBy({
+        by: ['episodeId'],
+        where: {
+          episode: { seriesId, deletedAt: null },
+          user: { deletedAt: null, status: 'ACTIVE' },
+        },
+        _count: { _all: true },
+      }),
+      db.watchProgress.groupBy({
+        by: ['episodeId'],
+        where: {
+          completed: true,
+          episode: { seriesId, deletedAt: null },
+          user: { deletedAt: null, status: 'ACTIVE' },
+        },
+        _count: { _all: true },
+      }),
+      db.$queryRaw<{ uniqueViewers: unknown; completedViewers: unknown }[]>(
+        Prisma.sql`
+          SELECT COUNT(DISTINCT wp.user_id)::bigint AS "uniqueViewers",
+                 COUNT(DISTINCT wp.user_id) FILTER (WHERE wp.completed)::bigint AS "completedViewers"
+          FROM watch_progress wp
+          INNER JOIN episode e ON e.id = wp.episode_id
+          INNER JOIN "user" u ON u.id = wp.user_id
+          WHERE e.series_id = ${seriesId}
+            AND e.deleted_at IS NULL
+            AND u.deleted_at IS NULL
+            AND u.status = 'ACTIVE'::"UserStatus"
+        `,
+      ),
+    ])
+    const audienceRow = audience[0]
+    const uniqueViewers = Number(asBigInt(audienceRow?.uniqueViewers ?? 0))
+    const completedViewers = Number(
+      asBigInt(audienceRow?.completedViewers ?? 0),
+    )
 
     const viewerCounts = new Map(
       viewers.map((row) => [row.episodeId, row._count._all]),
@@ -380,10 +381,17 @@ export function getStudioSeriesAnalyticsRecord(
             0n,
           )
           .toString(),
-        uniqueViewers: seriesViewers.length,
-        completedViewers: seriesCompletions.length,
+        uniqueViewers,
+        completedViewers,
       },
       episodes: mapped,
     }
   })
+}
+
+function asBigInt(value: unknown): bigint {
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'number' && Number.isInteger(value)) return BigInt(value)
+  if (typeof value === 'string' && /^-?\d+$/.test(value)) return BigInt(value)
+  throw new Error('unexpected aggregate')
 }

@@ -711,7 +711,21 @@ model WatchProgress {
 
   @@id([userId, episodeId])
   @@index([userId, updatedAt(sort: Desc)])
+  @@index([episodeId], map: "watch_progress_episode_id_idx")
+  @@index([updatedAt], map: "watch_progress_updated_at_idx")
   @@map("watch_progress")
+}
+
+/// 조회 버퍼를 데이터베이스에 반영했다는 영수증. 같은 토큰은 한 번만 더한다.
+/// 회차가 지워져도 대기 중인 청구가 다시 더해지지 않게 외래 키는 두지 않는다.
+model ViewFlushReceipt {
+  id        String   @id
+  episodeId String   @map("episode_id")
+  amount    BigInt
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt], map: "view_flush_receipt_created_at_idx")
+  @@map("view_flush_receipt")
 }
 
 model Tag {

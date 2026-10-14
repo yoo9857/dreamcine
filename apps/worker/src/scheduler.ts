@@ -15,6 +15,7 @@ export interface SchedulerDependencies {
   readonly register: () => Promise<void>
   readonly refresh: () => Promise<void>
   readonly release: () => Promise<void>
+  readonly closeConnections: () => Promise<void>
 }
 
 export interface FeedRankScheduleRegistrar {
@@ -127,6 +128,7 @@ async function runScheduler(
         if (acquireAttempt !== undefined) await acquireAttempt
         if (leader) await dependencies.release()
         leader = false
+        await dependencies.closeConnections()
       })()
       return closing
     },
@@ -261,5 +263,6 @@ function productionDependencies(): SchedulerDependencies {
       await client.runCommand('aidreamReleaseSchedulerLock', [lockKey, token])
       await closeQueues()
     },
+    closeConnections: () => closeQueues(),
   }
 }

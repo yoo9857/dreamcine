@@ -34,6 +34,7 @@ export interface NotificationFanoutDrainDependencies {
   ) => Promise<NotificationFanoutResult>
   readonly checkpoint: (input: NotificationFanoutInput) => Promise<void>
   readonly pause: () => Promise<void>
+  readonly signal?: AbortSignal
 }
 
 export interface NotificationFanoutDependencies {
@@ -83,6 +84,7 @@ export async function drainNotificationFanout(
   let data = input
   let created = 0
   for (;;) {
+    if (dependencies.signal?.aborted) return { created }
     const result = await dependencies.process(data)
     created += result.created
     if (data.type !== 'NEW_EPISODE' || result.nextCursor === null) {

@@ -17,6 +17,7 @@ function dependencies(leader: boolean): SchedulerDependencies {
     register: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue(undefined),
     release: vi.fn().mockResolvedValue(undefined),
+    closeConnections: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -29,6 +30,7 @@ describe('startScheduler', () => {
     await handle.close()
     await handle.close()
     expect(deps.release).toHaveBeenCalledOnce()
+    expect(deps.closeConnections).toHaveBeenCalledOnce()
   })
 
   it('팔로워는 등록도 락 해제도 하지 않는다', async () => {
@@ -39,6 +41,7 @@ describe('startScheduler', () => {
     expect(deps.register).not.toHaveBeenCalled()
     await handle.close()
     expect(deps.release).not.toHaveBeenCalled()
+    expect(deps.closeConnections).toHaveBeenCalledOnce()
   })
 
   it('리더 락을 갱신하고 abort 신호에서 한 번만 정리한다', async () => {

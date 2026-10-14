@@ -54,6 +54,9 @@ async function runFfmpeg(
   args: readonly string[],
   options: ThumbnailOptions,
 ): Promise<void> {
+  if (options.signal?.aborted) {
+    throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+  }
   const child = spawn(
     options.ffmpegPath ?? process.env.FFMPEG_PATH ?? 'ffmpeg',
     [...args],
@@ -74,11 +77,15 @@ async function runFfmpeg(
   const timeout = setTimeout(terminate, options.timeoutMs ?? 600_000)
   timeout.unref()
   options.signal?.addEventListener('abort', terminate, { once: true })
+  if (options.signal?.aborted) terminate()
   try {
     const code = await new Promise<number | null>((resolve, reject) => {
       child.once('error', reject)
       child.once('close', resolve)
     })
+    if (options.signal?.aborted) {
+      throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+    }
     if (code !== 0) {
       throw new AppError(
         'E_MEDIA_TRANSCODE_FAILED',

@@ -113,6 +113,7 @@ describe('bootstrapWorker', () => {
     await bootstrapWorker()
 
     expect(mocks.workers.map(({ name }) => name)).toEqual([
+      'moderation.maintenance',
       'video.transcode',
       'storage.cleanup',
       'asset.recoverStuck',
@@ -125,26 +126,28 @@ describe('bootstrapWorker', () => {
       'notification.fanout',
       'account.purge',
     ])
-    expect(mocks.workers[0]?.options).toMatchObject({
+    expect(mocks.workers[1]?.options).toMatchObject({
       concurrency: 2,
       settings: { backoffStrategy: transcodeBackoff },
     })
     expect(
-      mocks.workers.slice(1).map(({ options }) => options.concurrency),
-    ).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+      mocks.workers
+        .filter((_, index) => index !== 1)
+        .map(({ options }) => options.concurrency),
+    ).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
   })
 
   it('각 잡을 검증해 해당 처리기로 전달한다', async () => {
     await bootstrapWorker()
 
-    await mocks.workers[0]?.processor({ data: { assetId: 'asset_1' } })
-    await mocks.workers[1]?.processor({ data: { scope: 'staleUploads' } })
-    await mocks.workers[2]?.processor({ data: { olderThanMinutes: 10 } })
-    await mocks.workers[3]?.processor({ data: { dryRun: true } })
-    await mocks.workers[4]?.processor({ data: {} })
-    await mocks.workers[5]?.processor({ data: { assetId: 'asset_2' } })
-    await mocks.workers[6]?.processor({ data: { scope: 'recent' } })
-    await mocks.workers[10]?.processor({ data: { userId: 'user_1' } })
+    await mocks.workers[1]?.processor({ data: { assetId: 'asset_1' } })
+    await mocks.workers[2]?.processor({ data: { scope: 'staleUploads' } })
+    await mocks.workers[3]?.processor({ data: { olderThanMinutes: 10 } })
+    await mocks.workers[4]?.processor({ data: { dryRun: true } })
+    await mocks.workers[5]?.processor({ data: {} })
+    await mocks.workers[6]?.processor({ data: { assetId: 'asset_2' } })
+    await mocks.workers[7]?.processor({ data: { scope: 'recent' } })
+    await mocks.workers[11]?.processor({ data: { userId: 'user_1' } })
 
     const transcodeInput = mocks.transcode.mock.calls[0]?.[0] as {
       assetId: string
@@ -183,12 +186,13 @@ describe('bootstrapWorker', () => {
 
   it('종료는 수신 중단 후 실행 중 잡을 취소하고 워커를 한 번만 닫는다', async () => {
     const runtime = await bootstrapWorker()
-    const transcodeWorker = mocks.workers[0]
+    const transcodeWorker = mocks.workers[1]
     await runtime.close()
     await runtime.close()
 
-    expect(mocks.pause).toHaveBeenCalledTimes(11)
-    expect(mocks.close).toHaveBeenCalledTimes(11)
+    expect(mocks.pause).toHaveBeenCalledTimes(12)
+    expect(mocks.pause).toHaveBeenCalledWith(true)
+    expect(mocks.close).toHaveBeenCalledTimes(12)
     expect(mocks.close).toHaveBeenCalledWith(true)
 
     await transcodeWorker?.processor({ data: { assetId: 'asset_1' } })
@@ -204,7 +208,7 @@ describe('bootstrapWorker', () => {
     const updateData = vi.fn().mockResolvedValue(undefined)
 
     await expect(
-      mocks.workers[9]?.processor({
+      mocks.workers[10]?.processor({
         data: { type: 'NEW_EPISODE', episodeId: 'episode_1' },
         updateData,
       }),

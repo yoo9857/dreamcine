@@ -23,6 +23,7 @@ export interface PutObjectInput {
    * 파일에서 읽는 경우 `stat().size` 가 그 값이다.
    */
   readonly contentLength?: number
+  readonly abortSignal?: AbortSignal
 }
 
 /**
@@ -67,7 +68,15 @@ export async function putObject(
           ? {}
           : { ContentLength: input.contentLength }),
       }),
+      input.abortSignal === undefined
+        ? undefined
+        : { abortSignal: input.abortSignal },
     ),
-  )
+  ).catch((error: unknown) => {
+    if (input.abortSignal?.aborted) {
+      throw new AppError('E_STORAGE_UNAVAILABLE', { reason: 'aborted' }, error)
+    }
+    throw error
+  })
   return { etag: result.ETag ?? '' }
 }

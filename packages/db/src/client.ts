@@ -6,7 +6,7 @@ interface PrismaGlobalCache {
 
 const prismaGlobal = globalThis as typeof globalThis & PrismaGlobalCache
 
-export const db =
+export const db: PrismaClient =
   prismaGlobal.aidreamPrisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],

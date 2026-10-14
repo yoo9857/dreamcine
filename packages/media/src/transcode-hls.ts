@@ -57,12 +57,20 @@ async function runTranscode(
     throw new AppError('E_VALIDATION', { field: 'transcodeOptions' })
   }
 
+  if (options.signal?.aborted) {
+    throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+  }
+
   await mkdir(input.outDir, { recursive: true })
   await Promise.all(
     input.ladder.map((spec) =>
       mkdir(join(input.outDir, spec.name), { recursive: true }),
     ),
   )
+
+  if (options.signal?.aborted) {
+    throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+  }
 
   const child = spawn(
     options.ffmpegPath ?? process.env.FFMPEG_PATH ?? 'ffmpeg',
@@ -117,6 +125,7 @@ async function runTranscode(
     terminate()
   }
   options.signal?.addEventListener('abort', abort, { once: true })
+  if (options.signal?.aborted) abort()
 
   let code: number | null
   try {
@@ -133,6 +142,9 @@ async function runTranscode(
   }
   if (pending !== '') consumeLine(pending)
 
+  if (options.signal?.aborted) {
+    throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+  }
   if (code !== 0) {
     const errorCode = classifyFfmpegError({
       stderr: stderrLines.join('\n'),

@@ -6,6 +6,7 @@ import type {
   ReportTarget,
 } from '@aidream/core'
 import { AppError } from '@aidream/core'
+import { Prisma, type Report as PrismaReport } from '@prisma/client'
 import { db } from '../client.js'
 import { decodeCursor, encodeCursor } from '../cursor.js'
 import { executeDb } from '../errors.js'
@@ -40,16 +41,54 @@ export interface ReportTargetPreview {
   reasonCounts: Partial<Record<ReportReason, number>>
 }
 
-function dateCursor(cursor: string): { createdAt: Date; id: string } {
+function reasonRank(reason: string): number {
+  switch (reason) {
+    case 'MINOR_SAFETY':
+      return 0
+    case 'SEXUAL':
+      return 1
+    case 'COPYRIGHT':
+      return 2
+    default:
+      return 3
+  }
+}
+
+const reasonRankSql = Prisma.sql`CASE r.reason
+  WHEN 'MINOR_SAFETY' THEN 0
+  WHEN 'SEXUAL' THEN 1
+  WHEN 'COPYRIGHT' THEN 2
+  ELSE 3
+END`
+
+function reviewCursor(cursor: string): {
+  priorityRank: number
+  reasonRank: number
+  createdAt: Date
+  id: string
+} {
   const payload = decodeCursor(cursor)
   if (typeof payload.k !== 'string') {
     throw new AppError('E_FEED_INVALID_CURSOR')
   }
-  const createdAt = new Date(payload.k)
-  if (Number.isNaN(createdAt.getTime())) {
+  const [priority, reason, createdAtRaw] = payload.k.split('|')
+  const priorityRank = Number(priority)
+  const rank = Number(reason)
+  const createdAt = new Date(createdAtRaw ?? '')
+  if (
+    (priorityRank !== 0 && priorityRank !== 1) ||
+    !Number.isInteger(rank) ||
+    rank < 0 ||
+    rank > 3 ||
+    Number.isNaN(createdAt.getTime())
+  ) {
     throw new AppError('E_FEED_INVALID_CURSOR')
   }
-  return { createdAt, id: payload.id }
+  return { priorityRank, reasonRank: rank, createdAt, id: payload.id }
+}
+
+function reviewCursorKey(row: PrismaReport): string {
+  return `${row.priorityFlag ? '0' : '1'}|${String(reasonRank(row.reason))}|${row.createdAt.toISOString()}`
 }
 
 export function findReportById(id: string): Promise<Report | null> {
@@ -379,46 +418,72 @@ export function listReportsForReview(options: {
   cursor?: string
 }): Promise<Page<Report>> {
   return executeDb(async () => {
+    if (!Number.isSafeInteger(options.limit) || options.limit < 1) {
+      throw new AppError('E_VALIDATION', { field: 'limit' })
+    }
+    if (options.status !== undefined && options.status.length === 0) {
+      return { items: [], nextCursor: null }
+    }
     const cursor =
-      options.cursor === undefined ? null : dateCursor(options.cursor)
-    const rows = await db.report.findMany({
-      where: {
-        ...(options.status === undefined
-          ? {}
-          : { status: { in: options.status } }),
-      },
-    })
-    const severity = new Map<ReportReason, number>([
-      ['MINOR_SAFETY', 0],
-      ['SEXUAL', 1],
-      ['COPYRIGHT', 2],
-      ['VIOLENCE', 3],
-      ['HATE', 3],
-      ['SPAM', 3],
-      ['OTHER', 3],
-    ])
-    rows.sort((left, right) => {
-      if (left.priorityFlag !== right.priorityFlag)
-        return left.priorityFlag ? -1 : 1
-      const reasonOrder =
-        (severity.get(left.reason) ?? 3) - (severity.get(right.reason) ?? 3)
-      if (reasonOrder !== 0) return reasonOrder
-      const timeOrder = left.createdAt.getTime() - right.createdAt.getTime()
-      return timeOrder === 0 ? left.id.localeCompare(right.id) : timeOrder
-    })
-    const start =
-      cursor === null
-        ? 0
-        : Math.max(0, rows.findIndex((row) => row.id === cursor.id) + 1)
-    const candidates = rows.slice(start, start + options.limit + 1)
-    const hasNext = candidates.length > options.limit
-    const pageRows = hasNext ? candidates.slice(0, options.limit) : candidates
+      options.cursor === undefined ? null : reviewCursor(options.cursor)
+    const rows = await db.$queryRaw<PrismaReport[]>(Prisma.sql`
+      SELECT
+        r.id,
+        r.reporter_id AS "reporterId",
+        r.target,
+        r.target_id AS "targetId",
+        r.reason,
+        r.detail,
+        r.status,
+        r.priority_flag AS "priorityFlag",
+        r.auto_hidden AS "autoHidden",
+        r.handled_by AS "handledBy",
+        r.handled_at AS "handledAt",
+        r.action_note AS "actionNote",
+        r.created_at AS "createdAt"
+      FROM report r
+      WHERE TRUE
+        ${
+          options.status === undefined
+            ? Prisma.empty
+            : Prisma.sql`AND r.status::text IN (${Prisma.join(options.status)})`
+        }
+        ${
+          cursor === null
+            ? Prisma.empty
+            : Prisma.sql`AND (
+                (CASE WHEN r.priority_flag THEN 0 ELSE 1 END),
+                ${reasonRankSql},
+                r.created_at,
+                r.id
+              ) > (
+                ${cursor.priorityRank},
+                ${cursor.reasonRank},
+                ${cursor.createdAt},
+                ${cursor.id}
+              )`
+        }
+      ORDER BY
+        CASE WHEN r.priority_flag THEN 0 ELSE 1 END,
+        ${reasonRankSql},
+        r.created_at,
+        r.id
+      LIMIT ${options.limit + 1}
+    `)
+    const hasNext = rows.length > options.limit
+    const pageRows = (hasNext ? rows.slice(0, options.limit) : rows).map(
+      (row) => ({
+        ...row,
+        createdAt: new Date(row.createdAt),
+        handledAt: row.handledAt === null ? null : new Date(row.handledAt),
+      }),
+    )
     const last = pageRows.at(-1)
     return {
       items: pageRows.map(mapReport),
       nextCursor:
         hasNext && last !== undefined
-          ? encodeCursor({ k: last.createdAt.toISOString(), id: last.id })
+          ? encodeCursor({ k: reviewCursorKey(last), id: last.id })
           : null,
     }
   })

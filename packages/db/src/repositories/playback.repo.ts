@@ -4,6 +4,7 @@ import {
   type AssetStatus,
   type EpisodeStatus,
 } from '@aidream/core'
+import { Prisma } from '@prisma/client'
 import { db } from '../client.js'
 import { executeDb } from '../errors.js'
 
@@ -143,20 +144,36 @@ export function upsertWatchProgress(
           completed: input.completed,
         },
       })
-
-      // 평균 시청률 화면이 기본값 0에 머물지 않도록, 해당 영상의
-      // 사용자별 최신 진행 위치 평균을 에피소드 통계에 반영한다.
-      const aggregate = await tx.watchProgress.aggregate({
-        where: {
-          episodeId: input.episodeId,
-          user: { deletedAt: null, status: 'ACTIVE' },
-        },
-        _avg: { positionSec: true },
-      })
-      await tx.episode.update({
-        where: { id: input.episodeId },
-        data: { avgWatchSec: Math.round(aggregate._avg.positionSec ?? 0) },
-      })
     })
   })
+}
+
+/**
+ * 이어보기 한 건마다 그 영상의 시청 기록을 전부 평균 내지 않는다.
+ * 분 단위 조회수 반영이 이 함수로, 그 사이 바뀐 회차만 한 번에 고친다.
+ */
+export function refreshWatchAveragesSince(since: Date): Promise<number> {
+  return executeDb(() =>
+    db.$executeRaw(Prisma.sql`
+      UPDATE episode AS e
+      SET avg_watch_sec = src.avg_sec
+      FROM (
+        SELECT wp.episode_id,
+               ROUND(AVG(wp.position_sec))::int AS avg_sec
+        FROM watch_progress wp
+        INNER JOIN "user" u ON u.id = wp.user_id
+        WHERE u.deleted_at IS NULL
+          AND u.status = 'ACTIVE'::"UserStatus"
+          AND wp.episode_id IN (
+            SELECT DISTINCT recent.episode_id
+            FROM watch_progress recent
+            WHERE recent.updated_at >= ${since}
+          )
+        GROUP BY wp.episode_id
+      ) AS src
+      WHERE e.id = src.episode_id
+        AND e.deleted_at IS NULL
+        AND e.avg_watch_sec IS DISTINCT FROM src.avg_sec
+    `),
+  )
 }

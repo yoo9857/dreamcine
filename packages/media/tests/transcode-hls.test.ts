@@ -125,6 +125,26 @@ describe('transcodeToHls', () => {
     expect(child?.kill).toHaveBeenNthCalledWith(2, 'SIGKILL')
   })
 
+  it('이미 중단된 신호로는 ffmpeg를 시작하지 않는다', async () => {
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(
+      transcodeToHls(
+        {
+          inputPath: 'input.mp4',
+          outDir: 'out',
+          ladder: buildLadder(1280, 720, ['720p']),
+          rotation: 0,
+        },
+        { durationSec: 10, timeoutMs: 10_000, signal: controller.signal },
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining({ code: 'E_MEDIA_TRANSCODE_FAILED' }),
+    )
+    expect(mocks.spawn).not.toHaveBeenCalled()
+  })
+
   it('잘못된 실행 옵션을 외부 프로세스 전에 거부한다', async () => {
     await expect(
       transcodeToHls(

@@ -35,6 +35,8 @@ export function normalizeRoutePattern(path: string): string {
     users: '[handle]',
     tags: '[tag]',
     reports: '[id]',
+    conversations: '[id]',
+    'creator-applications': '[id]',
   }
   for (let index = 0; index < segments.length - 1; index += 1) {
     const replacement = dynamicParents[segments[index] ?? '']

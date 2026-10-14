@@ -19,3 +19,7 @@ packages/ui/src/tokens/theme.css
 
 # 로컬 작업용 스크래치
 /tmp
+
+# Lighthouse가 생성하는 운영 측정 원본
+output/quality/ilog-production.report.html
+output/quality/ilog-production.report.json

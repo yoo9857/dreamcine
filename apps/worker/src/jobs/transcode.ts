@@ -78,7 +78,11 @@ export interface TranscodeJobDependencies {
     operation: (dir: string) => Promise<T>,
   ) => Promise<T>
   readonly checkDisk: (directory: string, sizeBytes: number) => Promise<void>
-  readonly downloadOriginal: (key: string, destination: string) => Promise<void>
+  readonly downloadOriginal: (
+    key: string,
+    destination: string,
+    signal?: AbortSignal,
+  ) => Promise<void>
   readonly probe: (path: string, signal?: AbortSignal) => Promise<ProbeResult>
   readonly transcode: (
     inputPath: string,
@@ -98,6 +102,7 @@ export interface TranscodeJobDependencies {
     key: string,
     path: string,
     contentType: string,
+    signal?: AbortSignal,
   ) => Promise<void>
   readonly progress: (assetId: string) => Promise<ProgressReporter>
   readonly onProgressError: (error: unknown, assetId: string) => void
@@ -132,6 +137,7 @@ async function uploadArtifacts(
   hls: TranscodeResult,
   thumbs: ThumbnailResult,
   dependencies: TranscodeJobDependencies,
+  signal?: AbortSignal,
 ): Promise<void> {
   const thumbFiles = [
     thumbs.thumbJpegPath,
@@ -152,6 +158,7 @@ async function uploadArtifacts(
       thumbKey(assetId, name),
       path,
       contentType,
+      signal,
     )
   }
 
@@ -166,6 +173,7 @@ async function uploadArtifacts(
         hlsRenditionKey(assetId, rendition.spec.name, name),
         join(directory, name),
         'video/mp2t',
+        signal,
       )
     }
   }
@@ -175,6 +183,7 @@ async function uploadArtifacts(
       hlsRenditionKey(assetId, rendition.spec.name, 'index.m3u8'),
       rendition.playlistPath,
       'application/vnd.apple.mpegurl',
+      signal,
     )
   }
   await dependencies.upload(
@@ -182,6 +191,7 @@ async function uploadArtifacts(
     hlsMasterKey(assetId),
     hls.masterPath,
     'application/vnd.apple.mpegurl',
+    signal,
   )
 }
 
@@ -204,7 +214,11 @@ async function runTranscodeJob(
     await dependencies.workspace(asset.id, async (workspace) => {
       await dependencies.checkDisk(workspace, sizeBytes)
       const inputPath = join(workspace, 'input')
-      await dependencies.downloadOriginal(asset.originalKey, inputPath)
+      await dependencies.downloadOriginal(
+        asset.originalKey,
+        inputPath,
+        input.signal,
+      )
 
       if (asset.status === 'FAILED') {
         asset = await dependencies.updateStatus(asset.id, 'PENDING')
@@ -242,7 +256,7 @@ async function runTranscodeJob(
         probeResult,
         input.signal,
       )
-      await uploadArtifacts(asset.id, hls, thumbs, dependencies)
+      await uploadArtifacts(asset.id, hls, thumbs, dependencies, input.signal)
       await dependencies.finalize({
         assetId: asset.id,
         userId,
@@ -309,9 +323,28 @@ function productionDependencies(): TranscodeJobDependencies {
         },
       }),
     checkDisk,
-    downloadOriginal: async (key, destination) => {
-      const object = await getObjectStream(BUCKET.ORIGINALS, key)
-      await pipeline(object.body, createWriteStream(destination))
+    downloadOriginal: async (key, destination, signal) => {
+      if (signal?.aborted) {
+        throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+      }
+      const object = await getObjectStream(BUCKET.ORIGINALS, key, signal)
+      try {
+        await pipeline(
+          object.body,
+          createWriteStream(destination),
+          signal === undefined ? undefined : { signal },
+        )
+      } catch (error: unknown) {
+        object.body.destroy()
+        if (signal?.aborted) {
+          throw new AppError(
+            'E_MEDIA_TRANSCODE_FAILED',
+            { reason: 'aborted' },
+            error,
+          )
+        }
+        throw error
+      }
     },
     probe: (path, signal) =>
       probe(path, {
@@ -347,7 +380,10 @@ function productionDependencies(): TranscodeJobDependencies {
         ffmpegPath: env.FFMPEG_PATH,
         ...(signal === undefined ? {} : { signal }),
       }),
-    upload: async (bucket, key, path, contentType) => {
+    upload: async (bucket, key, path, contentType, signal) => {
+      if (signal?.aborted) {
+        throw new AppError('E_MEDIA_TRANSCODE_FAILED', { reason: 'aborted' })
+      }
       const size = (await stat(path)).size
       await putObject({
         bucket,
@@ -356,6 +392,7 @@ function productionDependencies(): TranscodeJobDependencies {
         contentType,
         cacheControl: IMMUTABLE_1Y,
         contentLength: size,
+        ...(signal === undefined ? {} : { abortSignal: signal }),
       })
     },
     progress: async (assetId) => {
