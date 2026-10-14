@@ -1096,10 +1096,11 @@
   display: flex;
   align-items: flex-start;
   gap: 11px;
+  margin-left: -6px;
   margin-right: calc(clamp(20px, 2.3vw, 44px) * -1);
-  padding: 4px clamp(20px, 2.3vw, 44px) 8px 0;
+  padding: 12px clamp(20px, 2.3vw, 44px) 14px 6px;
   overflow-x: auto;
-  scroll-padding-inline: 4px;
+  scroll-padding-inline: 6px;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
@@ -1128,7 +1129,7 @@
   background: rgb(3 10 15 / 78%);
   box-shadow: 0 10px 30px rgb(0 0 0 / 26%);
   cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
   opacity: 0;
   transition:
     opacity 160ms ease,
@@ -1147,8 +1148,11 @@
 }
 
 .discovery-shelf-stage:hover .discovery-shelf-arrows button:not(:disabled),
-.discovery-shelf-arrows button:focus-visible {
+.discovery-shelf-stage:focus-within
+  .discovery-shelf-arrows
+  button:not(:disabled) {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .discovery-shelf-arrows button:hover {
@@ -1186,6 +1190,12 @@
   color: white;
 }
 
+.discovery-shelf-card > a:focus-visible {
+  outline: 2px solid var(--discovery-pink-soft);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
 .discovery-shelf-visual {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -1221,15 +1231,15 @@
   transition: transform 380ms ease;
 }
 
-.discovery-shelf-card:hover .discovery-shelf-visual,
+.discovery-shelf-card > a:hover .discovery-shelf-visual,
 .discovery-shelf-card:focus-within .discovery-shelf-visual {
   z-index: 2;
   border-color: rgb(255 80 80 / 50%);
   box-shadow: 0 17px 42px rgb(0 0 0 / 36%);
-  transform: translateY(-4px) scale(1.025);
+  transform: translateY(-4px);
 }
 
-.discovery-shelf-card:hover .discovery-shelf-visual img,
+.discovery-shelf-card > a:hover .discovery-shelf-visual img,
 .discovery-shelf-card:focus-within .discovery-shelf-visual img {
   transform: scale(1.05);
 }
@@ -1254,7 +1264,7 @@
   font-size: 9px;
 }
 
-.discovery-shelf-card:hover .discovery-shelf-play,
+.discovery-shelf-card > a:hover .discovery-shelf-play,
 .discovery-shelf-card:focus-within .discovery-shelf-play {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
