@@ -2,6 +2,9 @@ import type { MetadataRoute } from 'next'
 
 import { absoluteUrlOrNull } from '@/src/lib/site-url'
 
+// APP_URL is supplied at runtime; do not freeze a build without APP_URL.
+export const dynamic = 'force-dynamic'
+
 /**
  * `12_GLOBAL_EXPANSION.md` §4 SEO 게이트가 요구하는 크롤러 계약.
  *
